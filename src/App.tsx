@@ -8,6 +8,7 @@ import BookInteraction from './pages/05_BookInteraction';
 import TrainingEntry from './pages/06_TrainingEntry';
 import GrowthRecord from './pages/07_GrowthRecord';
 import Settings from './pages/08_Settings';
+import EmotionGuess from './pages/09_EmotionGuess';
 
 const App = () => {
   return (
@@ -18,6 +19,7 @@ const App = () => {
       <Route path="/books" element={<BookList />} />
       <Route path="/book-interaction/:bookId" element={<BookInteraction />} />
       <Route path="/training" element={<TrainingEntry />} />
+      <Route path="/emotion-guess" element={<EmotionGuess />} />
       <Route path="/growth" element={<GrowthRecord />} />
       <Route path="/settings" element={<Settings />} />
     </Routes>

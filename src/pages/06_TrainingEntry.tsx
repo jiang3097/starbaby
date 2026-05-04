@@ -67,8 +67,15 @@ const TrainingEntry = () => {
               whileHover={{ scale: 0.98 }}
               whileTap={{ scale: 0.95 }}
               onClick={() => {
-                // TODO: 根据 game.id 跳转到对应训练游戏
-                alert(`即将开启：${game.title}`);
+                if (game.id === 'emotions') {
+                  navigate('/emotion-guess');
+                } else if (game.id === 'finding') {
+                  // TODO: 跳转指令寻物
+                  alert(`即将开启：${game.title}`);
+                } else if (game.id === 'puzzle') {
+                  // TODO: 跳转拼图表达
+                  alert(`即将开启：${game.title}`);
+                }
               }}
               className="cursor-pointer"
             >
