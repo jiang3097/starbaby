@@ -55,6 +55,18 @@ interface UseSpeechReturn {
   stopFollowing: () => void;
 }
 
+// 获取可用的声音列表（处理异步加载）
+function getVoicesSync(): SpeechSynthesisVoice[] {
+  if (!('speechSynthesis' in window)) return [];
+  
+  // Chrome 需要延迟获取声音列表
+  const voices = window.speechSynthesis.getVoices();
+  if (voices.length > 0) return voices;
+  
+  // 如果声音列表为空，等待短暂时间后重试
+  return window.speechSynthesis.getVoices();
+}
+
 export function useSpeech(options: UseSpeechOptions = {}): UseSpeechReturn {
   const {
     lang = 'zh-CN',
@@ -73,6 +85,7 @@ export function useSpeech(options: UseSpeechOptions = {}): UseSpeechReturn {
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
   const followingTextRef = useRef<string>('');
+  const voicesRef = useRef<SpeechSynthesisVoice[]>([]);
 
   // 检查浏览器支持
   const isSpeechSupported = typeof window !== 'undefined' && 
@@ -109,9 +122,9 @@ export function useSpeech(options: UseSpeechOptions = {}): UseSpeechReturn {
         }
       }
 
-      const fullTranscript = finalTranscript || interimTranscript;
+      const fullTranscript = (finalTranscript || interimTranscript).trim();
       setTranscript(fullTranscript);
-      if (onTranscript) {
+      if (fullTranscript && onTranscript) {
         onTranscript(fullTranscript);
       }
     };
@@ -124,9 +137,7 @@ export function useSpeech(options: UseSpeechOptions = {}): UseSpeechReturn {
 
     recognition.onend = () => {
       setIsListening(false);
-      if (state === 'listening') {
-        setState('idle');
-      }
+      setState('idle');
     };
 
     return () => {
@@ -134,7 +145,27 @@ export function useSpeech(options: UseSpeechOptions = {}): UseSpeechReturn {
         recognitionRef.current.abort();
       }
     };
-  }, [lang, onTranscript, state]);
+  }, [lang, isSpeechSupported]);
+
+  // 初始化语音合成声音列表
+  useEffect(() => {
+    if (!('speechSynthesis' in window)) return;
+
+    // 加载声音列表
+    const loadVoices = () => {
+      voicesRef.current = window.speechSynthesis.getVoices();
+    };
+
+    // 立即尝试获取
+    loadVoices();
+
+    // 监听声音列表变化
+    window.speechSynthesis.onvoiceschanged = loadVoices;
+
+    return () => {
+      window.speechSynthesis.onvoiceschanged = null;
+    };
+  }, []);
 
   // 开始语音识别
   const startListening = useCallback(() => {
@@ -164,7 +195,8 @@ export function useSpeech(options: UseSpeechOptions = {}): UseSpeechReturn {
   const speak = useCallback((text: string): Promise<void> => {
     return new Promise((resolve, reject) => {
       if (!('speechSynthesis' in window)) {
-        reject(new Error('Speech synthesis not supported'));
+        console.warn('Speech synthesis not supported');
+        resolve();
         return;
       }
 
@@ -176,20 +208,22 @@ export function useSpeech(options: UseSpeechOptions = {}): UseSpeechReturn {
       utterance.rate = rate;
       utterance.pitch = pitch;
 
-      // 选择指定声音
-      if (voice) {
-        const voices = window.speechSynthesis.getVoices();
-        const selectedVoice = voices.find(v => v.name.includes(voice));
-        if (selectedVoice) {
-          utterance.voice = selectedVoice;
-        }
+      // 获取声音列表
+      let voices = voicesRef.current;
+      if (voices.length === 0) {
+        voices = window.speechSynthesis.getVoices();
       }
 
       // 优先选择中文声音
-      const voices = window.speechSynthesis.getVoices();
-      const chineseVoice = voices.find(v => v.lang.includes('zh'));
-      if (chineseVoice && !voice) {
+      const chineseVoice = voices.find(v => 
+        v.lang.includes('zh') || v.lang.includes('CN') || v.lang.includes('Hans')
+      );
+      
+      if (chineseVoice) {
         utterance.voice = chineseVoice;
+      } else if (voices.length > 0) {
+        // 如果没有中文声音，选择第一个可用的
+        utterance.voice = voices[0];
       }
 
       utterance.onstart = () => {
@@ -207,13 +241,25 @@ export function useSpeech(options: UseSpeechOptions = {}): UseSpeechReturn {
         console.error('Speech synthesis error:', e);
         setIsSpeaking(false);
         setState('idle');
-        reject(e);
+        // 即使出错也resolve，避免阻塞
+        resolve();
       };
 
       utteranceRef.current = utterance;
-      window.speechSynthesis.speak(utterance);
+      
+      // 延迟一小段时间确保浏览器准备好
+      setTimeout(() => {
+        try {
+          window.speechSynthesis.speak(utterance);
+        } catch (e) {
+          console.error('Failed to speak:', e);
+          setIsSpeaking(false);
+          setState('idle');
+          resolve();
+        }
+      }, 50);
     });
-  }, [lang, rate, pitch, voice]);
+  }, [lang, rate, pitch]);
 
   // 停止朗读
   const stopSpeaking = useCallback(() => {
@@ -257,7 +303,6 @@ export function useSpeech(options: UseSpeechOptions = {}): UseSpeechReturn {
     }
     setIsFollowing(false);
     setState('idle');
-    followingTextRef.current = '';
   }, []);
 
   return {
@@ -275,27 +320,15 @@ export function useSpeech(options: UseSpeechOptions = {}): UseSpeechReturn {
   };
 }
 
-// 预加载语音
-export function preloadVoices(): Promise<SpeechSynthesisVoice[]> {
-  return new Promise((resolve) => {
-    if (!('speechSynthesis' in window)) {
-      resolve([]);
-      return;
-    }
-
-    const voices = window.speechSynthesis.getVoices();
-    if (voices.length > 0) {
-      resolve(voices);
-      return;
-    }
-
-    window.speechSynthesis.onvoiceschanged = () => {
-      resolve(window.speechSynthesis.getVoices());
-    };
-
-    // 超时保护
-    setTimeout(() => {
-      resolve(window.speechSynthesis.getVoices());
-    }, 1000);
-  });
+// 预加载语音（确保声音列表加载）
+export function preloadVoices(): void {
+  if (!('speechSynthesis' in window)) return;
+  
+  // 触发声音列表加载
+  window.speechSynthesis.getVoices();
+  
+  // 等待声音列表变化
+  window.speechSynthesis.onvoiceschanged = () => {
+    console.log('Voices loaded:', window.speechSynthesis.getVoices().length);
+  };
 }
