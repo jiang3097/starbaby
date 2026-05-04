@@ -20,15 +20,15 @@ const EMOTIONS = [
 ];
 
 // 精细裁剪的表情卡片数据
-// 每个表情单独裁剪，只保留脸部区域，不含气泡文字
+// 每个表情单独裁剪，只保留脸部区域，不含气泡文字，裁掉底部水印
 const EMOTION_CARDS = [
   // 开心 - 图1左上角，裁剪脸部中央
   { 
     id: 'card_1', 
     emotionId: 'happy', 
     image: IMAGE_1,
-    // 中心在图片左上1/4区域的中间，精细裁剪脸部
-    bgPosition: '22% 32%',  
+    // 中心在图片左上1/4区域的中间，精细裁剪脸部，往上移动避开水印
+    bgPosition: '22% 28%',  
     bgSize: '130%',
     description: '看看这个小朋友，他的表情是怎样的？'
   },
@@ -38,7 +38,7 @@ const EMOTION_CARDS = [
     emotionId: 'sad', 
     image: IMAGE_1,
     // 中心在图片右上1/4区域的中间
-    bgPosition: '78% 32%',  
+    bgPosition: '78% 28%',  
     bgSize: '130%',
     description: '这位小朋友怎么了？你能看出来吗？'
   },
@@ -47,8 +47,8 @@ const EMOTION_CARDS = [
     id: 'card_3', 
     emotionId: 'angry', 
     image: IMAGE_1,
-    // 中心在图片中间偏下
-    bgPosition: '50% 72%',  
+    // 中心在图片中间偏下，往上移动避开水印
+    bgPosition: '50% 65%',  
     bgSize: '140%',
     description: '这个小朋友看起来不太高兴，是什么表情？'
   },
@@ -57,8 +57,8 @@ const EMOTION_CARDS = [
     id: 'card_4', 
     emotionId: 'scared', 
     image: IMAGE_2,
-    // 中心在图片左下1/4区域
-    bgPosition: '18% 78%',  
+    // 中心在图片左下1/4区域，往上移动避开水印
+    bgPosition: '18% 70%',  
     bgSize: '130%',
     description: '这位小朋友好害怕的样子，是什么情绪？'
   },
@@ -67,7 +67,7 @@ const EMOTION_CARDS = [
     id: 'card_5', 
     emotionId: 'happy', 
     image: IMAGE_2,
-    bgPosition: '48% 32%',  
+    bgPosition: '48% 28%',  
     bgSize: '130%',
     description: '看看这张图片，小朋友是什么表情？'
   },
@@ -76,7 +76,8 @@ const EMOTION_CARDS = [
     id: 'card_6', 
     emotionId: 'sad', 
     image: IMAGE_2,
-    bgPosition: '78% 78%',  
+    // 往上移动避开水印
+    bgPosition: '78% 70%',  
     bgSize: '130%',
     description: '这个小朋友看起来有点难过，是什么表情？'
   },
@@ -85,7 +86,7 @@ const EMOTION_CARDS = [
     id: 'card_7', 
     emotionId: 'angry', 
     image: IMAGE_2,
-    bgPosition: '78% 25%',  
+    bgPosition: '78% 22%',  
     bgSize: '140%',
     description: '这位小朋友皱着眉头，是什么表情？'
   },
@@ -94,7 +95,7 @@ const EMOTION_CARDS = [
     id: 'card_8', 
     emotionId: 'scared', 
     image: IMAGE_2,
-    bgPosition: '18% 28%',  
+    bgPosition: '18% 25%',  
     bgSize: '130%',
     description: '看看这张图，小朋友好惊恐的样子？'
   },

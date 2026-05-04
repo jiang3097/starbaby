@@ -49,9 +49,9 @@ const QUESTIONS_DATA = [
     image: IMAGE_2,
     scene: "公园场景",
     question: "公园里的喷泉是什么颜色？",
-    answer: "白色",
+    answer: "蓝色",
     options: ["蓝色", "白色", "灰色"],
-    hint: "喷泉是白色的，在公园中间"
+    hint: "喷泉是蓝色的，在公园中间"
   },
   {
     id: 5,
@@ -95,7 +95,7 @@ const QUESTIONS_DATA = [
     image: IMAGE_3,
     scene: "田野场景",
     question: "图中人物戴的帽子是什么形状？",
-    answer: "斗笠形",
+    answer: "圆形",
     options: ["圆形", "斗笠形", "方形"],
     hint: "帽子是圆圆的，像小碗一样的形状"
   },
@@ -287,12 +287,12 @@ const InstructionFind = () => {
                 initial={{ scale: 0.9, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ type: 'spring', damping: 15 }}
-                className="w-full aspect-[4/3] rounded-[30px] overflow-hidden shadow-2xl shadow-teal-200 border-4 border-white bg-white"
+                className="w-full max-w-md aspect-[4/3] rounded-[24px] overflow-hidden shadow-2xl shadow-teal-200 border-4 border-white bg-slate-100 flex items-center justify-center"
               >
                 <img
                   src={question.image}
                   alt="场景"
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-contain object-top"
                 />
               </motion.div>
 
@@ -443,8 +443,8 @@ const InstructionFind = () => {
             {/* Answer Sheet */}
             <div className="bg-slate-50 rounded-2xl p-4 mb-8 w-full max-w-sm">
               <p className="text-sm font-bold text-slate-600 mb-2">参考答案：</p>
-              <p className="text-xs text-slate-500">1.A 2.B 3.B 4.B 5.B 6.A</p>
-              <p className="text-xs text-slate-500">7.A 8.A 9.B 10.A 11.A 12.A</p>
+              <p className="text-xs text-slate-500">1.A 2.B 3.B 4.A 5.B 6.A</p>
+              <p className="text-xs text-slate-500">7.A 8.A 9.A 10.A 11.A 12.A</p>
             </div>
 
             {/* Buttons */}
