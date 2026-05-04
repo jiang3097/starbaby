@@ -66,6 +66,10 @@ const TrainingEntry = () => {
               key={game.id}
               whileHover={{ scale: 0.98 }}
               whileTap={{ scale: 0.95 }}
+              onClick={() => {
+                // TODO: 根据 game.id 跳转到对应训练游戏
+                alert(`即将开启：${game.title}`);
+              }}
               className="cursor-pointer"
             >
               <Card className={cn(
