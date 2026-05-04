@@ -10,6 +10,7 @@ import GrowthRecord from './pages/07_GrowthRecord';
 import Settings from './pages/08_Settings';
 import EmotionGuess from './pages/09_EmotionGuess';
 import InstructionFind from './pages/10_InstructionFind';
+import PuzzleExpress from './pages/11_PuzzleExpress';
 
 const App = () => {
   return (
@@ -22,6 +23,7 @@ const App = () => {
       <Route path="/training" element={<TrainingEntry />} />
       <Route path="/emotion-guess" element={<EmotionGuess />} />
       <Route path="/instruction-find" element={<InstructionFind />} />
+      <Route path="/puzzle-express" element={<PuzzleExpress />} />
       <Route path="/growth" element={<GrowthRecord />} />
       <Route path="/settings" element={<Settings />} />
     </Routes>

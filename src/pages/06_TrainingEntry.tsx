@@ -72,7 +72,7 @@ const TrainingEntry = () => {
                 } else if (game.id === 'finding') {
                   navigate('/instruction-find');
                 } else if (game.id === 'puzzle') {
-                  alert(`即将开启：${game.title}`);
+                  navigate('/puzzle-express');
                 }
               }}
               className="cursor-pointer"
