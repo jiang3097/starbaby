@@ -159,7 +159,8 @@ function getDifficultyColor(difficulty: string): string {
 const EmotionGuess = () => {
   const navigate = useNavigate();
   const [currentQuestion, setCurrentQuestion] = useState(0);
-  const [questions, setQuestions] = useState(() => shuffleArray([...QUESTIONS_DATA]));
+  // 按顺序出题，不打乱
+  const [questions] = useState(() => [...QUESTIONS_DATA]);
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [showResult, setShowResult] = useState(false);
   const [isCorrect, setIsCorrect] = useState(false);
@@ -219,7 +220,6 @@ const EmotionGuess = () => {
   // 重新开始
   const handleRestart = useCallback(() => {
     setCurrentQuestion(0);
-    setQuestions(shuffleArray([...QUESTIONS_DATA]));
     setSelectedOption(null);
     setShowResult(false);
     setScore(0);

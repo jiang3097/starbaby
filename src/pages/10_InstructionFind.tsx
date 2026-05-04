@@ -139,15 +139,11 @@ function shuffleArray<T>(array: T[]): T[] {
   return newArray;
 }
 
-// 生成题目
-function generateQuestions(count: number) {
-  return shuffleArray(QUESTIONS_DATA).slice(0, count);
-}
-
 const InstructionFind = () => {
   const navigate = useNavigate();
   const [currentQuestion, setCurrentQuestion] = useState(0);
-  const [questions, setQuestions] = useState(() => generateQuestions(12));
+  // 按顺序出题，不打乱
+  const [questions] = useState(() => [...QUESTIONS_DATA]);
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [showResult, setShowResult] = useState(false);
   const [isCorrect, setIsCorrect] = useState(false);
@@ -222,7 +218,6 @@ const InstructionFind = () => {
   // 重新开始
   const handleRestart = useCallback(() => {
     setCurrentQuestion(0);
-    setQuestions(generateQuestions(12));
     setSelectedOption(null);
     setShowResult(false);
     setScore(0);
