@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, CheckCircle2, XCircle, ArrowRight, Trophy, Star, RotateCcw } from 'lucide-react';
@@ -11,85 +11,73 @@ import { speakText, preloadVoices } from '../lib/useSpeech';
 const IMAGE_1 = 'https://code.coze.cn/api/sandbox/coze_coding/file/proxy?expire_time=-1&file_path=assets%2F30162727_104051221105_2.jpg&nonce=97a0a95d-6abb-4b88-8cbb-ea056436771e&project_id=7635954527711035402&sign=339f7c0cbe803d4d9acc8047e122c9969329df7d31bf9ff140fb29541c58a7a0';
 const IMAGE_2 = 'https://code.coze.cn/api/sandbox/coze_coding/file/proxy?expire_time=-1&file_path=assets%2F24585447_145340404104_2.jpg&nonce=4dcf096c-1be5-4b48-b1de-e5b5876220d9&project_id=7635954527711035402&sign=a145e6e5b87923ff31d0a1a36cbf422a002fc61ce2afec538e143aec5d1758e6';
 
-// 四种基本情绪配置
+// 四种基本情绪
 const EMOTIONS = [
-  { 
-    id: 'happy', 
-    name: '开心', 
-    description: '眉毛弯弯，眼睛眯成月牙，嘴角上扬'
-  },
-  { 
-    id: 'sad', 
-    name: '难过', 
-    description: '嘴角下垂，眼泪汪汪，神情低落'
-  },
-  { 
-    id: 'angry', 
-    name: '生气', 
-    description: '眉头紧皱，脸颊发红，很不高兴'
-  },
-  { 
-    id: 'scared', 
-    name: '害怕', 
-    description: '眼睛睁大，脸色发白，很惊恐'
-  }
+  { id: 'happy', name: '开心', description: '眉毛弯弯，眼睛眯成月牙，笑得很开心' },
+  { id: 'sad', name: '难过', description: '嘴角下垂，神情难过，有点伤心' },
+  { id: 'angry', name: '生气', description: '眉头紧皱，脸颊发红，很不高兴' },
+  { id: 'scared', name: '害怕', description: '眼睛睁大，神情惊恐，有点害怕' }
 ];
 
-// 表情卡片数据 - 从真实图片中裁剪
-// 每个表情配置：图片源、背景定位（裁剪区域）、显示尺寸
+// 精细裁剪的表情卡片数据
+// 每个表情单独裁剪，只保留脸部区域，不含气泡文字
 const EMOTION_CARDS = [
-  // 开心 - 图1左上 (约1/3宽, 1/2高)
+  // 开心 - 图1左上角，裁剪脸部中央
   { 
     id: 'card_1', 
     emotionId: 'happy', 
     image: IMAGE_1,
-    bgPosition: '15% 30%',
-    bgSize: '180%',
+    // 中心在图片左上1/4区域的中间，精细裁剪脸部
+    bgPosition: '22% 32%',  
+    bgSize: '130%',
     description: '看看这个小朋友，他的表情是怎样的？'
   },
-  // 难过 - 图1右上 (约2/3宽, 1/2高)
+  // 难过 - 图1右上角
   { 
     id: 'card_2', 
     emotionId: 'sad', 
     image: IMAGE_1,
-    bgPosition: '85% 30%',
-    bgSize: '180%',
+    // 中心在图片右上1/4区域的中间
+    bgPosition: '78% 32%',  
+    bgSize: '130%',
     description: '这位小朋友怎么了？你能看出来吗？'
   },
-  // 生气 - 图1中下 (约1/2宽, 下半部分)
+  // 生气 - 图1中下位置
   { 
     id: 'card_3', 
     emotionId: 'angry', 
     image: IMAGE_1,
-    bgPosition: '50% 80%',
-    bgSize: '180%',
+    // 中心在图片中间偏下
+    bgPosition: '50% 72%',  
+    bgSize: '140%',
     description: '这个小朋友看起来不太高兴，是什么表情？'
   },
-  // 害怕 - 图2左下 (约1/3宽, 下半部分)
+  // 害怕 - 图2左下角
   { 
     id: 'card_4', 
     emotionId: 'scared', 
     image: IMAGE_2,
-    bgPosition: '20% 80%',
-    bgSize: '200%',
-    description: '这位小朋友的表情好害怕的样子，是什么情绪？'
+    // 中心在图片左下1/4区域
+    bgPosition: '18% 78%',  
+    bgSize: '130%',
+    description: '这位小朋友好害怕的样子，是什么情绪？'
   },
-  // 开心 - 图2中上
+  // 开心 - 图2中间
   { 
     id: 'card_5', 
     emotionId: 'happy', 
     image: IMAGE_2,
-    bgPosition: '50% 30%',
-    bgSize: '180%',
+    bgPosition: '48% 32%',  
+    bgSize: '130%',
     description: '看看这张图片，小朋友是什么表情？'
   },
-  // 难过 - 图2右下
+  // 难过 - 图2右侧
   { 
     id: 'card_6', 
     emotionId: 'sad', 
     image: IMAGE_2,
-    bgPosition: '80% 80%',
-    bgSize: '180%',
+    bgPosition: '78% 78%',  
+    bgSize: '130%',
     description: '这个小朋友看起来有点难过，是什么表情？'
   },
   // 生气 - 图2右上
@@ -97,18 +85,18 @@ const EMOTION_CARDS = [
     id: 'card_7', 
     emotionId: 'angry', 
     image: IMAGE_2,
-    bgPosition: '80% 25%',
-    bgSize: '200%',
-    description: '这位小朋友眉毛皱起来了，是什么表情？'
+    bgPosition: '78% 25%',  
+    bgSize: '140%',
+    description: '这位小朋友皱着眉头，是什么表情？'
   },
-  // 害怕 - 备用
+  // 害怕 - 图2左侧
   { 
     id: 'card_8', 
     emotionId: 'scared', 
     image: IMAGE_2,
-    bgPosition: '20% 30%',
-    bgSize: '200%',
-    description: '看看这张图，小朋友的表情好奇怪，是什么情绪？'
+    bgPosition: '18% 28%',  
+    bgSize: '130%',
+    description: '看看这张图，小朋友好惊恐的样子？'
   },
 ];
 
@@ -124,12 +112,10 @@ function shuffleArray<T>(array: T[]): T[] {
 
 // 生成题目
 function generateQuestions() {
-  // 打乱所有卡片
   const shuffledCards = shuffleArray(EMOTION_CARDS);
   
   return shuffledCards.map(card => {
     const targetEmotion = EMOTIONS.find(e => e.id === card.emotionId)!;
-    // 生成3个干扰选项
     const otherEmotions = EMOTIONS.filter(e => e.id !== targetEmotion.id);
     const wrongOptions = shuffleArray(otherEmotions).slice(0, 3);
     const options = shuffleArray([targetEmotion, ...wrongOptions]);
@@ -140,6 +126,17 @@ function generateQuestions() {
       options: options.map(e => ({ id: e.id, name: e.name }))
     };
   });
+}
+
+// 获取情绪对应的颜色
+function getEmotionColor(emotionId: string): string {
+  const colors: Record<string, string> = {
+    happy: '#FFE066',
+    sad: '#74C0FC',
+    angry: '#FF8787',
+    scared: '#B197FC'
+  };
+  return colors[emotionId] || '#f0f0f0';
 }
 
 const EmotionGuess = () => {
@@ -154,10 +151,9 @@ const EmotionGuess = () => {
 
   const question = questions[currentQuestion];
 
-  // 预加载语音和图片
+  // 预加载
   useEffect(() => {
     preloadVoices();
-    // 预加载图片
     [IMAGE_1, IMAGE_2].forEach(src => {
       const img = new Image();
       img.src = src;
@@ -212,17 +208,6 @@ const EmotionGuess = () => {
     setIsFinished(false);
   }, []);
 
-  // 获取选项对应的背景色
-  const getOptionColor = (emotionId: string) => {
-    const colors: Record<string, string> = {
-      happy: '#FFE066',
-      sad: '#74C0FC',
-      angry: '#FF8787',
-      scared: '#B197FC'
-    };
-    return colors[emotionId] || '#f0f0f0';
-  };
-
   return (
     <MobileShell className="bg-gradient-to-b from-purple-50 to-white">
       <AnimatePresence mode="wait">
@@ -265,13 +250,13 @@ const EmotionGuess = () => {
 
             {/* Game Area */}
             <div className="flex-1 p-6 flex flex-col items-center justify-center gap-6">
-              {/* Emotion Card - Real Image */}
+              {/* 精细裁剪的表情卡片 - 方形，圆角 */}
               <motion.div
                 key={currentQuestion}
-                initial={{ scale: 0.8, opacity: 0, rotateY: -90 }}
-                animate={{ scale: 1, opacity: 1, rotateY: 0 }}
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
                 transition={{ type: 'spring', damping: 15 }}
-                className="w-64 h-64 rounded-3xl overflow-hidden shadow-2xl border-4 border-white bg-slate-100"
+                className="w-72 h-72 rounded-3xl overflow-hidden shadow-2xl border-4 border-white bg-slate-200"
               >
                 <div 
                   className="w-full h-full"
@@ -285,19 +270,16 @@ const EmotionGuess = () => {
               </motion.div>
 
               {/* Question */}
-              <div className="text-center">
+              <div className="text-center px-4">
                 <h2 className="text-2xl font-bold text-slate-800 mb-2">这是什么表情？</h2>
-                <p className="text-sm text-slate-500 px-4">
-                  {question.targetEmotion.description}
-                </p>
               </div>
 
               {/* Options - 2x2 Grid */}
-              <div className="w-full grid grid-cols-2 gap-4">
+              <div className="w-full grid grid-cols-2 gap-4 max-w-sm">
                 {question.options.map((option) => {
                   const isSelected = selectedOption === option.id;
                   const isThisCorrect = option.id === question.targetEmotion.id;
-                  const bgColor = getOptionColor(option.id);
+                  const bgColor = getEmotionColor(option.id);
                   
                   let bgClass = 'bg-white border-2 border-slate-200';
                   let textClass = 'text-slate-800';
@@ -322,29 +304,27 @@ const EmotionGuess = () => {
                       onClick={() => handleSelect(option.id)}
                       disabled={showResult}
                       className={cn(
-                        "relative p-4 rounded-2xl transition-all flex flex-col items-center gap-2",
+                        "relative p-4 rounded-2xl transition-all flex items-center gap-3",
                         bgClass,
                         !showResult && "hover:border-purple-300 hover:bg-purple-50"
                       )}
                     >
                       <div 
-                        className="w-14 h-14 rounded-full flex items-center justify-center border-2 border-white shadow-sm"
+                        className="w-12 h-12 rounded-full flex items-center justify-center border-2 border-white shadow-sm"
                         style={{ backgroundColor: bgColor }}
                       >
-                        <span className="text-2xl font-bold text-white drop-shadow-sm">
-                          {option.name.charAt(0)}
-                        </span>
+                        <span className="text-lg font-bold text-white">{option.name.charAt(0)}</span>
                       </div>
                       <span className={cn("font-bold text-lg", textClass)}>{option.name}</span>
                       
                       {showResult && isThisCorrect && (
-                        <div className="absolute -top-2 -right-2 w-8 h-8 bg-emerald-400 rounded-full flex items-center justify-center shadow-lg">
-                          <CheckCircle2 size={20} className="text-white" />
+                        <div className="absolute -top-2 -right-2 w-7 h-7 bg-emerald-400 rounded-full flex items-center justify-center shadow-lg">
+                          <CheckCircle2 size={18} className="text-white" />
                         </div>
                       )}
                       {showResult && isSelected && !isThisCorrect && (
-                        <div className="absolute -top-2 -right-2 w-8 h-8 bg-rose-400 rounded-full flex items-center justify-center shadow-lg">
-                          <XCircle size={20} className="text-white" />
+                        <div className="absolute -top-2 -right-2 w-7 h-7 bg-rose-400 rounded-full flex items-center justify-center shadow-lg">
+                          <XCircle size={18} className="text-white" />
                         </div>
                       )}
                     </motion.button>
@@ -413,7 +393,7 @@ const EmotionGuess = () => {
                 <div key={emotion.id} className="text-center">
                   <div 
                     className="w-14 h-14 rounded-full shadow-md flex items-center justify-center mb-1 border-2 border-white"
-                    style={{ backgroundColor: getOptionColor(emotion.id) }}
+                    style={{ backgroundColor: getEmotionColor(emotion.id) }}
                   >
                     <span className="text-lg font-bold text-white">{emotion.name}</span>
                   </div>
