@@ -53,7 +53,7 @@ const QUESTIONS_DATA = [
     image: IMAGE_3,
     difficulty: '基础',
     question: '图中男生的表情传递的情绪是？',
-    answer: 'C',
+    answer: 'B',
     options: [
       { id: 'A', name: '平静' },
       { id: 'B', name: '愤怒/不满' },
@@ -111,14 +111,14 @@ const QUESTIONS_DATA = [
     image: IMAGE_7,
     difficulty: '挑战',
     question: '图中男生的眼睛为"×"形、嘴巴大张，这个表情在卡通语境中代表？',
-    answer: 'C',
+    answer: 'B',
     options: [
       { id: 'A', name: '打哈欠犯困' },
       { id: 'B', name: '晕倒/失去意识' },
       { id: 'C', name: '大喊大叫' },
       { id: 'D', name: '惊讶' }
     ],
-    hint: '在卡通里×眼睛通常表示很激动'
+    hint: '在卡通里×眼睛通常表示失去意识'
   },
   {
     id: 8,
