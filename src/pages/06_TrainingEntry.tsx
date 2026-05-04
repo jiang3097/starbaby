@@ -70,10 +70,8 @@ const TrainingEntry = () => {
                 if (game.id === 'emotions') {
                   navigate('/emotion-guess');
                 } else if (game.id === 'finding') {
-                  // TODO: 跳转指令寻物
-                  alert(`即将开启：${game.title}`);
+                  navigate('/instruction-find');
                 } else if (game.id === 'puzzle') {
-                  // TODO: 跳转拼图表达
                   alert(`即将开启：${game.title}`);
                 }
               }}
