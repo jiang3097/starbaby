@@ -16,7 +16,7 @@ const App = () => {
       <Route path="/home" element={<Home />} />
       <Route path="/chat" element={<AIChat />} />
       <Route path="/books" element={<BookList />} />
-      <Route path="/book-interaction" element={<BookInteraction />} />
+      <Route path="/book-interaction/:bookId" element={<BookInteraction />} />
       <Route path="/training" element={<TrainingEntry />} />
       <Route path="/growth" element={<GrowthRecord />} />
       <Route path="/settings" element={<Settings />} />

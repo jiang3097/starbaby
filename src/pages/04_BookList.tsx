@@ -93,7 +93,7 @@ const BookList = () => {
             <motion.div
               key={book.id}
               whileTap={book.status !== 'locked' ? { scale: 0.98 } : {}}
-              onClick={() => book.status !== 'locked' && navigate('/book-interaction')}
+              onClick={() => book.status !== 'locked' && navigate(`/book-interaction/${book.id}`)}
             >
               <Card className={cn(
                 "overflow-hidden border-2 rounded-[32px] shadow-sm relative",

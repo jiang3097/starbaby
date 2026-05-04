@@ -1,5 +1,5 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, Volume2, RotateCcw, ArrowRight, CheckCircle2, Trophy, Star, Sparkles, Mic, RefreshCw, Check, VolumeX } from 'lucide-react';
 import MobileShell from '../components/MobileShell';
@@ -9,8 +9,97 @@ import AIChatPanel from '../components/AIChatPanel';
 import VoiceSelector from '../components/VoiceSelector';
 import { speakText, startListening, preloadVoices } from '../lib/useSpeech';
 
+// 绘本数据
+const BOOKS_DATA: Record<number, {
+  title: string;
+  subtitle: string;
+  successText: string;
+  stories: Array<{
+    text: string;
+    highlight: number[];
+    image: string;
+  }>;
+}> = {
+  1: {
+    title: '日常沟通',
+    subtitle: '学会表达你的基本需求',
+    successText: '星宝学会了如何表达日常需求',
+    stories: [
+      {
+        text: "早上好，我想吃早餐。",
+        highlight: [4, 5, 6],
+        image: "https://modao.cc/agent-py/media/generated_images/2026-05-02/5222f2b2a9d94c7a99ee73e2e9faa6a5.jpg#desc=Kitchen%20table%2C%20breakfast%20cereal%2C%20orange%20juice%2C%20morning%20sun"
+      },
+      {
+        text: "请给我一个大大的拥抱。",
+        highlight: [5, 6, 7, 8],
+        image: "https://modao.cc/agent-py/media/generated_images/2026-05-02/35146b02b38b4b2bb235efdb0d6a12fa.jpg#desc=Mom%20hugging%20child%2C%20warm%20colors%2C%20living%20room"
+      },
+      {
+        text: "我可以和你一起玩吗？",
+        highlight: [4, 5, 6, 7],
+        image: "https://modao.cc/agent-py/media/generated_images/2026-05-02/ec30c8d068b4420a9a456a2d2b56deab.jpg#desc=Two%20kids%20playing%20with%20blocks%2C%20sharing%20toys%2C%20smiling"
+      }
+    ]
+  },
+  2: {
+    title: '情绪表达',
+    subtitle: '认识开心、难过和生气',
+    successText: '星宝学会了如何表达自己的情绪',
+    stories: [
+      {
+        text: "我今天很开心，因为妈妈带我去公园玩。",
+        highlight: [3, 4, 5],
+        image: "https://modao.cc/agent-py/media/generated_images/2026-05-02/ba68d8f98ff34703933479aa9dbe851f.jpg#desc=Child%20smiling%20in%20park%2C%20sunny%20day%2C%20happy%20expression"
+      },
+      {
+        text: "我有点难过，小猫咪生病了。",
+        highlight: [3, 4, 5],
+        image: "https://modao.cc/agent-py/media/generated_images/2026-05-02/ba68d8f98ff34703933479aa9dbe851f.jpg#desc=Child%20with%20sad%20face%2C%20looking%20at%20cat%2C%20worried%20expression"
+      },
+      {
+        text: "我生气了，玩具被弄坏了。",
+        highlight: [3, 4, 5],
+        image: "https://modao.cc/agent-py/media/generated_images/2026-05-02/ba68d8f98ff34703933479aa9dbe851f.jpg#desc=Child%20with%20angry%20face%2C%20broken%20toy%2C%20frustrated"
+      }
+    ]
+  },
+  3: {
+    title: '求助场景',
+    subtitle: '遇到困难时如何开口',
+    successText: '星宝学会了如何向他人寻求帮助',
+    stories: [
+      {
+        text: "我迷路了，请问你能帮我找妈妈吗？",
+        highlight: [9, 10, 11, 12],
+        image: "https://modao.cc/agent-py/media/generated_images/2026-05-02/7e38337d73b549ada55dfddf80cc62a9.jpg#desc=Child%20lost%20in%20park%2C%20asking%20for%20help%2C%20worried"
+      },
+      {
+        text: "我够不到水杯，你能帮我拿一下吗？",
+        highlight: [5, 6, 7, 8],
+        image: "https://modao.cc/agent-py/media/generated_images/2026-05-02/7e38337d73b549ada55dfddf80cc62a9.jpg#desc=Child%20trying%20to%20reach%20cup%2C%20asking%20for%20help%2C%20pointing"
+      },
+      {
+        text: "我不会做这道题，可以教教我吗？",
+        highlight: [5, 6, 7],
+        image: "https://modao.cc/agent-py/media/generated_images/2026-05-02/7e38337d73b549ada55dfddf80cc62a9.jpg#desc=Child%20doing%20homework%2C%20asking%20for%20help%2C%20teacher%20or%20parent%20helping"
+      }
+    ]
+  }
+};
+
 const BookInteraction = () => {
   const navigate = useNavigate();
+  const { bookId } = useParams<{ bookId: string }>();
+  
+  // 解析 bookId
+  const currentBookId = useMemo(() => {
+    const id = parseInt(bookId || '1', 10);
+    return Math.min(Math.max(id, 1), 3);
+  }, [bookId]);
+
+  const bookData = BOOKS_DATA[currentBookId] || BOOKS_DATA[1];
+  
   const [currentPage, setCurrentPage] = useState(0);
   const [isFinished, setIsFinished] = useState(false);
   const [isAIChatOpen, setIsAIChatOpen] = useState(false);
@@ -26,23 +115,7 @@ const BookInteraction = () => {
   
   const stopListeningRef = useRef<(() => void) | null>(null);
 
-  const story = [
-    {
-      text: "早上好，我想吃早餐。",
-      highlight: [4, 5, 6],
-      image: "https://modao.cc/agent-py/media/generated_images/2026-05-02/5222f2b2a9d94c7a99ee73e2e9faa6a5.jpg#desc=Kitchen%20table%2C%20breakfast%20cereal%2C%20orange%20juice%2C%20morning%20sun"
-    },
-    {
-      text: "请给我一个大大的拥抱。",
-      highlight: [5, 6, 7, 8],
-      image: "https://modao.cc/agent-py/media/generated_images/2026-05-02/35146b02b38b4b2bb235efdb0d6a12fa.jpg#desc=Mom%20hugging%20child%2C%20warm%20colors%2C%20living%20room"
-    },
-    {
-      text: "我可以和你一起玩吗？",
-      highlight: [4, 5, 6, 7],
-      image: "https://modao.cc/agent-py/media/generated_images/2026-05-02/ec30c8d068b4420a9a456a2d2b56deab.jpg#desc=Two%20kids%20playing%20with%20blocks%2C%20sharing%20toys%2C%20smiling"
-    }
-  ];
+  const story = bookData.stories;
 
   // 预加载语音
   useEffect(() => {
@@ -65,7 +138,7 @@ const BookInteraction = () => {
     speakText(text, () => {}, () => {
       setIsPlaying(false);
     });
-  }, [currentPage]);
+  }, [currentPage, story]);
 
   // 重读
   const handleReplay = useCallback(() => {
@@ -93,7 +166,7 @@ const BookInteraction = () => {
         }
       );
     });
-  }, [currentPage]);
+  }, [currentPage, story]);
 
   // 停止跟读
   const handleStopFollowing = useCallback(() => {
@@ -119,7 +192,6 @@ const BookInteraction = () => {
 
   // 下一题
   const handleNext = () => {
-    // 如果在跟读模式，先退出
     if (isFollowing) {
       handleStopFollowing();
     }
@@ -145,21 +217,24 @@ const BookInteraction = () => {
             {/* Header */}
             <div className="px-6 pt-4 flex items-center justify-between pb-2">
               <button 
-                onClick={() => navigate(-1)}
+                onClick={() => navigate('/books')}
                 className="w-12 h-12 bg-slate-50 rounded-full flex items-center justify-center text-slate-400"
               >
                 <ChevronLeft size={28} />
               </button>
-              <div className="flex gap-2">
-                {story.map((_, i) => (
-                  <div 
-                    key={i} 
-                    className={cn(
-                      "h-2 rounded-full transition-all duration-300",
-                      i === currentPage ? "w-8 bg-amber-400" : "w-2 bg-slate-100"
-                    )} 
-                  />
-                ))}
+              <div className="flex flex-col items-center">
+                <span className="text-sm font-bold text-amber-600">{bookData.title}</span>
+                <div className="flex gap-1.5 mt-1">
+                  {story.map((_, i) => (
+                    <div 
+                      key={i} 
+                      className={cn(
+                        "h-2 rounded-full transition-all duration-300",
+                        i === currentPage ? "w-6 bg-amber-400" : "w-2 bg-slate-200"
+                      )} 
+                    />
+                  ))}
+                </div>
               </div>
               <div className="flex gap-2">
                 <button 
@@ -259,7 +334,7 @@ const BookInteraction = () => {
                 </button>
                 
                 {/* Sentence */}
-                <h2 className="text-3xl font-bold text-slate-800 leading-relaxed px-4">
+                <h2 className="text-2xl md:text-3xl font-bold text-slate-800 leading-relaxed px-2">
                   {story[currentPage].text.split('').map((char, i) => (
                     <span 
                       key={i} 
@@ -327,14 +402,15 @@ const BookInteraction = () => {
             </div>
             
             <h1 className="text-4xl font-bold text-slate-800 mb-2">真棒！</h1>
-            <p className="text-lg text-slate-500 mb-12">星宝学会了如何寻求帮助</p>
+            <p className="text-lg text-slate-500 mb-4">{bookData.successText}</p>
+            <p className="text-sm text-amber-500 mb-12">获得 1 颗星星奖励</p>
             
             <div className="space-y-4 w-full px-4">
               <Button 
                 onClick={() => navigate('/books')}
                 className="w-full h-20 rounded-[30px] bg-amber-400 hover:bg-amber-500 text-white font-bold text-xl shadow-lg border-none"
               >
-                领取星星奖励
+                继续闯关
               </Button>
               <Button 
                 variant="ghost"
@@ -352,8 +428,8 @@ const BookInteraction = () => {
       <AIChatPanel 
         isOpen={isAIChatOpen} 
         onClose={() => setIsAIChatOpen(false)} 
-        title="星宝AI助手"
-        context="日常沟通"
+        title={`星宝AI助手 - ${bookData.title}`}
+        context={bookData.title}
       />
 
       {/* Voice Selector */}
