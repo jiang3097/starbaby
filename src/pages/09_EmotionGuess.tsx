@@ -7,35 +7,39 @@ import { Button } from '../components/ui/button';
 import { cn } from '../lib/utils';
 import { speakText, preloadVoices } from '../lib/useSpeech';
 
-// 四种基本情绪
+// 四种基本情绪 - 使用 emoji 风格的卡通背景
 const EMOTIONS = [
   { 
     id: 'happy', 
     name: '开心', 
-    emoji: '😊',
     description: '眉毛弯弯，眼睛眯成月牙',
-    image: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400&h=400&fit=crop&crop=face'
+    // 黄色背景 + 开心 emoji
+    bgColor: '#FFE066',
+    emojiChar: '😊'
   },
   { 
     id: 'sad', 
     name: '难过', 
-    emoji: '😢',
     description: '嘴角下垂，眼泪汪汪',
-    image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop&crop=face'
+    // 蓝色背景 + 难过 emoji
+    bgColor: '#74C0FC',
+    emojiChar: '😢'
   },
   { 
     id: 'angry', 
     name: '生气', 
-    emoji: '😠',
     description: '眉头紧皱，脸颊发红',
-    image: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=400&h=400&fit=crop&crop=face'
+    // 红色背景 + 生气 emoji
+    bgColor: '#FF8787',
+    emojiChar: '😠'
   },
   { 
     id: 'scared', 
     name: '害怕', 
-    emoji: '😨',
     description: '眼睛睁大，脸色发白',
-    image: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400&h=400&fit=crop&crop=face'
+    // 紫色背景 + 害怕 emoji
+    bgColor: '#B197FC',
+    emojiChar: '😨'
   }
 ];
 
@@ -59,7 +63,7 @@ function generateQuestions(count: number) {
     
     return {
       targetEmotion: emotion,
-      options: options.map(e => ({ id: e.id, name: e.name, emoji: e.emoji }))
+      options: options.map(e => ({ id: e.id, name: e.name, emojiChar: e.emojiChar, bgColor: e.bgColor }))
     };
   });
 }
@@ -171,19 +175,16 @@ const EmotionGuess = () => {
 
             {/* Game Area */}
             <div className="flex-1 p-6 flex flex-col items-center justify-center gap-6">
-              {/* Emotion Image */}
+              {/* Emotion Card - Emoji Style */}
               <motion.div
                 key={currentQuestion}
                 initial={{ scale: 0.8, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ type: 'spring', damping: 15 }}
-                className="w-48 h-48 rounded-full overflow-hidden shadow-2xl shadow-purple-200 border-8 border-white bg-white"
+                className="w-56 h-56 rounded-full flex items-center justify-center shadow-2xl border-8 border-white"
+                style={{ backgroundColor: question.targetEmotion.bgColor }}
               >
-                <img
-                  src={question.targetEmotion.image}
-                  alt="表情"
-                  className="w-full h-full object-cover"
-                />
+                <span className="text-8xl">{question.targetEmotion.emojiChar}</span>
               </motion.div>
 
               {/* Question */}
@@ -199,6 +200,7 @@ const EmotionGuess = () => {
                 {question.options.map((option, index) => {
                   const isSelected = selectedOption === option.id;
                   const isThisCorrect = option.id === question.targetEmotion.id;
+                  const optionEmotion = EMOTIONS.find(e => e.id === option.id);
                   
                   let bgClass = 'bg-white border-2 border-slate-200';
                   let textClass = 'text-slate-800';
@@ -228,7 +230,12 @@ const EmotionGuess = () => {
                         !showResult && "hover:border-purple-300 hover:bg-purple-50"
                       )}
                     >
-                      <span className="text-5xl">{option.emoji}</span>
+                      <div 
+                        className="w-16 h-16 rounded-full flex items-center justify-center border-2 border-white shadow-sm"
+                        style={{ backgroundColor: optionEmotion?.bgColor || '#f0f0f0' }}
+                      >
+                        <span className="text-4xl">{optionEmotion?.emojiChar}</span>
+                      </div>
                       <span className={cn("font-bold text-xl", textClass)}>{option.name}</span>
                       
                       {showResult && isThisCorrect && (
@@ -305,8 +312,11 @@ const EmotionGuess = () => {
             <div className="flex gap-4 mb-8">
               {EMOTIONS.map(emotion => (
                 <div key={emotion.id} className="text-center">
-                  <div className="w-14 h-14 bg-white rounded-full shadow-md flex items-center justify-center mb-1">
-                    <span className="text-2xl">{emotion.emoji}</span>
+                  <div 
+                    className="w-14 h-14 rounded-full shadow-md flex items-center justify-center mb-1 border-2 border-white"
+                    style={{ backgroundColor: emotion.bgColor }}
+                  >
+                    <span className="text-2xl">{emotion.emojiChar}</span>
                   </div>
                   <p className="text-xs text-slate-500">{emotion.name}</p>
                 </div>
