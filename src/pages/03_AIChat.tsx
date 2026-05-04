@@ -1,49 +1,31 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, Mic, Volume2, Sparkles, Send, RefreshCw, Check, VolumeX } from 'lucide-react';
+import { ChevronLeft, Mic, Volume2, Send, RefreshCw, Check, VolumeX } from 'lucide-react';
 import MobileShell from '../components/MobileShell';
-import { Button } from '../components/ui/button';
 import { cn } from '../lib/utils';
-import { useSpeech, preloadVoices } from '../lib/useSpeech';
+import { speakText, startListening, preloadVoices } from '../lib/useSpeech';
 
 interface Message {
   id: number;
   type: 'bot' | 'user';
   text: string;
-  audio?: boolean;
   followingText?: string;
 }
 
 const AIChat = () => {
   const navigate = useNavigate();
   const [messages, setMessages] = useState<Message[]>([
-    { id: 1, type: 'bot', text: '你好呀，星宝！今天心情怎么样？', audio: true },
+    { id: 1, type: 'bot', text: '你好呀，星宝！今天心情怎么样？' },
   ]);
-  const [currentBotMessage, setCurrentBotMessage] = useState<Message | null>(null);
+  const [isListening, setIsListening] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [currentFollowingText, setCurrentFollowingText] = useState('');
+  const [userSpeakingText, setUserSpeakingText] = useState('');
+  
+  const stopListeningFnRef = useRef<(() => void) | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
-
-  const {
-    state: speechState,
-    transcript,
-    isListening,
-    isSpeaking,
-    isFollowing,
-    startListening,
-    stopListening,
-    speak,
-    stopSpeaking,
-    startFollowing,
-    stopFollowing,
-  } = useSpeech({
-    lang: 'zh-CN',
-    rate: 0.85,
-    onTranscript: (text) => {
-      if (text && speechState === 'listening') {
-        handleVoiceInput(text);
-      }
-    }
-  });
 
   // 预加载语音
   useEffect(() => {
@@ -55,24 +37,21 @@ const AIChat = () => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [messages, currentBotMessage]);
+  }, [messages, isFollowing]);
 
   const quickPhrases = ['我开心', '我要喝水', '我想玩球', '抱抱我'];
 
-  // 处理语音输入
-  const handleVoiceInput = useCallback((text: string) => {
-    if (!text.trim()) return;
-    
-    stopListening();
-    
-    const newMessage: Message = { id: Date.now(), type: 'user', text };
-    setMessages([...messages, newMessage]);
-    
+  // 处理发送消息
+  const handleSend = useCallback((text: string) => {
+    // 添加用户消息
+    const userMsg: Message = { id: Date.now(), type: 'user', text };
+    setMessages(prev => [...prev, userMsg]);
+
     // AI 响应
     setTimeout(() => {
       let reply = '听到你这么说真棒！';
-      let needsFollowing = false;
-      
+      let followingText: string | undefined;
+
       if (text === '我要喝水') {
         reply = '好哒，我们去拿杯子喝水吧！';
       } else if (text === '我开心') {
@@ -81,98 +60,110 @@ const AIChat = () => {
         reply = '玩球真有趣！你会拍球吗？我们一起练习吧！';
       } else if (text === '抱抱我') {
         reply = '给你一个大大的拥抱！抱抱可以让人感觉温暖和安全哦。';
-        needsFollowing = true;
+        followingText = '抱抱';
       }
 
       const botMsg: Message = { 
         id: Date.now() + 1, 
         type: 'bot', 
-        text: reply, 
-        audio: true,
-        followingText: needsFollowing ? reply.split('！')[0] + '！' : undefined
+        text: reply,
+        followingText
       };
       
       setMessages(prev => [...prev, botMsg]);
-      
-      if (needsFollowing) {
-        speak(reply).then(() => {
-          setCurrentBotMessage(botMsg);
-        });
-      }
-    }, 1000);
-  }, [messages, stopListening, speak]);
 
-  const handleSend = (text: string) => {
-    const newMessage: Message = { id: Date.now(), type: 'user', text };
-    setMessages([...messages, newMessage]);
-    
-    // AI 响应
-    setTimeout(() => {
-      let reply = '听到你这么说真棒！';
-      let needsFollowing = false;
-      
-      if (text === '我要喝水') {
-        reply = '好哒，我们去拿杯子喝水吧！';
-      } else if (text === '我开心') {
-        reply = '太棒了！开心的时候可以做什么呢？要不要一起唱首歌？';
-      } else if (text === '我想玩球') {
-        reply = '玩球真有趣！你会拍球吗？我们一起练习吧！';
-      } else if (text === '抱抱我') {
-        reply = '给你一个大大的拥抱！抱抱可以让人感觉温暖和安全哦。';
-        needsFollowing = true;
-      }
+      // AI 自动朗读回复
+      speakText(reply);
+    }, 800);
+  }, []);
 
-      const botMsg: Message = { 
-        id: Date.now() + 1, 
-        type: 'bot', 
-        text: reply, 
-        audio: true,
-        followingText: needsFollowing ? reply.split('！')[0] + '！' : undefined
-      };
-      
-      setMessages(prev => [...prev, botMsg]);
-      
-      if (needsFollowing) {
-        speak(reply).then(() => {
-          setCurrentBotMessage(botMsg);
-        });
+  // 点击麦克风开始说话
+  const handleMicClick = () => {
+    if (isListening) {
+      // 停止录音
+      if (stopListeningFnRef.current) {
+        stopListeningFnRef.current();
+        stopListeningFnRef.current = null;
       }
-    }, 1000);
+      setIsListening(false);
+    } else {
+      // 开始录音
+      setIsListening(true);
+      setUserSpeakingText('');
+
+      stopListeningFnRef.current = startListening(
+        (text) => {
+          // 识别成功，发送消息
+          setIsListening(false);
+          handleSend(text);
+        },
+        (error) => {
+          console.error('Voice input error:', error);
+          setIsListening(false);
+        }
+      );
+    }
+  };
+
+  // 朗读按钮
+  const handleReadAloud = (text: string) => {
+    setIsSpeaking(true);
+    speakText(text, () => {
+      setIsSpeaking(false);
+    });
   };
 
   // 开始跟读
-  const handleStartFollowing = useCallback((text: string) => {
-    setCurrentBotMessage(null);
-    startFollowing(text);
-  }, [startFollowing]);
+  const handleStartFollowing = (text: string) => {
+    setIsFollowing(true);
+    setCurrentFollowingText(text);
+    setUserSpeakingText('');
+
+    // AI 先读一遍
+    speakText(text, () => {
+      // 读完后开始监听用户跟读
+      stopListeningFnRef.current = startListening(
+        (spokenText) => {
+          setUserSpeakingText(spokenText);
+        },
+        () => {
+          // 识别结束但不关闭面板
+        }
+      );
+    });
+  };
 
   // 停止跟读
-  const handleStopFollowing = useCallback(() => {
-    stopFollowing();
-    setCurrentBotMessage(null);
-  }, [stopFollowing]);
+  const handleStopFollowing = () => {
+    if (stopListeningFnRef.current) {
+      stopListeningFnRef.current();
+      stopListeningFnRef.current = null;
+    }
+    setIsFollowing(false);
+    setCurrentFollowingText('');
+    setUserSpeakingText('');
+  };
 
-  // 处理跟读完成
-  const handleFollowingComplete = useCallback(() => {
-    stopFollowing();
-    setCurrentBotMessage(null);
+  // 完成跟读
+  const handleCompleteFollowing = () => {
+    handleStopFollowing();
+    // 鼓励消息
     const encourageMsg: Message = {
       id: Date.now(),
       type: 'bot',
-      text: '太棒了！说得真好听，继续加油！',
-      audio: true
+      text: '太棒了！你说得真好听，继续加油！'
     };
     setMessages(prev => [...prev, encourageMsg]);
-    speak('太棒了！说得真好听，继续加油！');
-  }, [stopFollowing, speak]);
+    speakText('太棒了！你说得真好听，继续加油！');
+  };
 
-  // 处理麦克风按钮点击
-  const handleMicClick = () => {
-    if (isListening) {
-      stopListening();
-    } else {
-      startListening();
+  // 再听一遍
+  const handleReplay = () => {
+    if (stopListeningFnRef.current) {
+      stopListeningFnRef.current();
+      stopListeningFnRef.current = null;
     }
+    handleStartFollowing(currentFollowingText);
   };
 
   return (
@@ -194,58 +185,59 @@ const AIChat = () => {
             />
           </div>
           <span className="text-[10px] font-bold text-sky-500 mt-0.5">
-            {isSpeaking ? '正在朗读...' : isFollowing ? '请跟读' : isListening ? '正在听...' : '正在倾听...'}
+            {isSpeaking ? '正在朗读...' : isFollowing ? '请跟读' : isListening ? '正在听你说...' : '正在倾听...'}
           </span>
         </div>
-        <div className="w-12" /> {/* Spacer */}
+        <div className="w-12" />
       </div>
 
       {/* Following Mode Banner */}
       <AnimatePresence>
-        {isFollowing && currentBotMessage && (
+        {isFollowing && (
           <motion.div
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            className="bg-sky-50 px-6 py-3 border-b border-sky-100"
+            className="bg-sky-50 px-6 py-4 border-b border-sky-100"
           >
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-sky-200 flex items-center justify-center">
-                  <Volume2 size={16} className="text-sky-600" />
+                <div className="w-10 h-10 rounded-full bg-sky-200 flex items-center justify-center">
+                  <Volume2 size={20} className="text-sky-600" />
                 </div>
                 <div>
                   <p className="text-xs text-sky-600 font-medium">请跟读</p>
-                  <p className="text-sm font-bold text-sky-800">{currentBotMessage.followingText}</p>
+                  <p className="text-lg font-bold text-sky-800">{currentFollowingText}</p>
                 </div>
               </div>
               <button
                 onClick={handleStopFollowing}
                 className="p-2 text-sky-400 hover:text-sky-600"
               >
-                <VolumeX size={20} />
+                <VolumeX size={24} />
               </button>
             </div>
             
-            {/* User's following result */}
-            <div className="mt-3 bg-white rounded-xl p-3 border border-sky-200">
+            {/* User's speech result */}
+            <div className="bg-white rounded-xl p-4 border border-sky-200 mb-3">
               <p className="text-xs text-slate-500 mb-1">你说的</p>
-              <p className={`text-sm font-medium ${transcript ? 'text-slate-800' : 'text-slate-400'}`}>
-                {transcript || '...'}
+              <p className={`text-base font-medium ${userSpeakingText ? 'text-slate-800' : 'text-slate-400'}`}>
+                {userSpeakingText || '请跟着朗读上方文字...'}
               </p>
             </div>
             
-            {/* Confirm button */}
-            <div className="mt-3 flex gap-2">
+            {/* Action buttons */}
+            <div className="flex gap-2">
               <button
-                onClick={handleStopFollowing}
-                className="flex-1 py-2 rounded-full border border-sky-300 text-sky-600 text-sm font-bold"
+                onClick={handleReplay}
+                className="flex-1 py-3 rounded-full border-2 border-sky-300 text-sky-600 text-sm font-bold flex items-center justify-center gap-2"
               >
+                <RefreshCw size={16} />
                 再听一遍
               </button>
               <button
-                onClick={handleFollowingComplete}
-                className="flex-1 py-2 rounded-full bg-sky-500 text-white text-sm font-bold flex items-center justify-center gap-1"
+                onClick={handleCompleteFollowing}
+                className="flex-1 py-3 rounded-full bg-sky-500 text-white text-sm font-bold flex items-center justify-center gap-2"
               >
                 <Check size={16} />
                 完成跟读
@@ -282,16 +274,17 @@ const AIChat = () => {
             )}>
               <p className="text-base font-medium leading-relaxed">{msg.text}</p>
               
-              {/* Audio controls for bot messages */}
-              {msg.audio && msg.type === 'bot' && (
+              {/* Bot message controls */}
+              {msg.type === 'bot' && (
                 <div className="mt-2 flex items-center gap-3">
                   <button
-                    onClick={() => msg.followingText && speak(msg.text)}
+                    onClick={() => handleReadAloud(msg.text!)}
                     className={cn(
-                      "flex items-center gap-1.5 text-xs transition-all",
-                      isSpeaking ? "text-sky-400" : "text-sky-300 hover:text-sky-500"
+                      "flex items-center gap-1.5 text-xs px-2 py-1 rounded-full transition-all",
+                      isSpeaking 
+                        ? "bg-sky-100 text-sky-400" 
+                        : "bg-sky-50 text-sky-500 hover:bg-sky-100"
                     )}
-                    disabled={isSpeaking}
                   >
                     <Volume2 size={14} className={isSpeaking ? 'animate-pulse' : ''} />
                     <span>朗读</span>
@@ -299,8 +292,8 @@ const AIChat = () => {
                   
                   {msg.followingText && (
                     <button
-                      onClick={() => msg.followingText && handleStartFollowing(msg.followingText)}
-                      className="flex items-center gap-1.5 text-xs text-sky-300 hover:text-sky-500 transition-all"
+                      onClick={() => msg.followingText && handleStartFollowing(msg.followingText!)}
+                      className="flex items-center gap-1.5 text-xs px-2 py-1 rounded-full bg-sky-50 text-sky-500 hover:bg-sky-100 transition-all"
                     >
                       <RefreshCw size={14} />
                       <span>跟读</span>
@@ -308,34 +301,9 @@ const AIChat = () => {
                   )}
                 </div>
               )}
-              
-              {/* Audio indicator for user messages */}
-              {msg.audio && msg.type === 'user' && (
-                <div className="mt-2 flex items-center gap-1.5 text-white/70">
-                  <Mic size={14} />
-                  <span className="text-xs">你说的话</span>
-                </div>
-              )}
             </div>
           </motion.div>
         ))}
-
-        {/* Current bot message being processed */}
-        {currentBotMessage && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9, y: 10 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            className="flex items-end gap-2 max-w-[85%] self-start"
-          >
-            <div className="bg-white text-slate-700 rounded-[28px] rounded-bl-none shadow-sm p-4">
-              <p className="text-base font-medium leading-relaxed">{currentBotMessage.text}</p>
-              <div className="mt-2 flex items-center gap-2 text-sky-400">
-                <Volume2 size={14} className="animate-pulse" />
-                <span className="text-xs">正在朗读...</span>
-              </div>
-            </div>
-          </motion.div>
-        )}
       </div>
 
       {/* Input Area */}
@@ -353,7 +321,7 @@ const AIChat = () => {
           ))}
         </div>
 
-        {/* Big Voice Button */}
+        {/* Voice Button */}
         <div className="flex items-center justify-center py-4">
           <motion.button
             whileTap={{ scale: 0.9 }}
@@ -386,9 +354,9 @@ const AIChat = () => {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 10 }}
-              className="flex items-center justify-center gap-2 py-2"
+              className="flex items-center justify-center gap-3 py-2"
             >
-              <div className="flex gap-0.5">
+              <div className="flex gap-1">
                 {[1, 2, 3, 4].map(i => (
                   <motion.div
                     key={i}
@@ -398,17 +366,17 @@ const AIChat = () => {
                       duration: 0.6, 
                       delay: i * 0.1 
                     }}
-                    className="w-1 h-4 bg-rose-400 rounded-full"
+                    className="w-1.5 h-5 bg-rose-400 rounded-full"
                   />
                 ))}
               </div>
-              <span className="text-sm text-rose-500 font-medium">正在听你说...</span>
+              <span className="text-base text-rose-500 font-bold">正在听你说...</span>
             </motion.div>
           )}
         </AnimatePresence>
 
         <p className="text-center text-slate-400 text-sm font-medium">
-          {isListening ? '请说话...' : '长按说话，我也想听你的声音'}
+          {isListening ? '请说话，说完我会帮你发送' : '点击麦克风，说出你想说的话'}
         </p>
       </div>
     </MobileShell>
