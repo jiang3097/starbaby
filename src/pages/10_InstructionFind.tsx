@@ -1,61 +1,131 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, CheckCircle2, XCircle, ArrowRight, Trophy, Star, RotateCcw, Mic, Volume2 } from 'lucide-react';
+import { ChevronLeft, CheckCircle2, XCircle, ArrowRight, Trophy, Star, RotateCcw, Volume2 } from 'lucide-react';
 import MobileShell from '../components/MobileShell';
 import { Button } from '../components/ui/button';
 import { cn } from '../lib/utils';
 import { speakText, preloadVoices } from '../lib/useSpeech';
 
-// 题目数据
+// 图片资源
+const IMAGE_1 = 'https://code.coze.cn/api/sandbox/coze_coding/file/proxy?expire_time=-1&file_path=assets%2F25-220Z514302MZ.jpg&nonce=3d40f70e-bfc3-4cc5-9779-d0c9d0bf3800&project_id=7635954527711035402&sign=9703c46a636c287f91ac2d7508e073ca120f417e8326c031fe39eedab840c60f';
+const IMAGE_2 = 'https://code.coze.cn/api/sandbox/coze_coding/file/proxy?expire_time=-1&file_path=assets%2F30a08ffa56107c7116368a3716904916.jpg&nonce=e2f2379a-77fd-4d67-9c60-d90c6d99d244&project_id=7635954527711035402&sign=3e824fe1feff1353dc69c69fa7cde7697bf92fe088fe1bb88906285c8390c1bf';
+const IMAGE_3 = 'https://code.coze.cn/api/sandbox/coze_coding/file/proxy?expire_time=-1&file_path=assets%2F32639801_175118509109_2.jpg&nonce=162ba9de-2f21-4e83-805d-dfd639802370&project_id=7635954527711035402&sign=ded0db30efcfc3224c1d1895d95b09563bc1b22723e0f6d6b85fe8701e17d638';
+const IMAGE_4 = 'https://code.coze.cn/api/sandbox/coze_coding/file/proxy?expire_time=-1&file_path=assets%2F1607711065848_24b691cf.jpg&nonce=3e432d12-a503-44b2-a83e-e742d41a3ca9&project_id=7635954527711035402&sign=299339eb5392a325ed26e50b93faea98f080063af2cc5ceed71abb9e4a86572c';
+
+// 题目数据 - 4张图片，每张3个问题
 const QUESTIONS_DATA = [
+  // 图片1: 客厅场景
   {
     id: 1,
-    image: "https://images.unsplash.com/photo-1513694203232-719a280e022f?w=800&h=600&fit=crop", // 客厅场景
-    question: "图片里有几个沙发？",
-    answer: "2",
-    options: ["1个", "2个", "3个"],
-    hint: "沙发是长长的，可以坐很多人的"
+    image: IMAGE_1,
+    scene: "客厅场景",
+    question: "图中窗户是什么颜色的？",
+    answer: "白色",
+    options: ["白色", "红色", "蓝色"],
+    hint: "窗户是干干净净的白色哦"
   },
   {
     id: 2,
-    image: "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=800&h=600&fit=crop", // 厨房场景
-    question: "桌子上有几个苹果？",
-    answer: "3",
-    options: ["2个", "3个", "4个"],
-    hint: "苹果是红红的、圆圆的"
+    image: IMAGE_1,
+    scene: "客厅场景",
+    question: "电视旁边的台灯灯罩是什么颜色？",
+    answer: "粉色",
+    options: ["蓝色", "粉色", "黄色"],
+    hint: "台灯是放在电视旁边的，灯罩是粉粉的颜色"
   },
   {
     id: 3,
-    image: "https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=800&h=600&fit=crop", // 教室场景
-    question: "黑板是什么颜色？",
-    answer: "绿色",
-    options: ["黑色", "绿色", "蓝色"],
-    hint: "黑板虽然叫黑板，但不一定是黑色的哦"
+    image: IMAGE_1,
+    scene: "客厅场景",
+    question: "墙上的装饰画是什么图案？",
+    answer: "叶子",
+    options: ["花朵", "叶子", "星星"],
+    hint: "装饰画是挂在墙上的，上面有绿色的叶子图案"
   },
+  // 图片2: 公园场景
   {
     id: 4,
-    image: "https://images.unsplash.com/photo-1472162072942-cd5147eb3902?w=800&h=600&fit=crop", // 公园场景
-    question: "天空中有几个气球？",
-    answer: "5",
-    options: ["3个", "4个", "5个"],
-    hint: "气球是彩色的，飘在天上"
+    image: IMAGE_2,
+    scene: "公园场景",
+    question: "公园里的喷泉是什么颜色？",
+    answer: "白色",
+    options: ["蓝色", "白色", "灰色"],
+    hint: "喷泉是白色的，在公园中间"
   },
   {
     id: 5,
-    image: "https://images.unsplash.com/photo-1515488042361-ee00e0ddd4e4?w=800&h=600&fit=crop", // 卧室场景
-    question: "床是什么颜色的？",
-    answer: "白色",
-    options: ["白色", "蓝色", "粉色"],
-    hint: "床单是白白的、干净的"
+    image: IMAGE_2,
+    scene: "公园场景",
+    question: "有几个人在跑步？",
+    answer: "2个",
+    options: ["1个", "2个", "3个"],
+    hint: "仔细数一数，有两个人在跑步"
   },
   {
     id: 6,
-    image: "https://images.unsplash.com/photo-1524758631624-e2822e304c36?w=800&h=600&fit=crop", // 书房场景
-    question: "桌子上有几本书？",
-    answer: "3",
-    options: ["2本", "3本", "4本"],
-    hint: "书是长方形的，上面有字"
+    image: IMAGE_2,
+    scene: "公园场景",
+    question: "图中牵狗的两个人，他们的狗分别是什么颜色？",
+    answer: "白和黄",
+    options: ["白和黄", "白和黑", "黄和黑"],
+    hint: "有两只狗，一只白色的，一只黄色的"
+  },
+  // 图片3: 田野场景
+  {
+    id: 7,
+    image: IMAGE_3,
+    scene: "田野场景",
+    question: "天空的主要颜色是什么？",
+    answer: "蓝色",
+    options: ["蓝色", "绿色", "黄色"],
+    hint: "天空是蓝蓝的，很美丽"
+  },
+  {
+    id: 8,
+    image: IMAGE_3,
+    scene: "田野场景",
+    question: "田野里的小路旁边是什么？",
+    answer: "小河",
+    options: ["小河", "公路", "草地"],
+    hint: "小路旁边有一条弯弯的小河"
+  },
+  {
+    id: 9,
+    image: IMAGE_3,
+    scene: "田野场景",
+    question: "图中人物戴的帽子是什么形状？",
+    answer: "斗笠形",
+    options: ["圆形", "斗笠形", "方形"],
+    hint: "帽子是圆圆的，像小碗一样的形状"
+  },
+  // 图片4: 小狗场景
+  {
+    id: 10,
+    image: IMAGE_4,
+    scene: "小狗场景",
+    question: "小狗的房子屋顶是什么颜色？",
+    answer: "红色",
+    options: ["红色", "棕色", "蓝色"],
+    hint: "小狗的房子屋顶是红红的颜色"
+  },
+  {
+    id: 11,
+    image: IMAGE_4,
+    scene: "小狗场景",
+    question: "小狗旁边的狗粮袋子是什么颜色？",
+    answer: "蓝色",
+    options: ["蓝色", "绿色", "粉色"],
+    hint: "狗粮袋子是蓝色的，上面有狗的图案"
+  },
+  {
+    id: 12,
+    image: IMAGE_4,
+    scene: "小狗场景",
+    question: "小狗的耳朵是什么颜色？",
+    answer: "黑色",
+    options: ["黑色", "白色", "棕色"],
+    hint: "小狗的耳朵是黑黑的"
   }
 ];
 
@@ -77,7 +147,7 @@ function generateQuestions(count: number) {
 const InstructionFind = () => {
   const navigate = useNavigate();
   const [currentQuestion, setCurrentQuestion] = useState(0);
-  const [questions, setQuestions] = useState(() => generateQuestions(6));
+  const [questions, setQuestions] = useState(() => generateQuestions(12));
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [showResult, setShowResult] = useState(false);
   const [isCorrect, setIsCorrect] = useState(false);
@@ -87,9 +157,13 @@ const InstructionFind = () => {
 
   const question = questions[currentQuestion];
 
-  // 预加载语音
+  // 预加载语音和图片
   useEffect(() => {
     preloadVoices();
+    [IMAGE_1, IMAGE_2, IMAGE_3, IMAGE_4].forEach(src => {
+      const img = new Image();
+      img.src = src;
+    });
   }, []);
 
   // 朗读问题
@@ -148,7 +222,7 @@ const InstructionFind = () => {
   // 重新开始
   const handleRestart = useCallback(() => {
     setCurrentQuestion(0);
-    setQuestions(generateQuestions(6));
+    setQuestions(generateQuestions(12));
     setSelectedOption(null);
     setShowResult(false);
     setScore(0);
@@ -365,6 +439,13 @@ const InstructionFind = () => {
             </h1>
             <p className="text-xl text-slate-500 mb-2">你答对了 {score}/{questions.length} 题</p>
             <p className="text-sm text-amber-500 mb-12">获得 {score} 颗星星奖励</p>
+
+            {/* Answer Sheet */}
+            <div className="bg-slate-50 rounded-2xl p-4 mb-8 w-full max-w-sm">
+              <p className="text-sm font-bold text-slate-600 mb-2">参考答案：</p>
+              <p className="text-xs text-slate-500">1.A 2.B 3.B 4.B 5.B 6.A</p>
+              <p className="text-xs text-slate-500">7.A 8.A 9.B 10.A 11.A 12.A</p>
+            </div>
 
             {/* Buttons */}
             <div className="space-y-4 w-full max-w-sm">
