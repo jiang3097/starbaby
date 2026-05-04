@@ -51,11 +51,16 @@ React + Vite + TypeScript + Tailwind CSS 的前端项目，支持多套 UI 组�
 - 预览链路与部署链路脚本分离，避免混淆
 - 端口 5000 是唯一对外暴露端口，禁止使用其他端口
 
-## 语音功能（AI 宠物聊天）
-基于 Web Speech API 实现，包含语音识别、语音合成和跟读功能。
+## 语音功能
+
+基于 Web Speech API 实现，支持多种声音包选择。
 
 ### 核心模块
-- `src/lib/useSpeech.ts` - 语音工具 Hook
+- `src/lib/useSpeech.ts` - 语音工具（朗读、语音识别、跟读）
+- `src/components/VoiceSelector.tsx` - 声音选择组件
+
+### 声音包
+支持 4 种声音：标准女声、温暖男声、童声、爷爷声音
 
 ### 功能说明
 1. **语音输入**: 点击麦克风按钮开始语音识别，自动将语音转换为文字
@@ -64,10 +69,15 @@ React + Vite + TypeScript + Tailwind CSS 的前端项目，支持多套 UI 组�
    - 某些 AI 消息支持"跟读"按钮
    - 点击后 AI 先朗读一遍，然后进入跟读模式
    - 用户跟随朗读后，可点击"完成跟读"确认
-   - 系统会评估相似度并给出反馈
 
 ### 技术实现
 - SpeechRecognition API: 语音识别（Chrome/Safari/Edge 支持）
 - SpeechSynthesis API: 语音合成（TTS）
 - 中文优先语音选择
 - 支持的回调: `onTranscript` 获取识别结果
+
+### 绘本闯关功能
+- `src/pages/05_BookInteraction.tsx` - 绘本互动页面
+- 点击播放按钮朗读当前句子
+- 点击"跟读练习"按钮进入跟读模式
+- 支持声音包选择（点击右上角喇叭图标）
