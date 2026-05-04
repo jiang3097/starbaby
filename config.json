@@ -1,0 +1,50 @@
+{
+  "routes": [
+    {
+      "path": "/",
+      "src": "src/pages/01_Splash.tsx"
+    },
+    {
+      "path": "/home",
+      "src": "src/pages/02_Home.tsx"
+    },
+    {
+      "path": "/chat",
+      "src": "src/pages/03_AIChat.tsx"
+    },
+    {
+      "path": "/books",
+      "src": "src/pages/04_BookList.tsx"
+    },
+    {
+      "path": "/book-interaction",
+      "src": "src/pages/05_BookInteraction.tsx"
+    },
+    {
+      "path": "/training",
+      "src": "src/pages/06_TrainingEntry.tsx"
+    },
+    {
+      "path": "/growth",
+      "src": "src/pages/07_GrowthRecord.tsx"
+    },
+    {
+      "path": "/settings",
+      "src": "src/pages/08_Settings.tsx"
+    }
+  ],
+  "components": [
+    {
+      "name": "MobileShell",
+      "src": "src/components/MobileShell.tsx"
+    },
+    {
+      "name": "Navigation",
+      "src": "src/components/Navigation.tsx"
+    },
+    {
+      "name": "AIChatPanel",
+      "src": "src/components/AIChatPanel.tsx"
+    }
+  ]
+}
