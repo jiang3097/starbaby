@@ -6,6 +6,7 @@ import MobileShell from '../components/MobileShell';
 import { Button } from '../components/ui/button';
 import { cn } from '../lib/utils';
 import { speakText, preloadVoices } from '../lib/useSpeech';
+import CelebrationEffect from '../components/CelebrationEffect';
 
 // 4张拼图图片
 const PUZZLE_IMAGES = [
@@ -82,6 +83,7 @@ const PuzzleExpress = () => {
   const [gameStarted, setGameStarted] = useState(false);
   const [gridSize, setGridSize] = useState(280);
   const [pieceSize, setPieceSize] = useState(140);
+  const [showCelebration, setShowCelebration] = useState(false);
 
   // 预加载
   useEffect(() => {
@@ -186,6 +188,7 @@ const PuzzleExpress = () => {
       if (checkWin(newPositions)) {
         setTimeout(() => {
           setShowSuccess(true);
+          setShowCelebration(true);
           speakText('通关啦！真棒！你太厉害了！');
         }, 100);
       }
@@ -252,6 +255,11 @@ const PuzzleExpress = () => {
 
   return (
     <MobileShell className="bg-gradient-to-b from-orange-50 to-white">
+      {/* 鼓励特效 */}
+      <CelebrationEffect 
+        show={showCelebration} 
+        onComplete={() => setShowCelebration(false)} 
+      />
       <AnimatePresence mode="wait">
         {/* ========== 开始界面 ========== */}
         {!gameStarted && (

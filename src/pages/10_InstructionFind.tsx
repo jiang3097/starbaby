@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, CheckCircle2, XCircle, ArrowRight, Trophy, Star, RotateCcw, Volume2 } from 'lucide-react';
+import { ChevronLeft, CheckCircle2, XCircle, ArrowRight, Trophy, Star, RotateCcw, Volume2, SkipForward } from 'lucide-react';
 import MobileShell from '../components/MobileShell';
 import { Button } from '../components/ui/button';
 import { cn } from '../lib/utils';
 import { speakText, preloadVoices } from '../lib/useSpeech';
+import CelebrationEffect from '../components/CelebrationEffect';
 
 // 图片资源
 const IMAGE_1 = 'https://code.coze.cn/api/sandbox/coze_coding/file/proxy?expire_time=-1&file_path=assets%2F25-220Z514302MZ.jpg&nonce=3d40f70e-bfc3-4cc5-9779-d0c9d0bf3800&project_id=7635954527711035402&sign=9703c46a636c287f91ac2d7508e073ca120f417e8326c031fe39eedab840c60f';
@@ -150,6 +151,7 @@ const InstructionFind = () => {
   const [score, setScore] = useState(0);
   const [isFinished, setIsFinished] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [showCelebration, setShowCelebration] = useState(false);
 
   const question = questions[currentQuestion];
 
@@ -192,6 +194,7 @@ const InstructionFind = () => {
     
     if (correct) {
       setScore(prev => prev + 1);
+      setShowCelebration(true);
       setIsSpeaking(true);
       speakText("太棒了！你真厉害！", () => {}, () => {
         setIsSpeaking(false);
@@ -215,6 +218,17 @@ const InstructionFind = () => {
     }
   }, [currentQuestion, questions.length]);
 
+  // 跳过当前题
+  const handleSkip = useCallback(() => {
+    if (currentQuestion < questions.length - 1) {
+      setSelectedOption(null);
+      setShowResult(false);
+      setCurrentQuestion(prev => prev + 1);
+    } else {
+      setIsFinished(true);
+    }
+  }, [currentQuestion, questions.length]);
+
   // 重新开始
   const handleRestart = useCallback(() => {
     setCurrentQuestion(0);
@@ -226,6 +240,12 @@ const InstructionFind = () => {
 
   return (
     <MobileShell className="bg-gradient-to-b from-teal-50 to-white">
+      {/* 鼓励特效 */}
+      <CelebrationEffect 
+        show={showCelebration} 
+        onComplete={() => setShowCelebration(false)} 
+      />
+      
       <AnimatePresence mode="wait">
         {!isFinished ? (
           <motion.div
@@ -250,17 +270,25 @@ const InstructionFind = () => {
                   <span className="text-xs text-amber-500 font-medium">得分: {score}</span>
                 </div>
               </div>
-              <button
-                onClick={handleSpeakQuestion}
-                className={cn(
-                  "w-12 h-12 rounded-full flex items-center justify-center border-2 transition-all",
-                  isSpeaking
-                    ? "bg-teal-100 border-teal-300 text-teal-400"
-                    : "bg-white border-teal-200 text-teal-500 hover:bg-teal-50"
-                )}
-              >
-                <Volume2 size={22} className={isSpeaking ? 'animate-pulse' : ''} />
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleSpeakQuestion}
+                  className={cn(
+                    "w-12 h-12 rounded-full flex items-center justify-center border-2 transition-all",
+                    isSpeaking
+                      ? "bg-teal-100 border-teal-300 text-teal-400"
+                      : "bg-white border-teal-200 text-teal-500 hover:bg-teal-50"
+                  )}
+                >
+                  <Volume2 size={22} className={isSpeaking ? 'animate-pulse' : ''} />
+                </button>
+                <button
+                  onClick={handleSkip}
+                  className="w-12 h-12 bg-white rounded-full flex items-center justify-center text-slate-400 shadow-sm hover:bg-teal-50 hover:text-teal-500 transition-colors"
+                >
+                  <SkipForward size={22} />
+                </button>
+              </div>
             </div>
 
             {/* Progress bar */}

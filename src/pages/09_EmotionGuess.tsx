@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, CheckCircle2, XCircle, ArrowRight, Trophy, Star, RotateCcw } from 'lucide-react';
+import { ChevronLeft, CheckCircle2, XCircle, ArrowRight, Trophy, Star, RotateCcw, SkipForward } from 'lucide-react';
 import MobileShell from '../components/MobileShell';
 import { Button } from '../components/ui/button';
 import { cn } from '../lib/utils';
 import { speakText, preloadVoices } from '../lib/useSpeech';
+import CelebrationEffect from '../components/CelebrationEffect';
 
 // 8张表情图片
 const IMAGE_1 = 'https://code.coze.cn/api/sandbox/coze_coding/file/proxy?expire_time=-1&file_path=assets%2F%E5%B1%8F%E5%B9%95%E6%88%AA%E5%9B%BE+2026-05-04+201524.png&nonce=3f68cfce-dd09-4065-9953-be96ea2bc305&project_id=7635954527711035402&sign=c03ab686b2c95964f0c974b9fec78ead09a927a3f354f7a88056b902366dbf56';
@@ -136,36 +137,16 @@ const QUESTIONS_DATA = [
   }
 ];
 
-// 打乱数组
-function shuffleArray<T>(array: T[]): T[] {
-  const newArray = [...array];
-  for (let i = newArray.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
-  }
-  return newArray;
-}
-
-// 获取难度颜色
-function getDifficultyColor(difficulty: string): string {
-  const colors: Record<string, { bg: string; text: string }> = {
-    '基础': { bg: 'bg-emerald-100', text: 'text-emerald-600' },
-    '进阶': { bg: 'bg-amber-100', text: 'text-amber-600' },
-    '挑战': { bg: 'bg-rose-100', text: 'text-rose-600' }
-  };
-  return colors[difficulty]?.text || 'text-slate-600';
-}
-
 const EmotionGuess = () => {
   const navigate = useNavigate();
   const [currentQuestion, setCurrentQuestion] = useState(0);
-  // 按顺序出题，不打乱
   const [questions] = useState(() => [...QUESTIONS_DATA]);
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [showResult, setShowResult] = useState(false);
   const [isCorrect, setIsCorrect] = useState(false);
   const [score, setScore] = useState(0);
   const [isFinished, setIsFinished] = useState(false);
+  const [showCelebration, setShowCelebration] = useState(false);
 
   const question = questions[currentQuestion];
 
@@ -199,12 +180,24 @@ const EmotionGuess = () => {
     
     if (correct) {
       setScore(prev => prev + 1);
+      setShowCelebration(true);
       speakText("太棒了！回答正确！你真厉害！");
     } else {
       const correctOption = question.options.find(o => o.id === question.answer);
       speakText(`没关系，正确答案是${correctOption?.name}。${question.hint}`);
     }
   }, [question, showResult]);
+
+  // 跳过当前题
+  const handleSkip = useCallback(() => {
+    if (currentQuestion < questions.length - 1) {
+      setSelectedOption(null);
+      setShowResult(false);
+      setCurrentQuestion(prev => prev + 1);
+    } else {
+      setIsFinished(true);
+    }
+  }, [currentQuestion, questions.length]);
 
   // 下一题
   const handleNext = useCallback(() => {
@@ -228,6 +221,12 @@ const EmotionGuess = () => {
 
   return (
     <MobileShell className="bg-gradient-to-b from-purple-50 to-white">
+      {/* 鼓励特效 */}
+      <CelebrationEffect 
+        show={showCelebration} 
+        onComplete={() => setShowCelebration(false)} 
+      />
+
       <AnimatePresence mode="wait">
         {!isFinished ? (
           <motion.div
@@ -252,7 +251,12 @@ const EmotionGuess = () => {
                   <span className="text-xs text-amber-500 font-medium">得分: {score}</span>
                 </div>
               </div>
-              <div className="w-12" />
+              <button
+                onClick={handleSkip}
+                className="w-12 h-12 bg-white rounded-full flex items-center justify-center text-slate-400 shadow-sm hover:bg-purple-50 hover:text-purple-500 transition-colors"
+              >
+                <SkipForward size={22} />
+              </button>
             </div>
 
             {/* Progress bar */}
