@@ -174,13 +174,24 @@ const InstructionFind = () => {
     }
   }, [currentQuestion, showResult, question]);
 
-  // 朗读选项
+  // 朗读题目和选项
   const handleSpeakQuestion = () => {
     setIsSpeaking(true);
-    speakText(question.question, () => {}, () => {
+    const optionLabels = ['A', 'B', 'C'];
+    const optionsText = question.options.map((o, i) => `${optionLabels[i]}、${o}`).join('，');
+    speakText(`${question.question}。选项：${optionsText}`, () => {}, () => {
       setIsSpeaking(false);
     });
   };
+
+  // 朗读题目时自动播报选项
+  useEffect(() => {
+    if (question && !showResult) {
+      setTimeout(() => {
+        handleSpeakQuestion();
+      }, 300);
+    }
+  }, [currentQuestion, showResult, question]);
 
   // 选择选项
   const handleSelect = useCallback((option: string) => {
@@ -192,16 +203,22 @@ const InstructionFind = () => {
     const correct = option === question.answer;
     setIsCorrect(correct);
     
+    // 播报选中的选项
+    const selectedText = `你选择了${option}`;
+    
     if (correct) {
       setScore(prev => prev + 1);
       setShowCelebration(true);
       setIsSpeaking(true);
-      speakText("太棒了！你真厉害！", () => {}, () => {
+      // 随机鼓励语
+      const encouragements = ['太棒了！', '你真厉害！', '回答正确！', '太聪明了！'];
+      const randomEnc = encouragements[Math.floor(Math.random() * encouragements.length)];
+      speakText(`${selectedText}，${randomEnc}`, () => {}, () => {
         setIsSpeaking(false);
       });
     } else {
       setIsSpeaking(true);
-      speakText(`没关系，正确答案是${question.answer}。${question.hint}`, () => {}, () => {
+      speakText(`${selectedText}，正确答案是${question.answer}。${question.hint}`, () => {}, () => {
         setIsSpeaking(false);
       });
     }
