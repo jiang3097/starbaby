@@ -134,8 +134,65 @@ const Home = () => {
             <span className="text-2xl">⚙️</span>
           </button>
           
-          <div className="flex flex-col items-center justify-center py-6">
-            {/* 星小宝头像区域 */}
+          {/* 星小宝头像区域 - 相对定位作为圆形环绕的参考 */}
+          <div className="relative flex flex-col items-center py-4">
+            {/* 左上 - 亲密 */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0 }}
+              animate={{ opacity: 1, scale: 1, y: [0, -5, 0] }}
+              transition={{ opacity: { delay: 0.1 }, scale: { delay: 0.1 }, y: { repeat: Infinity, duration: 2.5, ease: "easeInOut" } }}
+              className="absolute top-0 -left-16 flex flex-col items-center"
+            >
+              <div className={cn("w-14 h-14 rounded-full flex flex-col items-center justify-center shadow-lg border-2 border-white", "bg-gradient-to-br from-rose-400 to-pink-400")}>
+                <span className="text-lg">❤️</span>
+                <span className="text-[10px] font-bold text-white">{profile.intimacy}</span>
+              </div>
+              <span className="mt-1 text-[10px] font-bold text-rose-500 bg-rose-50 px-2 py-0.5 rounded-full">亲密</span>
+            </motion.div>
+
+            {/* 右上 - 饱腹 */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0 }}
+              animate={{ opacity: 1, scale: 1, y: [0, -6, 0] }}
+              transition={{ opacity: { delay: 0.15 }, scale: { delay: 0.15 }, y: { repeat: Infinity, duration: 2.8, ease: "easeInOut" } }}
+              className="absolute top-0 -right-16 flex flex-col items-center"
+            >
+              <div className={cn("w-14 h-14 rounded-full flex flex-col items-center justify-center shadow-lg border-2 border-white", "bg-gradient-to-br from-orange-400 to-amber-400")}>
+                <span className="text-lg">🍖</span>
+                <span className="text-[10px] font-bold text-white">{profile.fullness}</span>
+              </div>
+              <span className="mt-1 text-[10px] font-bold text-orange-500 bg-orange-50 px-2 py-0.5 rounded-full">饱腹</span>
+            </motion.div>
+
+            {/* 左下 - 清洁 */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0 }}
+              animate={{ opacity: 1, scale: 1, y: [0, -7, 0] }}
+              transition={{ opacity: { delay: 0.2 }, scale: { delay: 0.2 }, y: { repeat: Infinity, duration: 3.1, ease: "easeInOut" } }}
+              className="absolute -bottom-4 -left-16 flex flex-col items-center"
+            >
+              <div className={cn("w-14 h-14 rounded-full flex flex-col items-center justify-center shadow-lg border-2 border-white", "bg-gradient-to-br from-sky-400 to-blue-400")}>
+                <span className="text-lg">🛁</span>
+                <span className="text-[10px] font-bold text-white">{profile.cleanliness}</span>
+              </div>
+              <span className="mt-1 text-[10px] font-bold text-sky-500 bg-sky-50 px-2 py-0.5 rounded-full">清洁</span>
+            </motion.div>
+
+            {/* 右下 - 心情 */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0 }}
+              animate={{ opacity: 1, scale: 1, y: [0, -8, 0] }}
+              transition={{ opacity: { delay: 0.25 }, scale: { delay: 0.25 }, y: { repeat: Infinity, duration: 3.4, ease: "easeInOut" } }}
+              className="absolute -bottom-4 -right-16 flex flex-col items-center"
+            >
+              <div className={cn("w-14 h-14 rounded-full flex flex-col items-center justify-center shadow-lg border-2 border-white", "bg-gradient-to-br from-pink-400 to-rose-400")}>
+                <span className="text-lg">😊</span>
+                <span className="text-[10px] font-bold text-white">{profile.mood}</span>
+              </div>
+              <span className="mt-1 text-[10px] font-bold text-pink-500 bg-pink-50 px-2 py-0.5 rounded-full">心情</span>
+            </motion.div>
+
+            {/* 星小宝头像 */}
             <motion.div
               animate={{ 
                 y: [0, -10, 0],
@@ -146,7 +203,7 @@ const Home = () => {
                 repeat: Infinity,
                 ease: "easeInOut"
               }}
-              className="w-48 h-48 relative cursor-pointer"
+              className="w-36 h-36 relative cursor-pointer z-10"
             >
               {/* 光环效果 */}
               <div className="absolute inset-0 bg-gradient-to-br from-yellow-200/60 to-amber-200/60 rounded-full blur-3xl animate-pulse" />
@@ -172,69 +229,10 @@ const Home = () => {
             </motion.div>
             
             {/* 名称 */}
-            <div className="mt-4 text-center">
+            <div className="mt-4 text-center z-10">
               <h2 className="text-2xl font-bold text-slate-800">{profile.name}</h2>
               <p className="text-sm text-slate-500 mt-1">你好！今天要和我玩什么呢？</p>
             </div>
-          </div>
-
-          {/* 圆形环绕的数值模块 - 分布在四周 */}
-          <div className="relative h-40">
-            {/* 左上 - 亲密 */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0 }}
-              animate={{ opacity: 1, scale: 1, y: [0, -5, 0] }}
-              transition={{ opacity: { delay: 0.1 }, scale: { delay: 0.1 }, y: { repeat: Infinity, duration: 2.5, ease: "easeInOut" } }}
-              className="absolute top-0 left-0 flex flex-col items-center"
-            >
-              <div className={cn("w-14 h-14 rounded-full flex flex-col items-center justify-center shadow-lg border-2 border-white", "bg-gradient-to-br from-rose-400 to-pink-400")}>
-                <span className="text-lg">❤️</span>
-                <span className="text-[10px] font-bold text-white">{profile.intimacy}</span>
-              </div>
-              <span className="mt-1 text-[10px] font-bold text-rose-500 bg-rose-50 px-2 py-0.5 rounded-full">亲密</span>
-            </motion.div>
-
-            {/* 右上 - 饱腹 */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0 }}
-              animate={{ opacity: 1, scale: 1, y: [0, -6, 0] }}
-              transition={{ opacity: { delay: 0.15 }, scale: { delay: 0.15 }, y: { repeat: Infinity, duration: 2.8, ease: "easeInOut" } }}
-              className="absolute top-0 right-0 flex flex-col items-center"
-            >
-              <div className={cn("w-14 h-14 rounded-full flex flex-col items-center justify-center shadow-lg border-2 border-white", "bg-gradient-to-br from-orange-400 to-amber-400")}>
-                <span className="text-lg">🍖</span>
-                <span className="text-[10px] font-bold text-white">{profile.fullness}</span>
-              </div>
-              <span className="mt-1 text-[10px] font-bold text-orange-500 bg-orange-50 px-2 py-0.5 rounded-full">饱腹</span>
-            </motion.div>
-
-            {/* 左下 - 清洁 */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0 }}
-              animate={{ opacity: 1, scale: 1, y: [0, -7, 0] }}
-              transition={{ opacity: { delay: 0.2 }, scale: { delay: 0.2 }, y: { repeat: Infinity, duration: 3.1, ease: "easeInOut" } }}
-              className="absolute bottom-0 left-0 flex flex-col items-center"
-            >
-              <div className={cn("w-14 h-14 rounded-full flex flex-col items-center justify-center shadow-lg border-2 border-white", "bg-gradient-to-br from-sky-400 to-blue-400")}>
-                <span className="text-lg">🛁</span>
-                <span className="text-[10px] font-bold text-white">{profile.cleanliness}</span>
-              </div>
-              <span className="mt-1 text-[10px] font-bold text-sky-500 bg-sky-50 px-2 py-0.5 rounded-full">清洁</span>
-            </motion.div>
-
-            {/* 右下 - 心情 */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0 }}
-              animate={{ opacity: 1, scale: 1, y: [0, -8, 0] }}
-              transition={{ opacity: { delay: 0.25 }, scale: { delay: 0.25 }, y: { repeat: Infinity, duration: 3.4, ease: "easeInOut" } }}
-              className="absolute bottom-0 right-0 flex flex-col items-center"
-            >
-              <div className={cn("w-14 h-14 rounded-full flex flex-col items-center justify-center shadow-lg border-2 border-white", "bg-gradient-to-br from-pink-400 to-rose-400")}>
-                <span className="text-lg">😊</span>
-                <span className="text-[10px] font-bold text-white">{profile.mood}</span>
-              </div>
-              <span className="mt-1 text-[10px] font-bold text-pink-500 bg-pink-50 px-2 py-0.5 rounded-full">心情</span>
-            </motion.div>
           </div>
         </div>
 
