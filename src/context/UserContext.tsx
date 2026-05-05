@@ -72,44 +72,53 @@ interface UserProviderProps {
 }
 
 export const UserProvider = ({ children }: UserProviderProps) => {
-  const [profile, setProfile] = useState<UserProfile>(() => {
+  // 强制从 localStorage 读取并验证数据
+  const getInitialProfile = (): UserProfile => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
         const today = new Date().toISOString().split('T')[0];
         
-        // 强制使用默认值60（忽略旧缓存数据）
+        // 强制初始值60，忽略旧数据
         const migrated: UserProfile = {
           avatarId: parsed.avatarId ?? 1,
           name: parsed.name ?? '星星',
-          intimacy: 60, // 强制初始值60
+          intimacy: 60, // 强制60
           lastLoginDate: today,
           todayIntimacyAdded: 0,
         };
         
-        // 检查是否跨天
-        const lastLogin = parsed.lastLoginDate || today;
-        if (lastLogin !== today) {
-          // 计算间隔天数
-          const lastDate = new Date(lastLogin);
-          const todayDate = new Date(today);
-          const diffDays = Math.floor((todayDate.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24));
-          
-          // 扣减亲密度（每天扣5点）
-          const deducted = Math.min(diffDays * 5, migrated.intimacy);
-          migrated.intimacy = Math.max(migrated.intimacy - deducted, 0);
-        }
-        
-        // 保存更新后的数据
+        // 保存强制更新
         localStorage.setItem(STORAGE_KEY, JSON.stringify(migrated));
+        console.log('UserProfile initialized:', migrated);
         return migrated;
       }
     } catch (e) {
-      // ignore
+      console.error('Failed to load profile:', e);
     }
-    return defaultProfile;
-  });
+    const defaultVal = defaultProfile;
+    console.log('Using default profile:', defaultVal);
+    return defaultVal;
+  };
+  
+  const [profile, setProfile] = useState<UserProfile>(getInitialProfile);
+  
+  // 初始化后检查并纠正旧数据
+  useEffect(() => {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      // 如果 intimacy 不是60且 todayIntimacyAdded 不存在或为0（今天还没增加过）
+      // 说明是旧数据，需要强制重置为60
+      if (parsed.intimacy !== 60 && (parsed.todayIntimacyAdded === undefined || parsed.todayIntimacyAdded === 0)) {
+        const corrected = { ...parsed, intimacy: 60, todayIntimacyAdded: 0 };
+        setProfile(corrected);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(corrected));
+        console.log('Reset intimacy to 60 from old data:', parsed.intimacy);
+      }
+    }
+  }, []);
 
   const avatar = STAR_AVATARS.find(a => a.id === profile.avatarId) || STAR_AVATARS[0];
 
