@@ -157,6 +157,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [timeLimit, setTimeLimitState] = useState<TimeLimit>(initTimeLimit);
   const [isTimeLimitReached, setIsTimeLimitReached] = useState(initTimeReached);
   const [showTimeLimitModal, setShowTimeLimitModal] = useState(false);
+  const [unlockTimeOffset, setUnlockTimeOffset] = useState(0); // 解锁时的时间偏移量
 
   const currentSession = useRef<TrainingSession>({ startTime: null, type: null });
   const sessionTimer = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -171,12 +172,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return;
     }
     const limitMinutes = timeLimit.customMinutes || timeLimit.minutes;
-    if (dailyStats.trainingMinutes >= limitMinutes) {
+    // 减去解锁时的时间偏移量
+    const effectiveMinutes = dailyStats.trainingMinutes - unlockTimeOffset;
+    if (effectiveMinutes >= limitMinutes) {
       setIsTimeLimitReached(true);
       setShowTimeLimitModal(true);
       hasShownLimitModal.current = true;
     }
-  }, [dailyStats.trainingMinutes, timeLimit, isTimeLimitReached]);
+  }, [dailyStats.trainingMinutes, timeLimit, isTimeLimitReached, unlockTimeOffset]);
 
   // 设置限时
   const setTimeLimit = useCallback((limit: TimeLimit) => {
@@ -194,9 +197,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const resetTimeLimit = useCallback(() => {
     setShowTimeLimitModal(false);
     setIsTimeLimitReached(false);
+    // 记录当前训练时长作为偏移量，解锁后重新计时
+    setUnlockTimeOffset(dailyStats.trainingMinutes);
     // 重置标记，这样下次达到限时可以再次触发
     hasShownLimitModal.current = false;
-  }, []);
+  }, [dailyStats.trainingMinutes]);
 
   // 开始训练计时
   const startTraining = useCallback((type: 'chat' | 'book' | 'training') => {
