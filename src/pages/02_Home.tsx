@@ -8,13 +8,7 @@ import { Card } from '../components/ui/card';
 import { cn } from '../lib/utils';
 import { useUser } from '../context/UserContext';
 
-// 圆形环绕的数值模块
-const statusModules = [
-  { key: 'intimacy', label: '亲密', icon: '❤️', color: 'from-rose-400 to-pink-400', bgColor: 'bg-rose-100' },
-  { key: 'fullness', label: '饱腹', icon: '🍖', color: 'from-orange-400 to-amber-400', bgColor: 'bg-orange-100' },
-  { key: 'cleanliness', label: '清洁', icon: '🛁', color: 'from-sky-400 to-blue-400', bgColor: 'bg-sky-100' },
-  { key: 'mood', label: '心情', icon: '😊', color: 'from-pink-400 to-rose-400', bgColor: 'bg-pink-100' },
-];
+// 不再需要固定数组和函数，直接使用 profile 数据
 
 const Home = () => {
   const navigate = useNavigate();
@@ -56,22 +50,6 @@ const Home = () => {
     }
   ];
 
-  // 获取数值的函数
-  const getValue = (key: string) => {
-    return profile[key as keyof typeof profile] as number || 0;
-  };
-
-  // 计算圆形位置（围绕中心，4个均匀分布）
-  const getCirclePosition = (index: number, total: number, radius: number) => {
-    // 从顶部开始，均匀分布
-    const startAngle = -Math.PI / 2; // 从顶部开始
-    const angleStep = (Math.PI * 2) / total;
-    const angle = startAngle + index * angleStep;
-    return {
-      x: Math.cos(angle) * radius,
-      y: Math.sin(angle) * radius,
-    };
-  };
 
   return (
     <MobileShell showNav className="bg-gradient-to-b from-sky-100 via-blue-50 to-amber-50">
@@ -200,55 +178,63 @@ const Home = () => {
             </div>
           </div>
 
-          {/* 圆形环绕的数值模块 */}
-          <div className="flex justify-center items-center relative h-32">
-            {statusModules.map((module, index) => {
-              const pos = getCirclePosition(index, statusModules.length, 90);
-              const value = getValue(module.key);
-              
-              return (
-                <motion.div
-                  key={module.key}
-                  initial={{ opacity: 0, scale: 0 }}
-                  animate={{ 
-                    opacity: 1, 
-                    scale: 1,
-                    y: [0, -8, 0], // 漂浮效果
-                  }}
-                  transition={{ 
-                    opacity: { delay: 0.2 + index * 0.1 },
-                    scale: { delay: 0.2 + index * 0.1 },
-                    y: { 
-                      repeat: Infinity, 
-                      duration: 2 + index * 0.3,
-                      ease: "easeInOut"
-                    }
-                  }}
-                  className="absolute flex flex-col items-center"
-                  style={{
-                    transform: `translate(${pos.x}px, ${pos.y}px)`,
-                  }}
-                >
-                  <div className={cn(
-                    "w-16 h-16 rounded-full flex flex-col items-center justify-center shadow-lg border-3 border-white",
-                    "bg-gradient-to-br",
-                    module.color
-                  )}>
-                    <span className="text-xl">{module.icon}</span>
-                    <span className="text-[10px] font-bold text-white">{value}</span>
-                  </div>
-                  <span className={cn(
-                    "mt-1 text-[10px] font-bold px-2 py-0.5 rounded-full",
-                    module.bgColor,
-                    module.key === 'fullness' && "text-orange-600",
-                    module.key === 'cleanliness' && "text-sky-600",
-                    module.key === 'mood' && "text-pink-600"
-                  )}>
-                    {module.label}
-                  </span>
-                </motion.div>
-              );
-            })}
+          {/* 圆形环绕的数值模块 - 分布在四周 */}
+          <div className="relative h-40">
+            {/* 左上 - 亲密 */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0 }}
+              animate={{ opacity: 1, scale: 1, y: [0, -5, 0] }}
+              transition={{ opacity: { delay: 0.1 }, scale: { delay: 0.1 }, y: { repeat: Infinity, duration: 2.5, ease: "easeInOut" } }}
+              className="absolute top-0 left-0 flex flex-col items-center"
+            >
+              <div className={cn("w-14 h-14 rounded-full flex flex-col items-center justify-center shadow-lg border-2 border-white", "bg-gradient-to-br from-rose-400 to-pink-400")}>
+                <span className="text-lg">❤️</span>
+                <span className="text-[10px] font-bold text-white">{profile.intimacy}</span>
+              </div>
+              <span className="mt-1 text-[10px] font-bold text-rose-500 bg-rose-50 px-2 py-0.5 rounded-full">亲密</span>
+            </motion.div>
+
+            {/* 右上 - 饱腹 */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0 }}
+              animate={{ opacity: 1, scale: 1, y: [0, -6, 0] }}
+              transition={{ opacity: { delay: 0.15 }, scale: { delay: 0.15 }, y: { repeat: Infinity, duration: 2.8, ease: "easeInOut" } }}
+              className="absolute top-0 right-0 flex flex-col items-center"
+            >
+              <div className={cn("w-14 h-14 rounded-full flex flex-col items-center justify-center shadow-lg border-2 border-white", "bg-gradient-to-br from-orange-400 to-amber-400")}>
+                <span className="text-lg">🍖</span>
+                <span className="text-[10px] font-bold text-white">{profile.fullness}</span>
+              </div>
+              <span className="mt-1 text-[10px] font-bold text-orange-500 bg-orange-50 px-2 py-0.5 rounded-full">饱腹</span>
+            </motion.div>
+
+            {/* 左下 - 清洁 */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0 }}
+              animate={{ opacity: 1, scale: 1, y: [0, -7, 0] }}
+              transition={{ opacity: { delay: 0.2 }, scale: { delay: 0.2 }, y: { repeat: Infinity, duration: 3.1, ease: "easeInOut" } }}
+              className="absolute bottom-0 left-0 flex flex-col items-center"
+            >
+              <div className={cn("w-14 h-14 rounded-full flex flex-col items-center justify-center shadow-lg border-2 border-white", "bg-gradient-to-br from-sky-400 to-blue-400")}>
+                <span className="text-lg">🛁</span>
+                <span className="text-[10px] font-bold text-white">{profile.cleanliness}</span>
+              </div>
+              <span className="mt-1 text-[10px] font-bold text-sky-500 bg-sky-50 px-2 py-0.5 rounded-full">清洁</span>
+            </motion.div>
+
+            {/* 右下 - 心情 */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0 }}
+              animate={{ opacity: 1, scale: 1, y: [0, -8, 0] }}
+              transition={{ opacity: { delay: 0.25 }, scale: { delay: 0.25 }, y: { repeat: Infinity, duration: 3.4, ease: "easeInOut" } }}
+              className="absolute bottom-0 right-0 flex flex-col items-center"
+            >
+              <div className={cn("w-14 h-14 rounded-full flex flex-col items-center justify-center shadow-lg border-2 border-white", "bg-gradient-to-br from-pink-400 to-rose-400")}>
+                <span className="text-lg">😊</span>
+                <span className="text-[10px] font-bold text-white">{profile.mood}</span>
+              </div>
+              <span className="mt-1 text-[10px] font-bold text-pink-500 bg-pink-50 px-2 py-0.5 rounded-full">心情</span>
+            </motion.div>
           </div>
         </div>
 
