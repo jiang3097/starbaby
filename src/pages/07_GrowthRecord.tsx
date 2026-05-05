@@ -94,7 +94,7 @@ const GrowthRecord = () => {
   const usedFoodTimerRef = useRef<ReturnType<typeof setTimeout>>();
   const usedToyTimerRef = useRef<ReturnType<typeof setTimeout>>();
 
-  // 防抖更新显示数据
+  // 防抖更新显示数据 - 与每日数据同步
   useEffect(() => {
     const timeout = setTimeout(() => {
       setDisplayStats({
@@ -102,32 +102,43 @@ const GrowthRecord = () => {
         expressionCount: dailyStats.expressionCount,
         gamePassCount: dailyStats.gamePassCount,
       });
-    }, 500);
+    }, 300);
     return () => clearTimeout(timeout);
-  }, [dailyStats.trainingMinutes, dailyStats.expressionCount, dailyStats.gamePassCount]);
+  }, [dailyStats]);
 
   // 预加载语音
   useEffect(() => {
     preloadVoices();
   }, []);
 
-  // 计算本周活跃度
+  // 计算本周活跃度 - 基于实际每日数据，确保与成长板块数据同步
   const weekDates = getWeekDates();
-  const weekData = weekDates.map((date) => {
-    const dayData = weeklyStats[date];
-    if (!dayData) {
-      return { date, activity: 0, minutes: 0, expression: 0, game: 0 };
+  const today = new Date().toISOString().split('T')[0];
+  
+  const weekData = weekDates.map((date, index) => {
+    const isToday = date === today;
+    // 今日使用 dailyStats 保证数据同步，往日使用 weeklyStats
+    let minutes, expression, game;
+    if (isToday) {
+      minutes = dailyStats.trainingMinutes;
+      expression = dailyStats.expressionCount;
+      game = dailyStats.gamePassCount;
+    } else {
+      const dayData = weeklyStats[date];
+      minutes = dayData?.trainingMinutes || 0;
+      expression = dayData?.expressionCount || 0;
+      game = dayData?.gamePassCount || 0;
     }
     // 权重计算：训练时长40% + 主动表达30% + 趣味闯关30%
-    // 训练时长：每分钟4分（25分钟满分100）
-    // 主动表达：每次10分（10次满分100）
-    // 趣味闯关：每次10分（10次满分100）
-    const minutesScore = Math.min(dayData.trainingMinutes * 4, 100) * 0.4;
-    const expressionScore = Math.min(dayData.expressionCount * 10, 100) * 0.3;
-    const gameScore = Math.min(dayData.gamePassCount * 10, 100) * 0.3;
+    const minutesScore = Math.min(minutes * 4, 100) * 0.4;
+    const expressionScore = Math.min(expression * 10, 100) * 0.3;
+    const gameScore = Math.min(game * 10, 100) * 0.3;
     const activity = Math.round(minutesScore + expressionScore + gameScore);
-    return { date, activity, minutes: dayData.trainingMinutes, expression: dayData.expressionCount, game: dayData.gamePassCount };
+    return { date, activity, minutes, expression, game, isToday };
   });
+  
+  // 今日活跃度（用于显示）
+  const todayActivity = weekData[weekData.length - 1]?.activity || 0;
 
   const maxActivity = Math.max(...weekData.map(d => d.activity), 1);
 
@@ -450,7 +461,7 @@ const GrowthRecord = () => {
               <h3 className="font-bold text-slate-800">本周语言活跃度</h3>
             </div>
             <span className="text-sm text-purple-600 font-medium">
-              今日: {weekData[weekData.length - 1]?.activity || 0}分
+              今日: {todayActivity}分
             </span>
           </div>
 
@@ -473,7 +484,6 @@ const GrowthRecord = () => {
           <div className="flex items-end justify-between h-36 px-2">
             {weekData.map((day, index) => {
               const height = (day.activity / maxActivity) * 100;
-              const isToday = index === weekData.length - 1;
               const dayNames = ['一', '二', '三', '四', '五', '六', '日'];
               
               return (
@@ -489,7 +499,7 @@ const GrowthRecord = () => {
                       transition={{ delay: 0.3 + index * 0.05 }}
                       className={cn(
                         "w-6 rounded-t-lg transition-all relative",
-                        isToday 
+                        day.isToday 
                           ? "bg-gradient-to-t from-purple-500 to-pink-400" 
                           : "bg-gradient-to-t from-purple-300 to-pink-200"
                       )}
@@ -498,7 +508,7 @@ const GrowthRecord = () => {
                       {height > 20 && (
                         <span className={cn(
                           "absolute -top-4 left-1/2 -translate-x-1/2 text-[10px] font-bold",
-                          isToday ? "text-purple-600" : "text-purple-400"
+                          day.isToday ? "text-purple-600" : "text-purple-400"
                         )}>
                           {day.activity}
                         </span>
@@ -507,7 +517,7 @@ const GrowthRecord = () => {
                   </div>
                   <p className={cn(
                     "text-xs mt-2 font-bold",
-                    isToday ? "text-purple-600" : "text-slate-400"
+                    day.isToday ? "text-purple-600" : "text-slate-400"
                   )}>
                     {dayNames[index]}
                   </p>
@@ -516,7 +526,7 @@ const GrowthRecord = () => {
             })}
           </div>
           
-          {/* 详细数据 */}
+          {/* 详细数据 - 使用今日数据保证同步 */}
           <div className="mt-4 pt-3 border-t border-slate-100 grid grid-cols-3 gap-2 text-center">
             <div className="flex flex-col items-center">
               <div className="flex items-center gap-1 mb-1">
@@ -524,7 +534,7 @@ const GrowthRecord = () => {
                 <span className="text-xs text-slate-500">训练时长</span>
               </div>
               <span className="text-sm font-bold text-teal-600">
-                {weekData[weekData.length - 1]?.minutes || 0}分钟
+                {dailyStats.trainingMinutes}分钟
               </span>
             </div>
             <div className="flex flex-col items-center border-l border-r border-slate-100">
@@ -533,7 +543,7 @@ const GrowthRecord = () => {
                 <span className="text-xs text-slate-500">主动表达</span>
               </div>
               <span className="text-sm font-bold text-amber-600">
-                {weekData[weekData.length - 1]?.expression || 0}次
+                {dailyStats.expressionCount}次
               </span>
             </div>
             <div className="flex flex-col items-center">
@@ -542,7 +552,7 @@ const GrowthRecord = () => {
                 <span className="text-xs text-slate-500">趣味闯关</span>
               </div>
               <span className="text-sm font-bold text-pink-600">
-                {weekData[weekData.length - 1]?.game || 0}次
+                {dailyStats.gamePassCount}次
               </span>
             </div>
           </div>
