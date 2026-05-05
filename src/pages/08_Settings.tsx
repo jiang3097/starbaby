@@ -1,52 +1,23 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Shield, ChevronRight, Volume2, Eye, Mic2, Info, LogOut, Check, X, User, Sparkles } from 'lucide-react';
+import { Shield, ChevronRight, Info, User, Sparkles } from 'lucide-react';
 import MobileShell from '../components/MobileShell';
 import Navigation from '../components/Navigation';
 import { Card } from '../components/ui/card';
-import { Button } from '../components/ui/button';
 import { cn } from '../lib/utils';
-import { useUser, STAR_AVATARS } from '../context/UserContext';
+import { useUser } from '../context/UserContext';
 
 const Settings = () => {
   const navigate = useNavigate();
-  const { profile, avatar, updateProfile } = useUser();
+  const { profile, avatar } = useUser();
   const [showParentPortal, setShowParentPortal] = useState(false);
   const [pin, setPin] = useState('');
 
+  // 只保留关于项目
   const settingsItems = [
     { 
-      icon: Volume2, 
-      label: '系统音量', 
-      value: '80%', 
-      color: 'text-sky-500', 
-      bg: 'bg-sky-50',
-      gradient: 'from-sky-200 to-blue-200',
-      emoji: '🔊'
-    },
-    { 
-      icon: Eye, 
-      label: '护眼模式', 
-      value: '已开启', 
-      color: 'text-emerald-500', 
-      bg: 'bg-emerald-50',
-      gradient: 'from-emerald-200 to-teal-200',
-      emoji: '👀'
-    },
-    { 
-      icon: Mic2, 
-      label: '语音包选择', 
-      value: '温柔姐姐', 
-      color: 'text-rose-500', 
-      bg: 'bg-rose-50',
-      gradient: 'from-rose-200 to-pink-200',
-      emoji: '🎤'
-    },
-    { 
-      icon: Info, 
       label: '关于项目', 
-      value: '', 
       color: 'text-slate-400', 
       bg: 'bg-slate-50',
       gradient: 'from-slate-200 to-gray-200',
@@ -177,7 +148,6 @@ const Settings = () => {
                   <span className="font-bold text-slate-700">{item.label}</span>
                 </div>
                 <div className="flex items-center gap-2 relative z-10">
-                  <span className="text-slate-400 text-sm font-medium">{item.value}</span>
                   <ChevronRight size={18} className="text-slate-300 group-hover:text-slate-500 transition-colors" />
                 </div>
               </Card>
@@ -234,9 +204,9 @@ const Settings = () => {
             >
               <button 
                 onClick={() => { setShowParentPortal(false); setPin(''); }}
-                className="absolute top-6 right-6 w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-400"
+                className="absolute top-6 right-6 w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-400 text-xl"
               >
-                <X size={20} />
+                ✕
               </button>
               
               <div className="w-16 h-16 bg-gradient-to-br from-sky-100 to-blue-100 rounded-full flex items-center justify-center mb-6 shadow-lg">
