@@ -230,6 +230,28 @@ const EmotionGuess = () => {
 
   return (
     <MobileShell className="bg-gradient-to-b from-purple-50 to-white">
+      {/* 背景装饰 */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        {[...Array(8)].map((_, i) => (
+          <motion.div
+            key={i}
+            className="absolute text-purple-200"
+            style={{ left: `${8 + i * 12}%`, top: `${5 + (i % 4) * 6}%` }}
+            animate={{ opacity: [0.2, 0.5, 0.2], scale: [0.8, 1.1, 0.8] }}
+            transition={{ repeat: Infinity, duration: 2.5 + i * 0.3 }}
+          >
+            ⭐
+          </motion.div>
+        ))}
+        <motion.div
+          animate={{ x: [0, 15, 0] }}
+          transition={{ repeat: Infinity, duration: 7 }}
+          className="absolute top-20 right-10 text-4xl opacity-30"
+        >
+          😊
+        </motion.div>
+      </div>
+
       {/* 鼓励特效 */}
       <CelebrationEffect 
         show={showCelebration} 
@@ -243,7 +265,7 @@ const EmotionGuess = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="h-full flex flex-col"
+            className="h-full flex flex-col relative"
           >
             {/* Header */}
             <div className="px-6 pt-4 flex items-center justify-between pb-4">

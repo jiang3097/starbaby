@@ -255,6 +255,28 @@ const PuzzleExpress = () => {
 
   return (
     <MobileShell className="bg-gradient-to-b from-orange-50 to-white">
+      {/* 背景装饰 */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        {[...Array(10)].map((_, i) => (
+          <motion.div
+            key={i}
+            className="absolute text-orange-200"
+            style={{ left: `${8 + i * 10}%`, top: `${5 + (i % 4) * 5}%` }}
+            animate={{ opacity: [0.2, 0.5, 0.2], scale: [0.8, 1.1, 0.8] }}
+            transition={{ repeat: Infinity, duration: 2.5 + i * 0.3 }}
+          >
+            ⭐
+          </motion.div>
+        ))}
+        <motion.div
+          animate={{ y: [0, -10, 0], rotate: [0, 5, 0] }}
+          transition={{ repeat: Infinity, duration: 4 }}
+          className="absolute top-20 right-8 text-5xl opacity-20"
+        >
+          🧩
+        </motion.div>
+      </div>
+
       {/* 鼓励特效 */}
       <CelebrationEffect 
         show={showCelebration} 
@@ -268,7 +290,7 @@ const PuzzleExpress = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="h-full flex flex-col"
+            className="h-full flex flex-col relative"
           >
             <div className="px-6 pt-4 flex items-center justify-between">
               <button

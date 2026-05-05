@@ -1,18 +1,18 @@
-import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, Volume2, ArrowRight, Trophy, Star, Mic, Check, RefreshCw, Send, Sparkles } from 'lucide-react';
+import { ChevronLeft, Volume2, Mic, Check, ArrowRight, Trophy, RefreshCw, Sparkles, Star, Home } from 'lucide-react';
 import MobileShell from '../components/MobileShell';
 import { Button } from '../components/ui/button';
 import { cn } from '../lib/utils';
-import AIChatPanel from '../components/AIChatPanel';
-import VoiceSelector from '../components/VoiceSelector';
 import { speakText, startListening, preloadVoices } from '../lib/useSpeech';
+import VoiceSelector from '../components/VoiceSelector';
+import AIChatPanel from '../components/AIChatPanel';
+import { useUser } from '../context/UserContext';
 
-// 绘本主题
-export type BookTheme = 'emotion' | 'help' | 'daily';
+type BookTheme = 'emotion' | 'help' | 'daily';
+type GamePhase = 'intro' | 'reading' | 'question' | 'answering' | 'feedback' | 'complete';
 
-// 故事页
 interface StoryPage {
   id: number;
   text: string;
@@ -27,13 +27,17 @@ const BOOKS_DATA: Record<number, {
   title: string;
   subtitle: string;
   successText: string;
+  gradient: string;
+  color: string;
   stories: StoryPage[];
 }> = {
-  // 情绪识别 - 交换后变成"日常使用"
+  // 情绪识别
   1: {
     id: 'daily',
     title: '日常使用',
     subtitle: '学习日常表达',
+    gradient: 'from-emerald-200 to-teal-300',
+    color: 'text-emerald-600',
     successText: '星宝学会了日常沟通表达',
     stories: [
       {
@@ -64,6 +68,8 @@ const BOOKS_DATA: Record<number, {
     id: 'help',
     title: '寻求帮助',
     subtitle: '学会正确表达需求',
+    gradient: 'from-blue-200 to-indigo-300',
+    color: 'text-blue-600',
     successText: '星宝学会了如何向他人寻求帮助',
     stories: [
       {
@@ -89,11 +95,13 @@ const BOOKS_DATA: Record<number, {
       }
     ]
   },
-  // 日常使用 - 交换后变成"情绪识别"
+  // 日常使用
   3: {
     id: 'emotion',
-    title: '情绪识别',
+    title: '情绪表达',
     subtitle: '认识不同的情绪',
+    gradient: 'from-rose-200 to-pink-300',
+    color: 'text-rose-600',
     successText: '星宝学会了识别不同的情绪',
     stories: [
       {
@@ -121,21 +129,11 @@ const BOOKS_DATA: Record<number, {
   }
 };
 
-// 游戏阶段
-type GamePhase = 'intro' | 'reading' | 'question' | 'answering' | 'feedback' | 'complete';
-
 const BookInteraction = () => {
-  const navigate = useNavigate();
   const { bookId } = useParams<{ bookId: string }>();
+  const navigate = useNavigate();
+  const { profile, avatar } = useUser();
   
-  const currentBookId = useMemo(() => {
-    const id = parseInt(bookId || '1', 10);
-    return Math.min(Math.max(id, 1), 3);
-  }, [bookId]);
-
-  const bookData = BOOKS_DATA[currentBookId] || BOOKS_DATA[1];
-  
-  // 游戏状态
   const [currentStory, setCurrentStory] = useState(0);
   const [phase, setPhase] = useState<GamePhase>('intro');
   const [isPlaying, setIsPlaying] = useState(false);
@@ -144,29 +142,18 @@ const BookInteraction = () => {
   const [isCorrect, setIsCorrect] = useState(false);
   const [showResult, setShowResult] = useState(false);
   const [score, setScore] = useState(0);
-  
-  // AI Chat
-  const [isAIChatOpen, setIsAIChatOpen] = useState(false);
   const [isVoiceSelectorOpen, setIsVoiceSelectorOpen] = useState(false);
-
+  const [isAIChatOpen, setIsAIChatOpen] = useState(false);
+  
   const stopListeningRef = useRef<(() => void) | null>(null);
-  const story = bookData.stories[currentStory];
 
-  // 预加载语音
+  const bookData = BOOKS_DATA[Number(bookId) || 1];
+  const story = bookData?.stories[currentStory];
+
   useEffect(() => {
     preloadVoices();
   }, []);
 
-  // 清理
-  useEffect(() => {
-    return () => {
-      if (stopListeningRef.current) {
-        stopListeningRef.current();
-      }
-    };
-  }, []);
-
-  // 重置状态
   const resetState = useCallback(() => {
     setPhase('intro');
     setIsPlaying(false);
@@ -180,26 +167,14 @@ const BookInteraction = () => {
     }
   }, []);
 
-  // 切换到下一故事
-  const nextStory = useCallback(() => {
-    if (currentStory < bookData.stories.length - 1) {
-      setCurrentStory(prev => prev + 1);
-      resetState();
-    } else {
-      setPhase('complete');
-    }
-  }, [currentStory, bookData.stories.length, resetState]);
-
-  // 开始跟读故事
+  // 开始阅读
   const startReading = useCallback(() => {
     setPhase('reading');
     setIsPlaying(true);
-    speakText(story.text, () => {}, () => {
+    speakText(story.text, () => {
       setIsPlaying(false);
-      // 跟读结束后进入提问阶段
       setTimeout(() => {
         setPhase('question');
-        // AI 朗读问题
         setTimeout(() => {
           speakText(story.question);
         }, 500);
@@ -218,7 +193,6 @@ const BookInteraction = () => {
         setUserAnswer(text);
         setIsListening(false);
         
-        // 简单判断是否正确（包含关键词）
         const answerLower = text.toLowerCase();
         const correctLower = story.answer.toLowerCase();
         const keywords = correctLower.split(/[,，、]/).filter(k => k.trim().length > 2);
@@ -251,6 +225,16 @@ const BookInteraction = () => {
     }
     setIsListening(false);
   }, []);
+  
+  // 下一题
+  const nextStory = () => {
+    if (currentStory < bookData.stories.length - 1) {
+      resetState();
+      setCurrentStory(prev => prev + 1);
+    } else {
+      setPhase('complete');
+    }
+  };
 
   // 返回首页
   const handleBack = () => {
@@ -262,6 +246,30 @@ const BookInteraction = () => {
 
   return (
     <MobileShell className="bg-gradient-to-b from-amber-50 to-white">
+      {/* 背景装饰 */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        {/* 星星装饰 */}
+        {[...Array(8)].map((_, i) => (
+          <motion.div
+            key={i}
+            className="absolute text-amber-300"
+            style={{ left: `${8 + i * 12}%`, top: `${3 + (i % 4) * 6}%` }}
+            animate={{ opacity: [0.2, 0.6, 0.2], scale: [0.8, 1.1, 0.8] }}
+            transition={{ repeat: Infinity, duration: 2.5 + i * 0.3 }}
+          >
+            ⭐
+          </motion.div>
+        ))}
+        {/* 云朵装饰 */}
+        <motion.div
+          animate={{ x: [0, 15, 0] }}
+          transition={{ repeat: Infinity, duration: 7 }}
+          className="absolute top-16 right-10 text-4xl opacity-30"
+        >
+          ☁️
+        </motion.div>
+      </div>
+
       <AnimatePresence mode="wait">
         {/* ========== 介绍阶段 ========== */}
         {phase === 'intro' && (
@@ -270,26 +278,32 @@ const BookInteraction = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="h-full flex flex-col"
+            className="h-full flex flex-col relative"
           >
-            <div className="px-6 pt-4 flex items-center justify-between">
+            <div className="px-6 pt-4 flex items-center justify-between relative z-10">
               <button
                 onClick={handleBack}
-                className="w-12 h-12 bg-white rounded-full flex items-center justify-center text-slate-400 shadow-sm"
+                className="w-12 h-12 bg-white rounded-full flex items-center justify-center text-slate-400 shadow-lg"
               >
                 <ChevronLeft size={28} />
               </button>
-              <span className="text-sm font-bold text-amber-600">{bookData.title}</span>
+              <div className={cn(
+                "px-4 py-1.5 rounded-full text-sm font-bold bg-gradient-to-r",
+                bookData.gradient,
+                "text-white shadow-md"
+              )}>
+                {bookData.title}
+              </div>
               <div className="flex gap-2">
                 <button 
                   onClick={() => setIsVoiceSelectorOpen(true)}
-                  className="w-10 h-10 bg-amber-50 rounded-full flex items-center justify-center text-amber-500 border border-amber-100"
+                  className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-amber-500 shadow-md border-2 border-amber-100"
                 >
                   <Volume2 size={18} />
                 </button>
                 <button 
                   onClick={() => setIsAIChatOpen(true)}
-                  className="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center text-amber-500 border border-amber-200"
+                  className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-amber-500 shadow-md border-2 border-amber-100"
                 >
                   <Sparkles size={20} />
                 </button>
@@ -297,259 +311,325 @@ const BookInteraction = () => {
             </div>
 
             <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
+              {/* 绘本图标 */}
               <motion.div
                 initial={{ scale: 0.8 }}
                 animate={{ scale: 1 }}
-                className="w-40 h-40 bg-white rounded-full flex items-center justify-center shadow-xl mb-8"
+                className={cn(
+                  "w-40 h-40 rounded-3xl bg-gradient-to-br flex items-center justify-center shadow-2xl mb-6",
+                  bookData.gradient
+                )}
               >
-                <span className="text-6xl">📖</span>
+                <span className="text-7xl">📖</span>
               </motion.div>
               
-              <h1 className="text-3xl font-bold text-slate-800 mb-2">{bookData.title}</h1>
-              <p className="text-lg text-slate-500 mb-8">{bookData.subtitle}</p>
-              
-              <div className="bg-white rounded-2xl p-6 shadow-lg mb-8 text-left w-full max-w-sm">
-                <p className="text-sm text-slate-600 font-medium mb-2">游戏规则：</p>
-                <ul className="text-sm text-slate-500 space-y-2">
-                  <li className="flex items-start gap-2">
-                    <span className="text-amber-500 font-bold">1.</span>
-                    <span>先听AI朗读故事</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-amber-500 font-bold">2.</span>
-                    <span>跟着一起读</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-amber-500 font-bold">3.</span>
-                    <span>回答AI提出的问题</span>
-                  </li>
-                </ul>
-              </div>
-
-              <Button
-                onClick={() => {
-                  setCurrentStory(0);
-                  startReading();
-                }}
-                className="w-full max-w-sm h-16 bg-amber-400 hover:bg-amber-500 text-white font-bold text-xl rounded-full shadow-lg border-none"
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
+                className="bg-white/80 backdrop-blur px-6 py-3 rounded-full shadow-md mb-4"
               >
-                开始听故事
-                <ArrowRight size={24} />
-              </Button>
+                <p className="text-lg font-bold text-slate-700">{bookData.title}</p>
+                <p className="text-sm text-slate-500">{bookData.subtitle}</p>
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.4 }}
+                className="bg-amber-50 border-2 border-amber-200 px-6 py-3 rounded-2xl shadow-md mb-8"
+              >
+                <p className="text-sm text-amber-700">
+                  第 <span className="font-bold">{currentStory + 1}</span> 页，共 <span className="font-bold">{bookData.stories.length}</span> 页
+                </p>
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.6 }}
+              >
+                <Button
+                  onClick={startReading}
+                  className={cn(
+                    "h-16 px-12 rounded-full font-bold text-xl shadow-xl border-none bg-gradient-to-r",
+                    bookData.gradient,
+                    "text-white"
+                  )}
+                >
+                  开始阅读
+                  <ArrowRight size={24} className="ml-2" />
+                </Button>
+              </motion.div>
             </div>
           </motion.div>
         )}
 
-        {/* ========== 跟读阶段 ========== */}
-        {(phase === 'reading' || phase === 'question' || phase === 'answering' || phase === 'feedback') && (
+        {/* ========== 阅读阶段 ========== */}
+        {phase === 'reading' && (
           <motion.div
-            key="game"
+            key="reading"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
             className="h-full flex flex-col"
           >
             {/* Header */}
             <div className="px-6 pt-4 flex items-center justify-between">
               <button
-                onClick={handleBack}
-                className="w-12 h-12 bg-white rounded-full flex items-center justify-center text-slate-400 shadow-sm"
+                onClick={() => { resetState(); setCurrentStory(0); }}
+                className="w-12 h-12 bg-white rounded-full flex items-center justify-center text-slate-400 shadow-lg"
               >
-                <ChevronLeft size={28} />
+                <Home size={22} />
               </button>
-              <div className="flex flex-col items-center">
-                <span className="text-sm font-bold text-amber-600">{bookData.title}</span>
-                <div className="flex gap-1 mt-1">
-                  {bookData.stories.map((_, i) => (
-                    <div
-                      key={i}
-                      className={cn(
-                        "h-2 rounded-full transition-all",
-                        i === currentStory ? "w-6 bg-amber-400" : i < currentStory ? "w-2 bg-emerald-400" : "w-2 bg-slate-200"
-                      )}
-                    />
-                  ))}
-                </div>
+              <div className={cn(
+                "px-4 py-1.5 rounded-full text-sm font-bold",
+                bookData.color,
+                "bg-white shadow-md"
+              )}>
+                第{currentStory + 1}页
               </div>
-              <span className="text-sm text-amber-500 font-medium">{currentStory + 1}/{bookData.stories.length}</span>
+              <div className="w-12" />
             </div>
 
-            {/* Story Image */}
-            <div className="p-6">
-              <motion.div
-                key={currentStory}
-                initial={{ x: 50, opacity: 0 }}
-                animate={{ x: 0, opacity: 1 }}
-                className="w-full aspect-video rounded-[30px] overflow-hidden shadow-xl"
+            {/* 图片 */}
+            <motion.div
+              layoutId={`story-image-${currentStory}`}
+              className="mx-6 mt-4 rounded-3xl overflow-hidden shadow-2xl border-4 border-white"
+            >
+              <img 
+                src={story.image} 
+                alt="故事" 
+                className="w-full aspect-video object-cover"
+              />
+            </motion.div>
+
+            {/* 文字内容 */}
+            <motion.div
+              key={currentStory}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex-1 p-6 flex flex-col items-center justify-center"
+            >
+              <div className="bg-white rounded-3xl p-6 shadow-lg border-2 border-amber-100 max-w-sm text-center">
+                <p className="text-xl font-bold text-slate-700 leading-relaxed">
+                  "{story.text}"
+                </p>
+              </div>
+              
+              {/* 朗读按钮 */}
+              <motion.button
+                animate={{ scale: isPlaying ? [1, 1.1, 1] : 1 }}
+                transition={{ repeat: isPlaying ? Infinity : 0, duration: 1 }}
+                onClick={() => !isPlaying && speakText(story.text)}
+                className={cn(
+                  "mt-6 w-16 h-16 rounded-full flex items-center justify-center shadow-lg transition-all",
+                  isPlaying 
+                    ? "bg-amber-200 cursor-not-allowed" 
+                    : "bg-gradient-to-br from-amber-400 to-orange-400 hover:scale-105"
+                )}
               >
-                <img src={story.image} alt="故事" className="w-full h-full object-cover" />
+                <Volume2 size={32} className={cn("text-white", isPlaying && "animate-pulse")} />
+              </motion.button>
+              <p className="mt-2 text-sm text-amber-600 font-medium">
+                {isPlaying ? '正在朗读...' : '点击重听'}
+              </p>
+            </motion.div>
+          </motion.div>
+        )}
+
+        {/* ========== 提问阶段 ========== */}
+        {phase === 'question' && (
+          <motion.div
+            key="question"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="h-full flex flex-col p-6"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <button onClick={() => { resetState(); setCurrentStory(0); }} className="w-12 h-12 bg-white rounded-full flex items-center justify-center text-slate-400 shadow-lg">
+                <Home size={22} />
+              </button>
+              <div className="flex items-center gap-2">
+                {[...Array(bookData.stories.length)].map((_, i) => (
+                  <div
+                    key={i}
+                    className={cn(
+                      "w-3 h-3 rounded-full transition-all",
+                      i === currentStory ? "bg-amber-400 scale-125" : i < currentStory ? "bg-emerald-400" : "bg-slate-200"
+                    )}
+                  />
+                ))}
+              </div>
+              <div className="w-12" />
+            </div>
+
+            <div className="flex-1 flex flex-col items-center justify-center gap-6">
+              <motion.div
+                initial={{ scale: 0.8 }}
+                animate={{ scale: 1 }}
+                className={cn(
+                  "w-20 h-20 rounded-full flex items-center justify-center shadow-xl",
+                  bookData.gradient,
+                  "text-white"
+                )}
+              >
+                <span className="text-4xl">❓</span>
               </motion.div>
+              
+              <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-3xl p-6 shadow-lg border-2 border-amber-200 max-w-sm">
+                <p className="text-xs text-amber-600 font-bold mb-2">✨ 请听好问题</p>
+                <p className="text-xl font-bold text-slate-700 leading-relaxed">
+                  {story.question}
+                </p>
+              </div>
+              
+              <Button
+                onClick={startAnswering}
+                className="h-16 px-12 rounded-full bg-gradient-to-r from-rose-400 to-pink-500 text-white font-bold text-xl shadow-xl border-none"
+              >
+                <Mic size={24} className="mr-2" />
+                点击回答问题
+              </Button>
+            </div>
+          </motion.div>
+        )}
+
+        {/* ========== 回答阶段 ========== */}
+        {phase === 'answering' && (
+          <motion.div
+            key="answering"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="h-full flex flex-col p-6"
+          >
+            <div className="flex items-center justify-center mb-6">
+              <div className="bg-rose-50 border-2 border-rose-200 px-6 py-3 rounded-full">
+                <p className="text-lg font-bold text-rose-700">请回答问题 👇</p>
+              </div>
             </div>
 
-            {/* Story Text / Question */}
-            <div className="flex-1 px-6 pb-4">
-              {phase === 'reading' && (
-                <motion.div
-                  key="reading"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="bg-white rounded-2xl p-6 shadow-lg text-center"
+            <div className="flex-1 flex flex-col items-center justify-center gap-6">
+              {/* 问题显示 */}
+              <div className="bg-white rounded-2xl p-5 shadow-md border border-slate-100 max-w-sm w-full">
+                <p className="text-sm text-slate-400 mb-1">问题：</p>
+                <p className="text-base text-slate-600">{story.question}</p>
+              </div>
+
+              {/* 录音状态 */}
+              <motion.div
+                animate={{ scale: isListening ? [1, 1.02, 1] : 1 }}
+                className={cn(
+                  "w-32 h-32 rounded-full flex flex-col items-center justify-center shadow-xl transition-all",
+                  isListening 
+                    ? "bg-gradient-to-br from-rose-400 to-pink-500" 
+                    : "bg-gradient-to-br from-slate-100 to-slate-200"
+                )}
+              >
+                <span className="text-5xl mb-2">{isListening ? '🎤' : '🎙️'}</span>
+                <p className={cn(
+                  "text-sm font-bold",
+                  isListening ? "text-white" : "text-slate-400"
+                )}>
+                  {isListening ? '正在听...' : '已停止'}
+                </p>
+              </motion.div>
+
+              {/* 用户回答 */}
+              <div className="bg-white rounded-2xl p-4 shadow-md border-2 border-rose-100 max-w-sm w-full">
+                <p className="text-xs text-slate-400 mb-1">你说的：</p>
+                <p className={cn(
+                  "text-base font-medium",
+                  userAnswer ? "text-slate-700" : "text-slate-400 italic"
+                )}>
+                  {userAnswer || '点击麦克风开始说话~'}
+                </p>
+              </div>
+
+              {/* 控制按钮 */}
+              <div className="flex gap-4 w-full max-w-sm">
+                <Button
+                  onClick={stopListening}
+                  variant="secondary"
+                  className="flex-1 h-14 bg-slate-100 text-slate-600 font-bold rounded-full border-none"
                 >
-                  <p className="text-xl font-medium text-slate-700 leading-relaxed">
-                    {isPlaying ? story.text : "点击下方按钮，跟我一起读..."}
-                  </p>
-                  <button
-                    onClick={startReading}
-                    disabled={isPlaying}
-                    className={cn(
-                      "mt-4 w-16 h-16 rounded-full flex items-center justify-center transition-all",
-                      isPlaying ? "bg-amber-200 cursor-not-allowed" : "bg-amber-400 hover:bg-amber-500"
-                    )}
-                  >
-                    <Volume2 size={32} className={cn("text-white", isPlaying && "animate-pulse")} />
-                  </button>
-                </motion.div>
-              )}
-
-              {phase === 'question' && (
-                <motion.div
-                  key="question"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="bg-amber-50 rounded-2xl p-6 shadow-lg border-2 border-amber-200 text-center"
+                  停止
+                </Button>
+                <Button
+                  onClick={startAnswering}
+                  className="flex-1 h-14 bg-gradient-to-r from-rose-400 to-pink-500 text-white font-bold rounded-full border-none"
                 >
-                  <p className="text-xs text-amber-600 font-medium mb-2">听好了，我要提问啦！</p>
-                  <p className="text-xl font-bold text-amber-800 leading-relaxed mb-4">
-                    {story.question}
-                  </p>
-                  <Button
-                    onClick={startAnswering}
-                    className="w-full h-14 bg-rose-400 hover:bg-rose-500 text-white font-bold text-lg rounded-full border-none"
-                  >
-                    <Mic size={20} className="mr-2" />
-                    点击回答问题
-                  </Button>
-                </motion.div>
-              )}
-
-              {phase === 'answering' && (
-                <motion.div
-                  key="answering"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="bg-rose-50 rounded-2xl p-6 shadow-lg border-2 border-rose-200"
-                >
-                  <div className="text-center mb-4">
-                    <p className="text-lg font-bold text-rose-700 mb-2">请回答问题：</p>
-                    <p className="text-base text-slate-600">{story.question}</p>
-                  </div>
-                  
-                  {/* Recording UI */}
-                  <div className="bg-white rounded-xl p-4 mb-4 border border-slate-200">
-                    {isListening ? (
-                      <div className="flex items-center justify-center gap-3 py-2">
-                        <div className="flex gap-1">
-                          {[1, 2, 3, 4].map(i => (
-                            <motion.div
-                              key={i}
-                              animate={{ scaleY: [0.3, 1, 0.3] }}
-                              transition={{ repeat: Infinity, duration: 0.6, delay: i * 0.1 }}
-                              className="w-1.5 h-6 bg-rose-400 rounded-full"
-                            />
-                          ))}
-                        </div>
-                        <span className="text-rose-500 font-medium">正在听你说...</span>
-                      </div>
-                    ) : (
-                      <p className="text-center text-slate-400 py-2">
-                        {userAnswer ? `"${userAnswer}"` : '点击麦克风开始说话'}
-                      </p>
-                    )}
-                  </div>
-
-                  <div className="flex gap-3">
-                    <Button
-                      onClick={stopListening}
-                      variant="secondary"
-                      className="flex-1 h-12 bg-slate-100 text-slate-600 font-bold rounded-full border-none"
-                    >
-                      停止录音
-                    </Button>
-                    <Button
-                      onClick={startAnswering}
-                      className="flex-1 h-12 bg-rose-400 hover:bg-rose-500 text-white font-bold rounded-full border-none"
-                    >
-                      <Mic size={18} className="mr-1" />
-                      {userAnswer ? '再说一遍' : '开始录音'}
-                    </Button>
-                  </div>
-                </motion.div>
-              )}
-
-              {phase === 'feedback' && (
-                <motion.div
-                  key="feedback"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className={cn(
-                    "rounded-2xl p-6 shadow-lg text-center",
-                    isCorrect ? "bg-emerald-50 border-2 border-emerald-300" : "bg-amber-50 border-2 border-amber-300"
-                  )}
-                >
-                  <div className={cn(
-                    "w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center",
-                    isCorrect ? "bg-emerald-200" : "bg-amber-200"
-                  )}>
-                    {isCorrect ? (
-                      <Check size={32} className="text-emerald-600" />
-                    ) : (
-                      <span className="text-2xl">💪</span>
-                    )}
-                  </div>
-                  
-                  <p className={cn(
-                    "text-xl font-bold mb-2",
-                    isCorrect ? "text-emerald-700" : "text-amber-700"
-                  )}>
-                    {isCorrect ? "太棒了！回答正确！" : "回答得很好！"}
-                  </p>
-                  
-                  {!isCorrect && (
-                    <p className="text-base text-slate-600 mb-2">
-                      正确答案：<span className="font-bold text-amber-700">{story.answer}</span>
-                    </p>
-                  )}
-                  
-                  {userAnswer && (
-                    <p className="text-sm text-slate-500 mb-4">
-                      你说的："{userAnswer}"
-                    </p>
-                  )}
-
-                  <Button
-                    onClick={nextStory}
-                    className={cn(
-                      "w-full h-14 font-bold text-lg rounded-full border-none",
-                      currentStory < bookData.stories.length - 1
-                        ? "bg-amber-400 hover:bg-amber-500 text-white"
-                        : "bg-emerald-400 hover:bg-emerald-500 text-white"
-                    )}
-                  >
-                    {currentStory < bookData.stories.length - 1 ? (
-                      <>
-                        下一题
-                        <ArrowRight size={20} className="ml-2" />
-                      </>
-                    ) : (
-                      <>
-                        查看结果
-                        <Trophy size={20} className="ml-2" />
-                      </>
-                    )}
-                  </Button>
-                </motion.div>
-              )}
+                  <Mic size={20} className="mr-1" />
+                  {userAnswer ? '再说一遍' : '开始录音'}
+                </Button>
+              </div>
             </div>
+          </motion.div>
+        )}
+
+        {/* ========== 反馈阶段 ========== */}
+        {phase === 'feedback' && (
+          <motion.div
+            key="feedback"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="h-full flex flex-col items-center justify-center p-6"
+          >
+            <motion.div
+              animate={{ y: [0, -10, 0] }}
+              transition={{ repeat: Infinity, duration: 2 }}
+              className={cn(
+                "w-24 h-24 rounded-full flex items-center justify-center shadow-2xl mb-6",
+                isCorrect ? "bg-gradient-to-br from-emerald-300 to-teal-400" : "bg-gradient-to-br from-amber-300 to-orange-400"
+              )}
+            >
+              {isCorrect ? (
+                <Check size={48} className="text-white" />
+              ) : (
+                <span className="text-5xl">💪</span>
+              )}
+            </motion.div>
+            
+            <h2 className={cn(
+              "text-3xl font-bold mb-2",
+              isCorrect ? "text-emerald-600" : "text-amber-600"
+            )}>
+              {isCorrect ? "太棒了！🎉" : "回答得很好！"}
+            </h2>
+            
+            {!isCorrect && (
+              <div className="bg-white rounded-2xl p-4 shadow-md border border-amber-200 mb-4">
+                <p className="text-sm text-slate-500">正确答案：</p>
+                <p className="text-base font-bold text-amber-700">{story.answer}</p>
+              </div>
+            )}
+            
+            {userAnswer && (
+              <p className="text-sm text-slate-500 mb-6">
+                你说的："{userAnswer}"
+              </p>
+            )}
+
+            <Button
+              onClick={nextStory}
+              className={cn(
+                "h-16 px-12 rounded-full font-bold text-xl shadow-xl border-none bg-gradient-to-r",
+                currentStory < bookData.stories.length - 1
+                  ? "from-amber-400 to-orange-400 text-white"
+                  : "from-emerald-400 to-teal-500 text-white"
+              )}
+            >
+              {currentStory < bookData.stories.length - 1 ? (
+                <>
+                  下一题
+                  <ArrowRight size={24} className="ml-2" />
+                </>
+              ) : (
+                <>
+                  查看结果
+                  <Trophy size={24} className="ml-2" />
+                </>
+              )}
+            </Button>
           </motion.div>
         )}
 
@@ -564,9 +644,14 @@ const BookInteraction = () => {
             <motion.div
               animate={{ rotate: [0, 10, -10, 0] }}
               transition={{ repeat: Infinity, duration: 2 }}
-              className="w-48 h-48 bg-gradient-to-br from-amber-200 to-amber-400 rounded-full flex items-center justify-center shadow-2xl mb-8"
+              className="relative mb-8"
             >
-              <Trophy size={80} className="text-white" />
+              <div className="w-40 h-40 bg-gradient-to-br from-amber-200 to-amber-400 rounded-full flex items-center justify-center shadow-2xl">
+                <Trophy size={80} className="text-white" />
+              </div>
+              <div className="absolute -top-2 -right-2 w-16 h-16 bg-pink-400 rounded-full flex items-center justify-center shadow-lg">
+                <Star size={32} className="text-white" fill="currentColor" />
+              </div>
             </motion.div>
 
             <h1 className="text-4xl font-bold text-slate-800 mb-2">真棒！</h1>
@@ -583,7 +668,7 @@ const BookInteraction = () => {
                   setCurrentStory(0);
                   setScore(0);
                 }}
-                className="w-full h-16 bg-amber-400 hover:bg-amber-500 text-white font-bold text-xl rounded-full border-none"
+                className="w-full h-16 bg-gradient-to-r from-amber-400 to-orange-400 text-white font-bold text-xl rounded-full border-none shadow-xl"
               >
                 <RefreshCw size={24} className="mr-2" />
                 再来一次
@@ -600,19 +685,8 @@ const BookInteraction = () => {
         )}
       </AnimatePresence>
 
-      {/* AI Chat Panel */}
-      <AIChatPanel 
-        isOpen={isAIChatOpen} 
-        onClose={() => setIsAIChatOpen(false)} 
-        title={`星宝AI助手 - ${bookData.title}`}
-        context={bookData.title}
-      />
-
-      {/* Voice Selector */}
-      <VoiceSelector 
-        isOpen={isVoiceSelectorOpen} 
-        onClose={() => setIsVoiceSelectorOpen(false)} 
-      />
+      <VoiceSelector isOpen={isVoiceSelectorOpen} onClose={() => setIsVoiceSelectorOpen(false)} />
+      <AIChatPanel isOpen={isAIChatOpen} onClose={() => setIsAIChatOpen(false)} context={bookData?.title} />
     </MobileShell>
   );
 };
