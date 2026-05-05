@@ -106,52 +106,57 @@ const Settings = () => {
   };
 
   // 密码修改相关
-  const storedPassword = '1234'; // 实际应该存在localStorage或AppContext中
+  const storedPassword = '1234'; // 实际应该存在localStorage
+  const [savedNewPin, setSavedNewPin] = useState(''); // 保存新密码用于比较
   
-  const handlePinInput = (num: string, setter: React.Dispatch<React.SetStateAction<string>>, target: string) => {
+  const handlePinInput = (num: string) => {
     if (num === '⌫') {
-      setter(prev => prev.slice(0, -1));
+      if (pinStep === 'current') setCurrentPin(prev => prev.slice(0, -1));
+      else if (pinStep === 'new') setNewPin(prev => prev.slice(0, -1));
+      else if (pinStep === 'confirm') setConfirmPin(prev => prev.slice(0, -1));
       return;
     }
-    if (pinStep === target && (target === 'current' ? currentPin : target === 'new' ? newPin : confirmPin).length < 4) {
-      if (target === 'current') {
-        const newVal = currentPin + num;
-        setCurrentPin(newVal);
-        if (newVal.length === 4) {
-          if (newVal === storedPassword) {
-            setPinStep('new');
-            setCurrentPin('');
-          } else {
-            setPinError(true);
-            setTimeout(() => { setCurrentPin(''); setPinError(false); }, 800);
-          }
+    
+    if (pinStep === 'current' && currentPin.length < 4) {
+      const newVal = currentPin + num;
+      setCurrentPin(newVal);
+      if (newVal.length === 4) {
+        const password = localStorage.getItem('parent_password') || storedPassword;
+        if (newVal === password) {
+          setPinStep('new');
+          setCurrentPin('');
+        } else {
+          setPinError(true);
+          setTimeout(() => { setCurrentPin(''); setPinError(false); }, 800);
         }
-      } else if (target === 'new') {
-        const newVal = newPin + num;
-        setNewPin(newVal);
-        if (newVal.length === 4) {
-          setPinStep('confirm');
-          setNewPin('');
-        }
-      } else if (target === 'confirm') {
-        const newVal = confirmPin + num;
-        setConfirmPin(newVal);
-        if (newVal.length === 4) {
-          if (newVal === newPin) {
-            // 密码相同，保存新密码（这里简化处理，实际应该保存到存储）
-            localStorage.setItem('parent_password', newVal);
-            setPinSuccess(true);
-            setTimeout(() => {
-              setPinStep('current');
-              setNewPin('');
-              setConfirmPin('');
-              setPinSuccess(false);
-              setParentView('settings');
-            }, 1500);
-          } else {
-            setPinError(true);
-            setTimeout(() => { setConfirmPin(''); setPinError(false); }, 800);
-          }
+      }
+    } else if (pinStep === 'new' && newPin.length < 4) {
+      const newVal = newPin + num;
+      setNewPin(newVal);
+      if (newVal.length === 4) {
+        setSavedNewPin(newVal); // 保存新密码
+        setPinStep('confirm');
+        setNewPin('');
+      }
+    } else if (pinStep === 'confirm' && confirmPin.length < 4) {
+      const newVal = confirmPin + num;
+      setConfirmPin(newVal);
+      if (newVal.length === 4) {
+        if (newVal === savedNewPin) {
+          // 密码相同，保存新密码
+          localStorage.setItem('parent_password', newVal);
+          setPinSuccess(true);
+          setTimeout(() => {
+            setPinStep('current');
+            setNewPin('');
+            setConfirmPin('');
+            setSavedNewPin('');
+            setPinSuccess(false);
+            setParentView('settings');
+          }, 1500);
+        } else {
+          setPinError(true);
+          setTimeout(() => { setConfirmPin(''); setPinError(false); }, 800);
         }
       }
     }
@@ -752,7 +757,7 @@ const Settings = () => {
                       return (
                         <button
                           key={i}
-                          onClick={() => handlePinInput(num, () => {}, pinStep === 'current' ? 'current' : pinStep === 'new' ? 'new' : 'confirm')}
+                          onClick={() => handlePinInput(num)}
                           className={cn(
                             "h-14 rounded-xl flex items-center justify-center text-xl font-medium transition-all active:scale-95",
                             num === '⌫' 
