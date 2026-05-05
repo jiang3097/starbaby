@@ -17,7 +17,7 @@ interface Message {
 
 const AIChat = () => {
   const navigate = useNavigate();
-  const { profile, avatar } = useUser();
+  const { profile, avatar, incrementIntimacy } = useUser();
   const { startTraining, incrementExpression, incrementChatMessage } = useApp();
   const [messages, setMessages] = useState<Message[]>([
     { id: 1, type: 'bot', text: `你好呀！我是${profile.name}！今天心情怎么样？` },
@@ -70,6 +70,7 @@ const AIChat = () => {
     // 统计：增加主动表达次数和聊天消息数
     incrementExpression('chat');
     incrementChatMessage();
+    incrementIntimacy(); // 增加亲密度
 
     // AI 响应
     setTimeout(() => {

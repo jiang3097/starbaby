@@ -38,23 +38,27 @@ const STORAGE_KEY = 'star_baby_profile';
 export interface UserProfile {
   avatarId: number;
   name: string;
+  intimacy: number; // 亲密度，从60开始，上限100
 }
 
 interface UserContextType {
   profile: UserProfile;
   avatar: typeof STAR_AVATARS[0];
   updateProfile: (profile: Partial<UserProfile>) => void;
+  incrementIntimacy: () => void;
 }
 
 const defaultProfile: UserProfile = {
   avatarId: 1,
   name: '星星',
+  intimacy: 60,
 };
 
 const UserContext = createContext<UserContextType>({
   profile: defaultProfile,
   avatar: STAR_AVATARS[0],
   updateProfile: () => {},
+  incrementIntimacy: () => {},
 });
 
 export const useUser = () => useContext(UserContext);
@@ -84,8 +88,15 @@ export const UserProvider = ({ children }: UserProviderProps) => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
   };
 
+  const incrementIntimacy = () => {
+    if (profile.intimacy < 100) {
+      const newIntimacy = Math.min(profile.intimacy + 1, 100);
+      updateProfile({ intimacy: newIntimacy });
+    }
+  };
+
   return (
-    <UserContext.Provider value={{ profile, avatar, updateProfile }}>
+    <UserContext.Provider value={{ profile, avatar, updateProfile, incrementIntimacy }}>
       {children}
     </UserContext.Provider>
   );

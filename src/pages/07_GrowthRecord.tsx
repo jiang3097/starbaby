@@ -141,7 +141,22 @@ const GrowthRecord = () => {
             </div>
             <div className="flex items-center gap-1 bg-white/80 px-3 py-1.5 rounded-full">
               <Heart size={14} className="text-rose-400 fill-rose-400" />
-              <span className="text-sm font-bold text-rose-500">85</span>
+              <span className="text-sm font-bold text-rose-500">{profile.intimacy}</span>
+            </div>
+          </div>
+          {/* 亲密度进度条 */}
+          <div className="mt-3">
+            <div className="flex items-center justify-between text-xs mb-1">
+              <span className="text-rose-500 font-medium">亲密度</span>
+              <span className="text-slate-400">{profile.intimacy}/100</span>
+            </div>
+            <div className="h-2 bg-white/50 rounded-full overflow-hidden">
+              <motion.div
+                className="h-full bg-gradient-to-r from-rose-400 to-pink-500 rounded-full"
+                initial={{ width: 0 }}
+                animate={{ width: `${profile.intimacy}%` }}
+                transition={{ duration: 0.5 }}
+              />
             </div>
           </div>
         </motion.div>
