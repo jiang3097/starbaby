@@ -137,20 +137,21 @@ export const UserProvider = ({ children }: UserProviderProps) => {
         }
         
         // 新数据格式，确保有所有字段，并检查日期重置每日使用次数
-        const fullnessDate = parsed.fullnessDate || today;
-        const moodDate = parsed.moodDate || today;
+        const lastLogin = parsed.lastLoginDate || today;
         
         return {
           ...defaultProfile,
           ...parsed,
           lastLoginDate: today,
+          // 如果是新的一天，重置每日亲密度使用次数
+          todayIntimacyAdded: lastLogin === today ? (parsed.todayIntimacyAdded || 0) : 0,
           // 如果是新的一天，重置每日使用次数
-          fullnessUsedToday: fullnessDate === today ? (parsed.fullnessUsedToday || 0) : 0,
-          fullnessDate: fullnessDate === today ? fullnessDate : today,
+          fullnessUsedToday: parsed.fullnessDate === today ? (parsed.fullnessUsedToday || 0) : 0,
+          fullnessDate: parsed.fullnessDate || today,
           lastBathDate: parsed.lastBathDate || today,
           // 如果是新的一天，重置每日使用次数
-          moodUsedToday: moodDate === today ? (parsed.moodUsedToday || 0) : 0,
-          moodDate: moodDate === today ? moodDate : today,
+          moodUsedToday: parsed.moodDate === today ? (parsed.moodUsedToday || 0) : 0,
+          moodDate: parsed.moodDate || today,
           totalGamePassed: parsed.totalGamePassed || 0,
         };
       }
@@ -188,6 +189,24 @@ export const UserProvider = ({ children }: UserProviderProps) => {
         };
         setProfile(corrected);
         localStorage.setItem(STORAGE_KEY, JSON.stringify(corrected));
+      } else {
+        // 检查是否跨天，重置每日计数
+        const today = new Date().toISOString().split('T')[0];
+        const lastLogin = parsed.lastLoginDate || today;
+        
+        if (lastLogin !== today) {
+          const corrected = {
+            ...parsed,
+            lastLoginDate: today,
+            todayIntimacyAdded: 0,
+            fullnessUsedToday: parsed.fullnessDate === today ? (parsed.fullnessUsedToday || 0) : 0,
+            fullnessDate: parsed.fullnessDate || today,
+            moodUsedToday: parsed.moodDate === today ? (parsed.moodUsedToday || 0) : 0,
+            moodDate: parsed.moodDate || today,
+          };
+          setProfile(corrected);
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(corrected));
+        }
       }
     }
   }, []);
@@ -202,13 +221,22 @@ export const UserProvider = ({ children }: UserProviderProps) => {
 
   // 增加亲密度 - 上限100，每天最多+10
   const incrementIntimacy = () => {
-    if (profile.todayIntimacyAdded >= 10) return;
-    if (profile.intimacy < 100) {
-      updateProfile({ 
-        intimacy: Math.min(profile.intimacy + 1, 100),
-        todayIntimacyAdded: profile.todayIntimacyAdded + 1
-      });
-    }
+    const today = new Date().toISOString().split('T')[0];
+    
+    // 如果亲密度已满，不再增加
+    if (profile.intimacy >= 100) return;
+    
+    // 获取今天的实际使用次数（跨天重置）
+    const todayUsed = profile.lastLoginDate === today ? profile.todayIntimacyAdded : 0;
+    
+    // 如果今天已增加10次，不再增加
+    if (todayUsed >= 10) return;
+    
+    updateProfile({ 
+      intimacy: Math.min(profile.intimacy + 1, 100),
+      todayIntimacyAdded: todayUsed + 1,
+      lastLoginDate: today
+    });
   };
 
   // 使用食物道具 - 每天最多使用3次，每次+4饱腹值
