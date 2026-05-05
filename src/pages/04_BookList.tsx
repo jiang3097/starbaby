@@ -22,7 +22,7 @@ const BookList = () => {
       color: 'bg-emerald-50',
       borderColor: 'border-emerald-100',
       iconColor: 'text-emerald-500',
-      image: 'https://modao.cc/agent-py/media/generated_images/2026-05-02/aa7156b859894d3c90a8d6ef1a1ffd12.jpg#desc=Morning%20routine%2C%20breakfast%20table%2C%20kids%2C%20friendly%20style'
+      image: 'https://modao.cc/agent-py/media/generated_images/2026-05-02/ba68d8f98ff34703933479aa9dbe851f.jpg#desc=Facial%20expressions%2C%20cute%20characters%2C%20happy%20sad%20angry'
     },
     {
       id: 2,
@@ -33,7 +33,7 @@ const BookList = () => {
       color: 'bg-rose-50',
       borderColor: 'border-rose-100',
       iconColor: 'text-rose-500',
-      image: 'https://modao.cc/agent-py/media/generated_images/2026-05-02/ba68d8f98ff34703933479aa9dbe851f.jpg#desc=Facial%20expressions%2C%20cute%20characters%2C%20happy%20sad%20angry'
+      image: 'https://modao.cc/agent-py/media/generated_images/2026-05-02/aa7156b859894d3c90a8d6ef1a1ffd12.jpg#desc=Morning%20routine%2C%20breakfast%20table%2C%20kids%2C%20friendly%20style'
     },
     {
       id: 3,
