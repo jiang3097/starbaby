@@ -109,10 +109,14 @@ export const UserProvider = ({ children }: UserProviderProps) => {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
       const parsed = JSON.parse(saved);
-      // 如果 intimacy 不是60且 todayIntimacyAdded 不存在或为0（今天还没增加过）
-      // 说明是旧数据，需要强制重置为60
-      if (parsed.intimacy !== 60 && (parsed.todayIntimacyAdded === undefined || parsed.todayIntimacyAdded === 0)) {
-        const corrected = { ...parsed, intimacy: 60, todayIntimacyAdded: 0 };
+      // 如果 intimacy 大于60，说明是旧数据，需要强制重置为60
+      if (parsed.intimacy > 60) {
+        const corrected = { 
+          ...parsed, 
+          intimacy: 60, 
+          todayIntimacyAdded: 0,
+          lastLoginDate: new Date().toISOString().split('T')[0]
+        };
         setProfile(corrected);
         localStorage.setItem(STORAGE_KEY, JSON.stringify(corrected));
         console.log('Reset intimacy to 60 from old data:', parsed.intimacy);
