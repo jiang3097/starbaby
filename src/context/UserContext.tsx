@@ -73,8 +73,8 @@ const defaultProfile: UserProfile = {
   mood: 60,
   moodUsedToday: 0,
   moodDate: '',
-  toys: 0,
-  foods: 0,
+  toys: 1,  // 新用户自带1个玩具
+  foods: 1,  // 新用户自带1个食物
   totalGamePassed: 0,
 };
 
