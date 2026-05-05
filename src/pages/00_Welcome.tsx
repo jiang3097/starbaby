@@ -5,12 +5,13 @@ import { Sparkles, ChevronRight, Edit3 } from 'lucide-react';
 import MobileShell from '../components/MobileShell';
 import { Button } from '../components/ui/button';
 import { cn } from '../lib/utils';
-import { useUser, STAR_AVATARS } from '../context/UserContext';
+import { useUser } from '../context/UserContext';
+import { STAR_AVATARS } from '../lib/starAvatars';
 
 const WelcomePage = () => {
   const navigate = useNavigate();
   const { profile: savedProfile, updateProfile } = useUser();
-  const [selectedAvatar, setSelectedAvatar] = useState(STAR_AVATARS.find(a => a.id === savedProfile.avatarId) || STAR_AVATARS[0]);
+  const [selectedAvatar, setSelectedAvatar] = useState(STAR_AVATARS.find((a: typeof STAR_AVATARS[0]) => a.id === savedProfile.avatarId) || STAR_AVATARS[0]);
   const [nickname, setNickname] = useState(savedProfile.name);
   const [isEditing, setIsEditing] = useState(false);
   const [showContent, setShowContent] = useState(false);
@@ -254,7 +255,7 @@ const WelcomePage = () => {
 
                 {/* 形象选择列表 */}
                 <div className="flex justify-center gap-4 mb-8">
-                  {STAR_AVATARS.map((avatar, index) => (
+                  {STAR_AVATARS.map((avatar: typeof STAR_AVATARS[0], index: number) => (
                     <motion.button
                       key={avatar.id}
                       initial={{ opacity: 0, y: 20 }}

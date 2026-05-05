@@ -8,6 +8,7 @@ import { cn } from '../lib/utils';
 import { speakText, preloadVoices } from '../lib/useSpeech';
 import CelebrationEffect from '../components/CelebrationEffect';
 import { useApp } from '../context/AppContext';
+import { useUser } from '../context/UserContext';
 
 // 图片资源
 const IMAGE_1 = 'https://code.coze.cn/api/sandbox/coze_coding/file/proxy?expire_time=-1&file_path=assets%2F25-220Z514302MZ.jpg&nonce=3d40f70e-bfc3-4cc5-9779-d0c9d0bf3800&project_id=7635954527711035402&sign=9703c46a636c287f91ac2d7508e073ca120f417e8326c031fe39eedab840c60f';
@@ -144,7 +145,9 @@ function shuffleArray<T>(array: T[]): T[] {
 const InstructionFind = () => {
   const navigate = useNavigate();
   const { startTraining, incrementGamePass, incrementTrainingGame } = useApp();
+  const { addToy, addFood } = useUser();
   const hasStartedTraining = useRef(false);
+  const hasGivenReward = useRef(false);
   
   const [currentQuestion, setCurrentQuestion] = useState(0);
   // 按顺序出题，不打乱
@@ -180,10 +183,21 @@ const InstructionFind = () => {
     };
   }, []); // 空依赖，确保只执行一次
 
-  // 游戏完成时增加统计
+  // 游戏完成时增加统计和奖励道具
   useEffect(() => {
-    if (isFinished) {
+    if (isFinished && !hasGivenReward.current) {
+      hasGivenReward.current = true;
       incrementTrainingGame();
+      
+      // 通关奖励：根据答对题数奖励道具
+      if (score >= 8) {
+        addFood();
+        addToy();
+      } else if (score >= 7) {
+        addFood();
+      } else if (score >= 3) {
+        addFood();
+      }
     }
   }, [isFinished]); // 只依赖 isFinished
 

@@ -8,6 +8,7 @@ import { cn } from '../lib/utils';
 import { speakText, preloadVoices } from '../lib/useSpeech';
 import CelebrationEffect from '../components/CelebrationEffect';
 import { useApp } from '../context/AppContext';
+import { useUser } from '../context/UserContext';
 
 // 4张拼图图片
 const PUZZLE_IMAGES = [
@@ -27,7 +28,9 @@ interface Piece {
 const PuzzleExpress = () => {
   const navigate = useNavigate();
   const { startTraining, incrementGamePass, incrementTrainingGame } = useApp();
+  const { addToy, addFood } = useUser();
   const hasStartedTraining = useRef(false);
+  const hasGivenReward = useRef(false);
   const hasAddedStats = useRef(false);
   
   const [currentImage, setCurrentImage] = useState(PUZZLE_IMAGES[0]);
@@ -39,6 +42,7 @@ const PuzzleExpress = () => {
   const [gameStarted, setGameStarted] = useState(false);
   const [showCelebration, setShowCelebration] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
+  const [completedLevels, setCompletedLevels] = useState(0); // 已完成的关卡数
   
   const containerRef = useRef<HTMLDivElement>(null);
   const gridSize = 280;
@@ -58,12 +62,27 @@ const PuzzleExpress = () => {
     }
   }, []);
 
-  // 游戏完成时增加统计
+  // 游戏完成时增加统计和奖励道具
   useEffect(() => {
     if (showSuccess && !hasAddedStats.current) {
       hasAddedStats.current = true;
       incrementTrainingGame();
       incrementGamePass();
+      
+      // 更新完成的关卡数
+      const newCompletedLevels = completedLevels + 1;
+      setCompletedLevels(newCompletedLevels);
+      
+      // 通关奖励：根据完成的关卡数奖励道具
+      // 3题：食物，7题：食物和玩具，全部通关（4关）：食物和玩具
+      if (newCompletedLevels >= 4) {
+        addFood();
+        addToy();
+      } else if (newCompletedLevels >= 3) {
+        addFood();
+      } else if (newCompletedLevels >= 1) {
+        addFood();
+      }
     }
   }, [showSuccess]);
 

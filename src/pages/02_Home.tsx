@@ -8,6 +8,13 @@ import { Card } from '../components/ui/card';
 import { cn } from '../lib/utils';
 import { useUser } from '../context/UserContext';
 
+// 圆形环绕的数值模块
+const statusModules = [
+  { key: 'fullness', label: '饱腹', icon: '🍖', color: 'from-orange-400 to-amber-400', bgColor: 'bg-orange-100' },
+  { key: 'cleanliness', label: '清洁', icon: '🛁', color: 'from-sky-400 to-blue-400', bgColor: 'bg-sky-100' },
+  { key: 'mood', label: '心情', icon: '😊', color: 'from-pink-400 to-rose-400', bgColor: 'bg-pink-100' },
+];
+
 const Home = () => {
   const navigate = useNavigate();
   const { profile, avatar } = useUser();
@@ -48,6 +55,23 @@ const Home = () => {
     }
   ];
 
+  // 获取数值的函数
+  const getValue = (key: string) => {
+    return profile[key as keyof typeof profile] as number || 0;
+  };
+
+  // 计算圆形位置（围绕中心）
+  const getCirclePosition = (index: number, total: number, radius: number) => {
+    // 从45度开始，均匀分布
+    const startAngle = Math.PI / 4; // 45度
+    const angleStep = (Math.PI * 2 - startAngle * 2) / (total - 1);
+    const angle = startAngle + index * angleStep;
+    return {
+      x: Math.cos(angle) * radius,
+      y: Math.sin(angle) * radius,
+    };
+  };
+
   return (
     <MobileShell showNav className="bg-gradient-to-b from-sky-100 via-blue-50 to-amber-50">
       {/* 背景装饰层 */}
@@ -78,24 +102,16 @@ const Home = () => {
               top: `${5 + (i % 3) * 8}%` 
             }}
             animate={{ 
-              opacity: [0.3, 0.8, 0.3], 
-              scale: [0.9, 1.2, 0.9],
-              rotate: [0, 10, 0]
+              opacity: [0.3, 0.7, 0.3],
+              scale: [0.8, 1.2, 0.8]
             }}
-            transition={{ repeat: Infinity, duration: 3 + i * 0.4 }}
+            transition={{ repeat: Infinity, duration: 2.5 + i * 0.3 }}
           >
             ⭐
           </motion.div>
         ))}
         
-        {/* 小爱心装饰 */}
-        <motion.div
-          animate={{ scale: [1, 1.2, 1] }}
-          transition={{ repeat: Infinity, duration: 2 }}
-          className="absolute top-1/3 right-8 text-2xl opacity-40"
-        >
-          💕
-        </motion.div>
+        {/* 心形装饰 */}
         <motion.div
           animate={{ scale: [1, 1.3, 1] }}
           transition={{ repeat: Infinity, duration: 2.5, delay: 0.5 }}
@@ -146,6 +162,7 @@ const Home = () => {
           </div>
           
           <div className="flex flex-col items-center justify-center py-6">
+            {/* 星小宝头像区域 */}
             <motion.div
               animate={{ 
                 y: [0, -10, 0],
@@ -181,10 +198,62 @@ const Home = () => {
               />
             </motion.div>
             
+            {/* 名称 */}
             <div className="mt-4 text-center">
               <h2 className="text-2xl font-bold text-slate-800">{profile.name}</h2>
               <p className="text-sm text-slate-500 mt-1">你好！今天要和我玩什么呢？</p>
             </div>
+          </div>
+
+          {/* 圆形环绕的数值模块 */}
+          <div className="flex justify-center items-center relative h-32">
+            {statusModules.map((module, index) => {
+              const pos = getCirclePosition(index, statusModules.length, 90);
+              const value = getValue(module.key);
+              
+              return (
+                <motion.div
+                  key={module.key}
+                  initial={{ opacity: 0, scale: 0 }}
+                  animate={{ 
+                    opacity: 1, 
+                    scale: 1,
+                    y: [0, -8, 0], // 漂浮效果
+                  }}
+                  transition={{ 
+                    opacity: { delay: 0.2 + index * 0.1 },
+                    scale: { delay: 0.2 + index * 0.1 },
+                    y: { 
+                      repeat: Infinity, 
+                      duration: 2 + index * 0.3,
+                      ease: "easeInOut"
+                    }
+                  }}
+                  className="absolute flex flex-col items-center"
+                  style={{
+                    transform: `translate(${pos.x}px, ${pos.y}px)`,
+                  }}
+                >
+                  <div className={cn(
+                    "w-16 h-16 rounded-full flex flex-col items-center justify-center shadow-lg border-3 border-white",
+                    "bg-gradient-to-br",
+                    module.color
+                  )}>
+                    <span className="text-xl">{module.icon}</span>
+                    <span className="text-[10px] font-bold text-white">{value}</span>
+                  </div>
+                  <span className={cn(
+                    "mt-1 text-[10px] font-bold px-2 py-0.5 rounded-full",
+                    module.bgColor,
+                    module.key === 'fullness' && "text-orange-600",
+                    module.key === 'cleanliness' && "text-sky-600",
+                    module.key === 'mood' && "text-pink-600"
+                  )}>
+                    {module.label}
+                  </span>
+                </motion.div>
+              );
+            })}
           </div>
         </div>
 

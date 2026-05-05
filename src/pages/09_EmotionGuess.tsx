@@ -8,6 +8,7 @@ import { cn } from '../lib/utils';
 import { speakText, preloadVoices } from '../lib/useSpeech';
 import CelebrationEffect from '../components/CelebrationEffect';
 import { useApp } from '../context/AppContext';
+import { useUser } from '../context/UserContext';
 
 // 8张表情图片
 const IMAGE_1 = 'https://code.coze.cn/api/sandbox/coze_coding/file/proxy?expire_time=-1&file_path=assets%2F%E5%B1%8F%E5%B9%95%E6%88%AA%E5%9B%BE+2026-05-04+201524.png&nonce=3f68cfce-dd09-4065-9953-be96ea2bc305&project_id=7635954527711035402&sign=c03ab686b2c95964f0c974b9fec78ead09a927a3f354f7a88056b902366dbf56';
@@ -141,7 +142,9 @@ const QUESTIONS_DATA = [
 const EmotionGuess = () => {
   const navigate = useNavigate();
   const { startTraining, incrementGamePass, incrementTrainingGame } = useApp();
+  const { addToy, addFood } = useUser();
   const hasStartedTraining = useRef(false);
+  const hasGivenReward = useRef(false); // 防止重复奖励
   
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [questions] = useState(() => [...QUESTIONS_DATA]);
@@ -175,10 +178,25 @@ const EmotionGuess = () => {
     };
   }, []); // 空依赖，确保只执行一次
 
-  // 游戏完成时增加统计
+  // 游戏完成时增加统计和奖励道具
   useEffect(() => {
-    if (isFinished) {
+    if (isFinished && !hasGivenReward.current) {
+      hasGivenReward.current = true;
       incrementTrainingGame();
+      
+      // 通关奖励：根据答对题数奖励道具
+      // 3题：食物，7题：食物和玩具，全部通关：食物和玩具
+      if (score >= 8) {
+        // 全部通关（8题全对）
+        addFood();
+        addToy();
+      } else if (score >= 7) {
+        // 通关7题以上
+        addFood();
+      } else if (score >= 3) {
+        // 通关3题以上
+        addFood();
+      }
     }
   }, [isFinished]); // 只依赖 isFinished
 
