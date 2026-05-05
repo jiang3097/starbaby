@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, CheckCircle2, Trophy, Star, RotateCcw } from 'lucide-react';
@@ -29,47 +29,11 @@ const PUZZLE_IMAGES = [
   },
 ];
 
-// 碎片位置：0=左上, 1=右上, 2=左下, 3=右下
-type PiecePosition = 0 | 1 | 2 | 3;
+type Difficulty = 4 | 9; // 4块(2x2) 或 9块(3x3)
 
 interface Piece {
-  id: number; // 碎片的原始位置 0,1,2,3
-  currentPosition: PiecePosition; // 当前所在位置
-}
-
-interface Position {
-  x: number;
-  y: number;
-}
-
-// 打乱碎片位置
-function shufflePieces(): Piece[] {
-  const positions: PiecePosition[] = [0, 1, 2, 3];
-  // Fisher-Yates 洗牌
-  for (let i = positions.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [positions[i], positions[j]] = [positions[j], positions[i]];
-  }
-  
-  return positions.map((pos, index) => ({
-    id: index,
-    currentPosition: pos,
-  }));
-}
-
-// 获取目标位置的中心坐标
-function getTargetCenter(position: PiecePosition, gridSize: number, pieceSize: number): Position {
-  const offsets = [
-    { x: 0, y: 0 },           // 0: 左上
-    { x: gridSize / 2, y: 0 }, // 1: 右上
-    { x: 0, y: gridSize / 2 }, // 2: 左下
-    { x: gridSize / 2, y: gridSize / 2 }, // 3: 右下
-  ];
-  const offset = offsets[position];
-  return {
-    x: offset.x + pieceSize / 2,
-    y: offset.y + pieceSize / 2,
-  };
+  id: number; // 碎片的原始位置 0,1,2,3 (或 0-8)
+  currentSlot: number; // 当前所在的格子索引
 }
 
 const PuzzleExpress = () => {
@@ -80,14 +44,19 @@ const PuzzleExpress = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   
   const [currentImage, setCurrentImage] = useState(PUZZLE_IMAGES[0]);
-  const [pieces, setPieces] = useState<Piece[]>(() => shufflePieces());
-  const [positions, setPositions] = useState<Record<PiecePosition, Position>>({ 0: { x: 0, y: 0 }, 1: { x: 0, y: 0 }, 2: { x: 0, y: 0 }, 3: { x: 0, y: 0 } });
+  const [difficulty, setDifficulty] = useState<Difficulty>(4);
+  const [pieces, setPieces] = useState<Piece[]>([]);
+  const [correctCount, setCorrectCount] = useState(0); // 正确放置的碎片数
   const [draggingPiece, setDraggingPiece] = useState<number | null>(null);
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [showSuccess, setShowSuccess] = useState(false);
   const [gameStarted, setGameStarted] = useState(false);
   const [gridSize, setGridSize] = useState(280);
-  const [pieceSize, setPieceSize] = useState(140);
+  const [cellSize, setCellSize] = useState(140);
   const [showCelebration, setShowCelebration] = useState(false);
+  const [dragPosition, setDragPosition] = useState({ x: 0, y: 0 }); // 正在拖拽的碎片位置
+
+  const gridCols = difficulty === 4 ? 2 : 3;
 
   // 预加载
   useEffect(() => {
@@ -98,7 +67,7 @@ const PuzzleExpress = () => {
     });
   }, []);
 
-  // 进入页面时开始训练计时（只执行一次）
+  // 进入页面时开始训练计时
   useEffect(() => {
     let mounted = true;
     if (!hasStartedTraining.current && mounted) {
@@ -108,78 +77,110 @@ const PuzzleExpress = () => {
     return () => {
       mounted = false;
     };
-  }, []); // 空依赖，确保只执行一次
+  }, []);
 
-  // 游戏完成时增加统计（只添加一次）
+  // 游戏完成时增加统计
   useEffect(() => {
     if (showSuccess && !hasAddedStats.current) {
       hasAddedStats.current = true;
       incrementTrainingGame();
       incrementGamePass();
     }
-  }, [showSuccess]); // 只依赖 showSuccess
+  }, [showSuccess]);
+
+  // 初始化碎片
+  const initializePieces = useCallback(() => {
+    const count = difficulty;
+    const newPieces: Piece[] = [];
+    
+    // 创建碎片，每个碎片随机分配到一个格子
+    const availableSlots = Array.from({ length: count }, (_, i) => i);
+    
+    for (let i = 0; i < count; i++) {
+      const slotIndex = Math.floor(Math.random() * availableSlots.length);
+      const slot = availableSlots.splice(slotIndex, 1)[0];
+      newPieces.push({ id: i, currentSlot: slot });
+    }
+    
+    setPieces(newPieces);
+    setCorrectCount(0);
+    hasAddedStats.current = false;
+  }, [difficulty]);
 
   // 初始化位置
   useEffect(() => {
     if (gameStarted && containerRef.current) {
       const containerWidth = containerRef.current.offsetWidth;
       const size = Math.min(containerWidth - 40, 280);
-      const half = size / 2;
+      const cell = size / gridCols;
       
       setGridSize(size);
-      setPieceSize(half);
-      
-      // 初始化碎片位置（随机分散在4个格子里）
-      const shuffledPieces = shufflePieces();
-      const newPositions: Record<PiecePosition, Position> = { 0: { x: 0, y: 0 }, 1: { x: 0, y: 0 }, 2: { x: 0, y: 0 }, 3: { x: 0, y: 0 } };
-      
-      shuffledPieces.forEach((piece) => {
-        const targetCenter = getTargetCenter(piece.currentPosition, size, half);
-        // 随机微调位置
-        newPositions[piece.currentPosition] = {
-          x: targetCenter.x + (Math.random() - 0.5) * 30,
-          y: targetCenter.y + (Math.random() - 0.5) * 30,
-        };
-      });
-      
-      setPieces(shuffledPieces);
-      setPositions(newPositions);
+      setCellSize(cell);
+      initializePieces();
     }
-  }, [gameStarted, currentImage]);
+  }, [gameStarted, currentImage, difficulty, gridCols, initializePieces]);
+
+  // 获取格子中心坐标
+  const getSlotCenter = (slot: number): { x: number; y: number } => {
+    const col = slot % gridCols;
+    const row = Math.floor(slot / gridCols);
+    return {
+      x: col * cellSize + cellSize / 2,
+      y: row * cellSize + cellSize / 2,
+    };
+  };
+
+  // 获取碎片背景定位
+  const getBgPosition = (pieceId: number): string => {
+    const col = pieceId % gridCols;
+    const row = Math.floor(pieceId / gridCols);
+    return `${col * 100}% ${row * 100}%`;
+  };
 
   // 检查是否全部归位
-  const checkWin = useCallback((currentPositions: Record<PiecePosition, Position>) => {
-    const tolerance = 30;
-    
-    for (let i = 0; i < 4; i++) {
-      const piece = pieces.find(p => p.currentPosition === (i as PiecePosition));
-      if (!piece) continue;
-      
-      const targetCenter = getTargetCenter(piece.id as PiecePosition, gridSize, pieceSize);
-      const current = currentPositions[i as PiecePosition];
-      
-      const distance = Math.sqrt(
-        Math.pow(current.x - targetCenter.x, 2) + 
-        Math.pow(current.y - targetCenter.y, 2)
-      );
-      
-      if (distance > tolerance) return false;
-    }
-    return true;
-  }, [pieces, gridSize, pieceSize]);
-
-  // 开始游戏
-  const startGame = useCallback((image?: typeof PUZZLE_IMAGES[0]) => {
-    if (image) setCurrentImage(image);
-    setShowSuccess(false);
-    setGameStarted(true);
-    speakText('拼图开始！拖动碎片拼出完整图片！');
+  const checkAllCorrect = useCallback((currentPieces: Piece[]) => {
+    return currentPieces.every(piece => piece.id === piece.currentSlot);
   }, []);
 
+  // 开始游戏
+  const startGame = useCallback((image?: typeof PUZZLE_IMAGES[0], diff?: Difficulty) => {
+    if (image) setCurrentImage(image);
+    if (diff !== undefined) setDifficulty(diff);
+    setShowSuccess(false);
+    setGameStarted(true);
+    speakText('拼图开始！把碎片拖到正确位置！');
+  }, []);
+
+  // 重置当前关卡
+  const resetGame = useCallback(() => {
+    setShowSuccess(false);
+    initializePieces();
+    speakText('重新开始！加油！');
+  }, [initializePieces]);
+
   // 拖拽开始
-  const handleDragStart = (e: React.MouseEvent | React.TouchEvent, pieceId: number) => {
+  const handleDragStart = (e: React.MouseEvent | React.TouchEvent, piece: Piece) => {
     e.preventDefault();
-    setDraggingPiece(pieceId);
+    setDraggingPiece(piece.id);
+    
+    const rect = containerRef.current?.getBoundingClientRect();
+    if (!rect) return;
+
+    let clientX: number, clientY: number;
+    if ('touches' in e) {
+      clientX = e.touches[0].clientX;
+      clientY = e.touches[0].clientY;
+    } else {
+      clientX = e.clientX;
+      clientY = e.clientY;
+    }
+
+    const slotCenter = getSlotCenter(piece.currentSlot);
+    setDragOffset({
+      x: clientX - rect.left - slotCenter.x,
+      y: clientY - rect.top - slotCenter.y,
+    });
+    setDragPosition({ x: slotCenter.x, y: slotCenter.y });
   };
 
   // 拖拽中
@@ -197,35 +198,81 @@ const PuzzleExpress = () => {
       clientY = e.clientY;
     }
 
-    const x = clientX - rect.left;
-    const y = clientY - rect.top;
+    const x = clientX - rect.left - dragOffset.x;
+    const y = clientY - rect.top - dragOffset.y;
+    
+    setDragPosition({ x, y });
+  }, [draggingPiece, dragOffset]);
 
-    setPositions(prev => {
-      const piece = pieces.find(p => p.id === draggingPiece);
-      if (!piece) return prev;
+  // 拖拽结束
+  const handleDragEnd = useCallback(() => {
+    if (draggingPiece === null) {
+      setDraggingPiece(null);
+      return;
+    }
 
-      const newPositions = {
-        ...prev,
-        [piece.currentPosition]: { x, y }
-      };
+    const piece = pieces.find(p => p.id === draggingPiece);
+    if (!piece) {
+      setDraggingPiece(null);
+      return;
+    }
 
-      // 检查是否归位
-      if (checkWin(newPositions)) {
+    // 计算放下位置对应的格子
+    const rect = containerRef.current?.getBoundingClientRect();
+    if (!rect) {
+      setDraggingPiece(null);
+      return;
+    }
+
+    const targetX = dragPosition.x;
+    const targetY = dragPosition.y;
+    
+    // 找出最近的格子
+    let closestSlot = -1;
+    let closestDist = Infinity;
+    
+    for (let i = 0; i < difficulty; i++) {
+      const center = getSlotCenter(i);
+      const dist = Math.sqrt(Math.pow(targetX - center.x, 2) + Math.pow(targetY - center.y, 2));
+      if (dist < closestDist) {
+        closestDist = dist;
+        closestSlot = i;
+      }
+    }
+
+    // 检查目标格子是否有其他碎片
+    const targetPiece = pieces.find(p => p.currentSlot === closestSlot && p.id !== draggingPiece);
+    
+    setPieces(prev => {
+      const newPieces = prev.map(p => {
+        if (p.id === draggingPiece) {
+          return { ...p, currentSlot: closestSlot };
+        }
+        if (targetPiece && p.id === targetPiece.id) {
+          // 交换位置
+          return { ...p, currentSlot: piece.currentSlot };
+        }
+        return p;
+      });
+
+      // 计算正确放置的数量
+      const correct = newPieces.filter(p => p.id === p.currentSlot).length;
+      setCorrectCount(correct);
+
+      // 检查是否全部正确
+      if (checkAllCorrect(newPieces)) {
         setTimeout(() => {
           setShowSuccess(true);
           setShowCelebration(true);
           speakText('通关啦！真棒！你太厉害了！');
-        }, 100);
+        }, 200);
       }
 
-      return newPositions;
+      return newPieces;
     });
-  }, [draggingPiece, pieces, checkWin]);
 
-  // 拖拽结束
-  const handleDragEnd = useCallback(() => {
     setDraggingPiece(null);
-  }, []);
+  }, [draggingPiece, pieces, dragPosition, difficulty, checkAllCorrect]);
 
   // 监听拖拽事件
   useEffect(() => {
@@ -252,31 +299,8 @@ const PuzzleExpress = () => {
     setCurrentImage(nextImage);
     setShowSuccess(false);
     setGameStarted(true);
-    speakText('下一关！拖动碎片拼出完整图片！');
+    speakText('下一关！把碎片拖到正确位置！');
   }, [currentImage]);
-
-  // 获取碎片背景定位
-  const getBgPosition = (pieceId: number): string => {
-    const positions = [
-      '0% 0%',      // 0: 左上
-      '100% 0%',    // 1: 右上
-      '0% 100%',    // 2: 左下
-      '100% 100%',  // 3: 右下
-    ];
-    return positions[pieceId] || '0% 0%';
-  };
-
-  // 计算碎片是否在正确位置
-  const isPieceInPlace = (piece: Piece): boolean => {
-    const pos = positions[piece.currentPosition];
-    if (!pos) return false;
-    const targetCenter = getTargetCenter(piece.id as PiecePosition, gridSize, pieceSize);
-    const distance = Math.sqrt(
-      Math.pow(pos.x - targetCenter.x, 2) + 
-      Math.pow(pos.y - targetCenter.y, 2)
-    );
-    return distance < 30;
-  };
 
   return (
     <MobileShell className="bg-gradient-to-b from-orange-50 to-white">
@@ -307,6 +331,7 @@ const PuzzleExpress = () => {
         show={showCelebration} 
         onComplete={() => setShowCelebration(false)} 
       />
+      
       <AnimatePresence mode="wait">
         {/* ========== 开始界面 ========== */}
         {!gameStarted && (
@@ -338,7 +363,33 @@ const PuzzleExpress = () => {
               </motion.div>
               
               <h1 className="text-3xl font-bold text-slate-800 mb-2">拼图表达</h1>
-              <p className="text-lg text-slate-500 mb-8">拖动碎片拼出完整图片</p>
+              <p className="text-lg text-slate-500 mb-6">把碎片拖到正确位置</p>
+
+              {/* 难度选择 */}
+              <div className="flex gap-3 mb-8">
+                <button
+                  onClick={() => setDifficulty(4)}
+                  className={cn(
+                    "px-6 py-3 rounded-full font-bold transition-all shadow-md",
+                    difficulty === 4
+                      ? "bg-gradient-to-r from-orange-400 to-amber-400 text-white scale-105"
+                      : "bg-white text-slate-600 hover:bg-orange-50"
+                  )}
+                >
+                  4块 (2x2)
+                </button>
+                <button
+                  onClick={() => setDifficulty(9)}
+                  className={cn(
+                    "px-6 py-3 rounded-full font-bold transition-all shadow-md",
+                    difficulty === 9
+                      ? "bg-gradient-to-r from-orange-400 to-amber-400 text-white scale-105"
+                      : "bg-white text-slate-600 hover:bg-orange-50"
+                  )}
+                >
+                  9块 (3x3)
+                </button>
+              </div>
 
               <div className="grid grid-cols-2 gap-2 mb-8">
                 {PUZZLE_IMAGES.map(img => (
@@ -378,11 +429,11 @@ const PuzzleExpress = () => {
               <div className="flex flex-col items-center">
                 <span className="text-sm font-bold text-orange-600">拼图表达</span>
                 <span className="text-xs text-slate-400">
-                  第 {PUZZLE_IMAGES.findIndex(img => img.id === currentImage.id) + 1}/4 关
+                  第 {PUZZLE_IMAGES.findIndex(img => img.id === currentImage.id) + 1}/4 关 · {difficulty}块
                 </span>
               </div>
               <button
-                onClick={() => startGame(currentImage)}
+                onClick={resetGame}
                 className="w-12 h-12 bg-white rounded-full flex items-center justify-center text-orange-400 shadow-sm"
               >
                 <RotateCcw size={22} />
@@ -390,13 +441,30 @@ const PuzzleExpress = () => {
             </div>
 
             {/* Game Area */}
-            <div className="flex-1 flex flex-col items-center justify-center gap-6 p-6">
+            <div className="flex-1 flex flex-col items-center justify-center gap-4 p-6">
+              {/* 进度 */}
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-slate-500">完成进度</span>
+                <div className="flex gap-1">
+                  {Array.from({ length: difficulty }).map((_, i) => (
+                    <div
+                      key={i}
+                      className={cn(
+                        "w-3 h-3 rounded-full transition-all",
+                        i < correctCount ? "bg-emerald-400" : "bg-slate-200"
+                      )}
+                    />
+                  ))}
+                </div>
+                <span className="text-sm font-bold text-orange-500">{correctCount}/{difficulty}</span>
+              </div>
+
               {/* 参考图 */}
-              <div className="text-center">
-                <p className="text-sm text-slate-500 mb-2">参考图</p>
+              <div className="flex items-center gap-3">
+                <span className="text-sm text-slate-500">参考图</span>
                 <div 
-                  className="rounded-2xl overflow-hidden shadow-lg border-2 border-orange-200"
-                  style={{ width: 80, height: 80 }}
+                  className="rounded-xl overflow-hidden shadow-md border-2 border-orange-200"
+                  style={{ width: 60, height: 60 }}
                 >
                   <img src={currentImage.url} alt="参考图" className="w-full h-full object-cover" />
                 </div>
@@ -405,7 +473,7 @@ const PuzzleExpress = () => {
               {/* 拼图区域 */}
               <div 
                 ref={containerRef}
-                className="relative bg-slate-200 rounded-3xl shadow-xl overflow-hidden border-4 border-white"
+                className="relative bg-slate-200 rounded-2xl shadow-xl overflow-hidden border-4 border-white"
                 style={{ 
                   width: gridSize, 
                   height: gridSize,
@@ -414,30 +482,40 @@ const PuzzleExpress = () => {
               >
                 {/* 网格线 */}
                 <div className="absolute inset-0 pointer-events-none">
-                  <div className="absolute left-1/2 top-0 bottom-0 w-0.5 bg-white/50" />
-                  <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-white/50" />
+                  {Array.from({ length: gridCols - 1 }).map((_, i) => (
+                    <React.Fragment key={`v-${i}`}>
+                      <div 
+                        className="absolute top-0 bottom-0 w-0.5 bg-white/60" 
+                        style={{ left: `${((i + 1) / gridCols) * 100}%` }}
+                      />
+                      <div 
+                        className="absolute left-0 right-0 h-0.5 bg-white/60" 
+                        style={{ top: `${((i + 1) / gridCols) * 100}%` }}
+                      />
+                    </React.Fragment>
+                  ))}
                 </div>
 
-                {/* 碎片 */}
-                {pieces.map((piece) => {
-                  const pos = positions[piece.currentPosition];
-                  const inPlace = isPieceInPlace(piece);
+                {/* 碎片 - 先渲染非拖拽中的碎片 */}
+                {pieces.filter(p => p.id !== draggingPiece).map((piece) => {
+                  const center = getSlotCenter(piece.currentSlot);
+                  const isCorrect = piece.id === piece.currentSlot;
 
                   return (
                     <div
                       key={piece.id}
-                      onMouseDown={(e) => handleDragStart(e, piece.id)}
-                      onTouchStart={(e) => handleDragStart(e, piece.id)}
+                      onMouseDown={(e) => handleDragStart(e, piece)}
+                      onTouchStart={(e) => handleDragStart(e, piece)}
                       className={cn(
                         "absolute cursor-grab active:cursor-grabbing transition-all duration-150",
-                        inPlace && "pointer-events-none"
+                        isCorrect && "pointer-events-none"
                       )}
                       style={{
-                        width: pieceSize,
-                        height: pieceSize,
-                        left: pos ? pos.x - pieceSize / 2 : 0,
-                        top: pos ? pos.y - pieceSize / 2 : 0,
-                        zIndex: draggingPiece === piece.id ? 10 : 1,
+                        width: cellSize,
+                        height: cellSize,
+                        left: center.x - cellSize / 2,
+                        top: center.y - cellSize / 2,
+                        zIndex: 1,
                       }}
                     >
                       <img
@@ -447,23 +525,54 @@ const PuzzleExpress = () => {
                         style={{
                           objectPosition: getBgPosition(piece.id),
                           objectFit: 'cover',
+                          width: gridSize,
+                          height: gridSize,
                         }}
+                        draggable={false}
                       />
                       {/* 边框 */}
                       <div className="absolute inset-0 border-2 border-white/50 pointer-events-none" />
                       
                       {/* 正确归位标记 */}
-                      {inPlace && (
-                        <div className="absolute inset-0 flex items-center justify-center bg-white/30">
-                          <CheckCircle2 size={32} className="text-emerald-400" />
+                      {isCorrect && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-emerald-400/30">
+                          <CheckCircle2 size={24} className="text-emerald-500" />
                         </div>
                       )}
                     </div>
                   );
                 })}
+
+                {/* 正在拖拽的碎片 */}
+                {draggingPiece !== null && (
+                  <div
+                    className="absolute cursor-grabbing transition-none z-50"
+                    style={{
+                      width: cellSize,
+                      height: cellSize,
+                      left: dragPosition.x - cellSize / 2,
+                      top: dragPosition.y - cellSize / 2,
+                      boxShadow: '0 10px 30px rgba(0,0,0,0.3)',
+                    }}
+                  >
+                    <img
+                      src={currentImage.url}
+                      alt=""
+                      className="w-full h-full"
+                      style={{
+                        objectPosition: getBgPosition(draggingPiece),
+                        objectFit: 'cover',
+                        width: gridSize,
+                        height: gridSize,
+                      }}
+                      draggable={false}
+                    />
+                    <div className="absolute inset-0 border-2 border-orange-400 rounded-md pointer-events-none" />
+                  </div>
+                )}
               </div>
 
-              <p className="text-sm text-slate-400">拖动碎片到正确位置</p>
+              <p className="text-sm text-slate-400">把碎片拖到正确位置</p>
             </div>
           </motion.div>
         )}
@@ -497,31 +606,28 @@ const PuzzleExpress = () => {
             <p className="text-2xl text-amber-500 font-bold mb-8">获得 1 颗星星</p>
 
             {/* 完成的拼图 */}
-            <div className="w-72 h-72 rounded-3xl overflow-hidden shadow-2xl border-4 border-white mb-8">
-              <img src={currentImage.url} alt="" className="w-full h-full object-cover" />
+            <div className="mb-8">
+              <div 
+                className="rounded-2xl overflow-hidden shadow-xl border-4 border-amber-200"
+                style={{ width: gridSize, height: gridSize }}
+              >
+                <img src={currentImage.url} alt="完成的拼图" className="w-full h-full object-cover" />
+              </div>
             </div>
 
-            <div className="space-y-4 w-full max-w-xs">
-              <Button
-                onClick={handleNextImage}
-                className="w-full h-16 rounded-full bg-gradient-to-r from-orange-400 to-amber-400 text-white font-bold text-xl border-none shadow-lg shadow-orange-200"
-              >
-                下一关
-              </Button>
-              <Button
-                variant="ghost"
-                onClick={() => startGame(currentImage)}
-                className="w-full h-14 rounded-full text-slate-400 font-bold text-lg"
+            <div className="flex gap-4 w-full max-w-xs">
+              <button
+                onClick={resetGame}
+                className="flex-1 py-4 bg-white rounded-full text-orange-500 font-bold shadow-md border-2 border-orange-200"
               >
                 再玩一次
-              </Button>
-              <Button
-                variant="ghost"
-                onClick={() => setGameStarted(false)}
-                className="w-full h-14 rounded-full text-slate-400 font-bold text-lg"
+              </button>
+              <button
+                onClick={handleNextImage}
+                className="flex-1 py-4 bg-gradient-to-r from-orange-400 to-amber-400 rounded-full text-white font-bold shadow-md"
               >
-                返回选图
-              </Button>
+                下一关
+              </button>
             </div>
           </motion.div>
         )}
