@@ -26,7 +26,8 @@ export interface UserProfile {
   
   // 饱腹值
   fullness: number;
-  fullnessCooldown: string;
+  fullnessUsedToday: number; // 今天已使用食物次数
+  fullnessDate: string; // 上次使用食物的日期
   
   // 清洁值
   cleanliness: number;
@@ -34,6 +35,8 @@ export interface UserProfile {
   
   // 心情值
   mood: number;
+  moodUsedToday: number; // 今天已使用玩具次数
+  moodDate: string; // 上次使用玩具的日期
   
   // 道具
   toys: number;
@@ -62,11 +65,14 @@ const defaultProfile: UserProfile = {
   intimacy: 60,
   lastLoginDate: new Date().toISOString().split('T')[0],
   todayIntimacyAdded: 0,
-  fullness: 100,
-  fullnessCooldown: '',
-  cleanliness: 100,
+  fullness: 60,
+  fullnessUsedToday: 0,
+  fullnessDate: '',
+  cleanliness: 60,
   lastBathDate: new Date().toISOString().split('T')[0],
-  mood: 100,
+  mood: 60,
+  moodUsedToday: 0,
+  moodDate: '',
   toys: 0,
   foods: 0,
   totalGamePassed: 0,
@@ -114,11 +120,14 @@ export const UserProvider = ({ children }: UserProviderProps) => {
             intimacy: 60,
             lastLoginDate: today,
             todayIntimacyAdded: 0,
-            fullness: parsed.fullness ?? 100,
-            fullnessCooldown: today,
-            cleanliness: parsed.cleanliness ?? 100,
+            fullness: 60, // 重置为60
+            fullnessUsedToday: 0,
+            fullnessDate: today,
+            cleanliness: 60, // 重置为60
             lastBathDate: today,
-            mood: parsed.mood ?? 100,
+            mood: 60, // 重置为60
+            moodUsedToday: 0,
+            moodDate: today,
             toys: parsed.toys ?? 0,
             foods: parsed.foods ?? 0,
             totalGamePassed: 0,
@@ -127,13 +136,21 @@ export const UserProvider = ({ children }: UserProviderProps) => {
           return migrated;
         }
         
-        // 新数据格式，确保有所有字段
+        // 新数据格式，确保有所有字段，并检查日期重置每日使用次数
+        const fullnessDate = parsed.fullnessDate || today;
+        const moodDate = parsed.moodDate || today;
+        
         return {
           ...defaultProfile,
           ...parsed,
           lastLoginDate: today,
-          fullnessCooldown: parsed.fullnessCooldown || today,
+          // 如果是新的一天，重置每日使用次数
+          fullnessUsedToday: fullnessDate === today ? (parsed.fullnessUsedToday || 0) : 0,
+          fullnessDate: fullnessDate === today ? fullnessDate : today,
           lastBathDate: parsed.lastBathDate || today,
+          // 如果是新的一天，重置每日使用次数
+          moodUsedToday: moodDate === today ? (parsed.moodUsedToday || 0) : 0,
+          moodDate: moodDate === today ? moodDate : today,
           totalGamePassed: parsed.totalGamePassed || 0,
         };
       }
@@ -151,16 +168,20 @@ export const UserProvider = ({ children }: UserProviderProps) => {
     if (saved) {
       const parsed = JSON.parse(saved);
       if (parsed.intimacy > 60) {
+        const today = new Date().toISOString().split('T')[0];
         const corrected = { 
           ...parsed, 
           intimacy: 60,
-          lastLoginDate: new Date().toISOString().split('T')[0],
+          lastLoginDate: today,
           todayIntimacyAdded: 0,
-          fullness: parsed.fullness ?? 100,
-          fullnessCooldown: new Date().toISOString().split('T')[0],
-          cleanliness: parsed.cleanness ?? 100,
-          lastBathDate: new Date().toISOString().split('T')[0],
-          mood: parsed.mood ?? 100,
+          fullness: 60,
+          fullnessUsedToday: 0,
+          fullnessDate: today,
+          cleanliness: 60,
+          lastBathDate: today,
+          mood: 60,
+          moodUsedToday: 0,
+          moodDate: today,
           toys: parsed.toys ?? 0,
           foods: parsed.foods ?? 0,
           totalGamePassed: 0,
@@ -179,35 +200,59 @@ export const UserProvider = ({ children }: UserProviderProps) => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
   };
 
-  // 增加亲密度
+  // 增加亲密度 - 上限60
   const incrementIntimacy = () => {
     if (profile.todayIntimacyAdded >= 10) return;
-    if (profile.intimacy < 100) {
+    if (profile.intimacy < 60) {
       updateProfile({ 
-        intimacy: Math.min(profile.intimacy + 1, 100),
+        intimacy: Math.min(profile.intimacy + 1, 60),
         todayIntimacyAdded: profile.todayIntimacyAdded + 1
       });
     }
   };
 
-  // 使用食物道具
+  // 使用食物道具 - 每天最多使用3次，每次+4饱腹值
   const useFood = () => {
+    const today = new Date().toISOString().split('T')[0];
+    
+    // 检查是否有食物道具
     if (profile.foods <= 0) return false;
+    // 检查饱腹值是否已满
     if (profile.fullness >= 100) return false;
+    // 检查今天是否已用完3次
+    if (profile.fullnessDate === today && profile.fullnessUsedToday >= 3) return false;
+    
+    // 检查是否跨天，重置计数
+    const usedToday = profile.fullnessDate === today ? profile.fullnessUsedToday : 0;
+    
     updateProfile({
       foods: profile.foods - 1,
-      fullness: Math.min(profile.fullness + 4, 100)
+      fullness: Math.min(profile.fullness + 4, 100),
+      fullnessUsedToday: usedToday + 1,
+      fullnessDate: today
     });
     return true;
   };
 
-  // 使用玩具道具
+  // 使用玩具道具 - 每天最多使用3次，每次+4心情值
   const useToy = () => {
+    const today = new Date().toISOString().split('T')[0];
+    
+    // 检查是否有玩具道具
     if (profile.toys <= 0) return false;
+    // 检查心情值是否已满
     if (profile.mood >= 100) return false;
+    // 检查今天是否已用完3次
+    if (profile.moodDate === today && profile.moodUsedToday >= 3) return false;
+    
+    // 检查是否跨天，重置计数
+    const usedToday = profile.moodDate === today ? profile.moodUsedToday : 0;
+    
     updateProfile({
       toys: profile.toys - 1,
-      mood: Math.min(profile.mood + 4, 100)
+      mood: Math.min(profile.mood + 4, 100),
+      moodUsedToday: usedToday + 1,
+      moodDate: today
     });
     return true;
   };
