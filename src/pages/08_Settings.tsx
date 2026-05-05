@@ -9,7 +9,7 @@ import { cn } from '../lib/utils';
 import { useUser } from '../context/UserContext';
 import { useApp } from '../context/AppContext';
 
-type ParentView = 'settings' | 'timeLimit';
+type ParentView = 'settings' | 'timeLimit' | 'aboutProject';
 
 const Settings = () => {
   const navigate = useNavigate();
@@ -261,7 +261,10 @@ const Settings = () => {
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: index * 0.1 }}
                 >
-                  <Card className="p-5 flex items-center justify-between border-none shadow-md rounded-[24px] group cursor-pointer active:scale-[0.98] transition-all overflow-hidden relative">
+                  <Card 
+                  onClick={() => setParentView('aboutProject')}
+                  className="p-5 flex items-center justify-between border-none shadow-md rounded-[24px] group cursor-pointer active:scale-[0.98] transition-all overflow-hidden relative"
+                >
                     <div className={cn(
                       "absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity bg-gradient-to-r",
                       item.gradient
@@ -434,6 +437,137 @@ const Settings = () => {
                 💡 温馨提示：当使用时间达到设置限制时，会弹出温馨提醒，孩子需要家长输入密码才能继续使用。
               </p>
             </motion.div>
+          </div>
+        </>
+      )}
+
+      {parentView === 'aboutProject' && (
+        <>
+          <div className="px-4 py-6">
+            <div className="flex items-center gap-4 mb-4">
+              <button 
+                onClick={() => setParentView('settings')}
+                className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-lg text-slate-600"
+              >
+                <ChevronLeft size={28} />
+              </button>
+              <div className="flex-1">
+                <div className="flex items-center gap-2">
+                  <span className="text-2xl">ℹ️</span>
+                  <h1 className="text-2xl font-bold text-slate-800">用户使用说明</h1>
+                </div>
+              </div>
+              <div className="w-12" />
+            </div>
+
+            <div className="bg-white rounded-3xl p-5 shadow-lg border-2 border-slate-100 max-h-[calc(100vh-200px)] overflow-y-auto">
+              {/* 用户使用说明 */}
+              <div className="mb-6">
+                <h2 className="text-lg font-bold text-purple-700 mb-3 flex items-center gap-2">
+                  <span className="text-xl">📖</span> 用户使用说明
+                </h2>
+                
+                <div className="space-y-4 text-sm text-slate-600">
+                  <div>
+                    <h3 className="font-bold text-slate-700 mb-1">一、产品定位</h3>
+                    <p>本APP是一款面向孤独症谱系障碍儿童、语言发育迟缓儿童的辅助语言康复训练工具，通过电子宠物陪伴、AI绘本互动、趣味康复游戏等形式，提升儿童语言表达能力、社交反应能力与情绪感知能力，<span className="text-rose-500 font-bold">非医疗诊断、非替代专业康复治疗产品</span>。</p>
+                  </div>
+
+                  <div>
+                    <h3 className="font-bold text-slate-700 mb-1">二、适用人群</h3>
+                    <p className="mb-1">1. 2-12岁存在语言发育迟缓、轻度孤独症谱系障碍、社交沟通障碍的儿童；</p>
+                    <p>2. 需在家长/监护人全程陪同、监护下使用，<span className="text-rose-500 font-bold">禁止儿童独立操作</span>。</p>
+                  </div>
+
+                  <div>
+                    <h3 className="font-bold text-slate-700 mb-1">三、核心使用规则</h3>
+                    
+                    <div className="ml-2 space-y-2">
+                      <div>
+                        <p className="font-medium text-slate-700">1. 使用前提</p>
+                        <p>本APP仅作为家庭康复辅助工具，使用前建议家长已咨询儿童康复科医生、言语治疗师等专业人士，明确儿童康复需求。</p>
+                      </div>
+                      
+                      <div>
+                        <p className="font-medium text-slate-700">2. 使用规范</p>
+                        <p className="mb-1">（1）每日使用时长建议控制在30分钟内，单次使用不超过15分钟，避免儿童过度用眼、产生抵触情绪；</p>
+                        <p className="mb-1">（2）所有训练内容需监护人全程引导，结合线下真实场景巩固训练效果；</p>
+                        <p>（3）电子宠物语音、互动内容可由监护人自定义设置，贴合儿童熟悉的声音，降低防备心理。</p>
+                      </div>
+                      
+                      <div>
+                        <p className="font-medium text-slate-700">3. 功能使用说明</p>
+                        <p className="mb-1">（1）智能宠物陪伴区：用于日常语言引导、情绪安抚，培养儿童表达欲望；</p>
+                        <p className="mb-1">（2）AI绘本闯关区：按阶段完成社交场景模拟训练，闯关奖励仅为APP内虚拟道具，无实际价值；</p>
+                        <p>（3）趣味游戏区：通过指令反应、情绪识别、拼图训练，锻炼儿童理解能力与辨别能力。</p>
+                      </div>
+                      
+                      <div>
+                        <p className="font-medium text-slate-700">4. 隐私保护</p>
+                        <p className="mb-1">（1）APP仅收集儿童康复训练数据、使用行为数据，仅用于优化康复内容、提升产品效果；</p>
+                        <p>（2）不会向第三方泄露用户个人信息、儿童隐私信息，监护人可在设置中查看、清除数据。</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h3 className="font-bold text-slate-700 mb-1">四、禁止行为</h3>
+                    <p className="mb-1">1. <span className="text-rose-500 font-bold">禁止将本APP用于医疗诊断、替代医院专业康复治疗；</span></p>
+                    <p className="mb-1">2. 禁止利用本APP进行商业推广、违规传播、恶意篡改产品内容；</p>
+                    <p>3. 禁止未满18周岁儿童独立注册、登录及使用本APP。</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* 分隔线 */}
+              <div className="border-t-2 border-dashed border-slate-200 my-4" />
+
+              {/* 免责声明 */}
+              <div>
+                <h2 className="text-lg font-bold text-purple-700 mb-3 flex items-center gap-2">
+                  <span className="text-xl">⚠️</span> 免责声明
+                </h2>
+                
+                <div className="space-y-3 text-sm text-slate-600">
+                  <div>
+                    <h3 className="font-bold text-slate-700 mb-1">1. 产品性质声明</h3>
+                    <p>本APP为非医疗类康复辅助工具，所有训练内容、互动模式仅为通用康复参考，不构成医疗诊断、治疗建议，不能替代医院、康复机构的专业言语治疗、康复训练。儿童康复效果存在个体差异，本APP不承诺、不保证任何康复效果。</p>
+                  </div>
+
+                  <div>
+                    <h3 className="font-bold text-slate-700 mb-1">2. 监护责任声明</h3>
+                    <p>儿童使用本APP期间，监护人必须全程陪同、监护，对儿童使用行为、操作安全、用眼健康、心理健康负全部责任。因监护人监护不当、未按使用说明操作导致的任何风险、损害，均由监护人自行承担，本平台不承担任何责任。</p>
+                  </div>
+
+                  <div>
+                    <h3 className="font-bold text-slate-700 mb-1">3. 信息与隐私免责</h3>
+                    <p>监护人需保证注册信息、儿童信息真实有效，因信息填写错误、虚假信息导致的问题，平台不承担责任；平台将严格遵守隐私保护政策，若因不可抗力、第三方恶意攻击导致信息泄露，平台不承担相关责任。</p>
+                  </div>
+
+                  <div>
+                    <h3 className="font-bold text-slate-700 mb-1">4. 使用风险免责</h3>
+                    <p className="mb-1">（1）儿童在使用过程中产生的抵触情绪、身体不适，监护人应立即停止使用，平台不承担相关责任；</p>
+                    <p className="mb-1">（2）因网络故障、设备故障、APP版本更新等问题，导致使用中断、数据丢失，平台仅负责协助处理，不承担赔偿责任；</p>
+                    <p>（3）APP内虚拟道具、闯关奖励仅为互动激励，无实际经济价值，平台有权根据运营规则调整、取消相关奖励。</p>
+                  </div>
+
+                  <div>
+                    <h3 className="font-bold text-slate-700 mb-1">5. 知识产权声明</h3>
+                    <p>本APP所有内容、技术、界面、素材的知识产权均归本平台所有，未经授权禁止复制、传播、篡改，违者将追究法律责任。</p>
+                  </div>
+
+                  <div>
+                    <h3 className="font-bold text-slate-700 mb-1">6. 其他说明</h3>
+                    <p>本平台有权根据法律法规、产品运营需求，随时更新本使用说明与免责声明，更新后将通过APP内公告告知，继续使用本APP即视为同意更新后的全部条款。</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-4 text-center">
+              <p className="text-slate-400 text-xs">© 2026 守护星宝项目组</p>
+              <p className="text-amber-400 text-xs mt-1">陪伴星宝健康成长 💕</p>
+            </div>
           </div>
         </>
       )}
