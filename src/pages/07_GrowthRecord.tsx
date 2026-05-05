@@ -116,15 +116,17 @@ const GrowthRecord = () => {
   const weekData = weekDates.map((date) => {
     const dayData = weeklyStats[date];
     if (!dayData) {
-      return { date, activity: 0 };
+      return { date, activity: 0, minutes: 0, expression: 0, game: 0 };
     }
     // 权重计算：训练时长40% + 主动表达30% + 趣味闯关30%
-    const activity = Math.round(
-      dayData.trainingMinutes * 0.4 + 
-      dayData.expressionCount * 0.3 * 10 + 
-      dayData.gamePassCount * 0.3 * 10
-    );
-    return { date, activity: Math.min(activity, 100) };
+    // 训练时长：每分钟4分（25分钟满分100）
+    // 主动表达：每次10分（10次满分100）
+    // 趣味闯关：每次10分（10次满分100）
+    const minutesScore = Math.min(dayData.trainingMinutes * 4, 100) * 0.4;
+    const expressionScore = Math.min(dayData.expressionCount * 10, 100) * 0.3;
+    const gameScore = Math.min(dayData.gamePassCount * 10, 100) * 0.3;
+    const activity = Math.round(minutesScore + expressionScore + gameScore);
+    return { date, activity, minutes: dayData.trainingMinutes, expression: dayData.expressionCount, game: dayData.gamePassCount };
   });
 
   const maxActivity = Math.max(...weekData.map(d => d.activity), 1);
@@ -442,12 +444,33 @@ const GrowthRecord = () => {
           transition={{ delay: 0.2 }}
           className="bg-white rounded-3xl p-5 shadow-lg border-2 border-slate-100"
         >
-          <div className="flex items-center gap-2 mb-4">
-            <Sparkles size={20} className="text-purple-500" />
-            <h3 className="font-bold text-slate-800">本周语言活跃度</h3>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Sparkles size={20} className="text-purple-500" />
+              <h3 className="font-bold text-slate-800">本周语言活跃度</h3>
+            </div>
+            <span className="text-sm text-purple-600 font-medium">
+              今日: {weekData[weekData.length - 1]?.activity || 0}分
+            </span>
+          </div>
+
+          {/* 权重说明 */}
+          <div className="flex items-center justify-center gap-4 mb-3 text-xs">
+            <div className="flex items-center gap-1">
+              <div className="w-2 h-2 rounded-full bg-teal-400" />
+              <span className="text-slate-500">训练时长40%</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <div className="w-2 h-2 rounded-full bg-amber-400" />
+              <span className="text-slate-500">主动表达30%</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <div className="w-2 h-2 rounded-full bg-pink-400" />
+              <span className="text-slate-500">趣味闯关30%</span>
+            </div>
           </div>
           
-          <div className="flex items-end justify-between h-32 px-2">
+          <div className="flex items-end justify-between h-36 px-2">
             {weekData.map((day, index) => {
               const height = (day.activity / maxActivity) * 100;
               const isToday = index === weekData.length - 1;
@@ -455,18 +478,32 @@ const GrowthRecord = () => {
               
               return (
                 <div key={day.date} className="flex flex-col items-center flex-1">
-                  <div className="relative w-full flex justify-center h-24 items-end">
+                  {/* 显示数值 */}
+                  <div className="text-[10px] text-slate-400 mb-1 h-4">
+                    {day.activity > 0 ? day.activity : ''}
+                  </div>
+                  <div className="relative w-full flex justify-center items-end h-24">
                     <motion.div
                       initial={{ height: 0 }}
                       animate={{ height: `${Math.max(height, 4)}%` }}
                       transition={{ delay: 0.3 + index * 0.05 }}
                       className={cn(
-                        "w-6 rounded-t-lg transition-all",
+                        "w-6 rounded-t-lg transition-all relative",
                         isToday 
                           ? "bg-gradient-to-t from-purple-500 to-pink-400" 
                           : "bg-gradient-to-t from-purple-300 to-pink-200"
                       )}
-                    />
+                    >
+                      {/* 顶部分数 */}
+                      {height > 20 && (
+                        <span className={cn(
+                          "absolute -top-4 left-1/2 -translate-x-1/2 text-[10px] font-bold",
+                          isToday ? "text-purple-600" : "text-purple-400"
+                        )}>
+                          {day.activity}
+                        </span>
+                      )}
+                    </motion.div>
                   </div>
                   <p className={cn(
                     "text-xs mt-2 font-bold",
@@ -479,14 +516,34 @@ const GrowthRecord = () => {
             })}
           </div>
           
-          <div className="mt-4 flex items-center justify-center gap-4">
-            <div className="flex items-center gap-1">
-              <div className="w-3 h-3 rounded bg-gradient-to-r from-purple-500 to-pink-400" />
-              <span className="text-xs text-slate-500">今日</span>
+          {/* 详细数据 */}
+          <div className="mt-4 pt-3 border-t border-slate-100 grid grid-cols-3 gap-2 text-center">
+            <div className="flex flex-col items-center">
+              <div className="flex items-center gap-1 mb-1">
+                <div className="w-2 h-2 rounded-full bg-teal-400" />
+                <span className="text-xs text-slate-500">训练时长</span>
+              </div>
+              <span className="text-sm font-bold text-teal-600">
+                {weekData[weekData.length - 1]?.minutes || 0}分钟
+              </span>
             </div>
-            <div className="flex items-center gap-1">
-              <div className="w-3 h-3 rounded bg-gradient-to-r from-purple-300 to-pink-200" />
-              <span className="text-xs text-slate-500">往日</span>
+            <div className="flex flex-col items-center border-l border-r border-slate-100">
+              <div className="flex items-center gap-1 mb-1">
+                <div className="w-2 h-2 rounded-full bg-amber-400" />
+                <span className="text-xs text-slate-500">主动表达</span>
+              </div>
+              <span className="text-sm font-bold text-amber-600">
+                {weekData[weekData.length - 1]?.expression || 0}次
+              </span>
+            </div>
+            <div className="flex flex-col items-center">
+              <div className="flex items-center gap-1 mb-1">
+                <div className="w-2 h-2 rounded-full bg-pink-400" />
+                <span className="text-xs text-slate-500">趣味闯关</span>
+              </div>
+              <span className="text-sm font-bold text-pink-600">
+                {weekData[weekData.length - 1]?.game || 0}次
+              </span>
             </div>
           </div>
         </motion.div>
