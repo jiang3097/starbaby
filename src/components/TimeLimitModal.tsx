@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Shield, ChevronLeft, Moon } from 'lucide-react';
+import { Moon } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useApp } from '../context/AppContext';
 import { useUser } from '../context/UserContext';
@@ -11,21 +11,16 @@ const TimeLimitModal = () => {
   const { profile, avatar } = useUser();
   const [pin, setPin] = useState('');
   const [error, setError] = useState(false);
-  const [hasSpoken, setHasSpoken] = useState(false);
-  const [isUnlocked, setIsUnlocked] = useState(false);
+  const [showUnlock, setShowUnlock] = useState(false); // 是否显示解锁状态
 
-  // 预加载语音
+  // 弹窗显示时初始化状态
   useEffect(() => {
     if (showTimeLimitModal) {
+      setShowUnlock(false);
+      setPin('');
+      setError(false);
       preloadVoices();
-    }
-  }, [showTimeLimitModal]);
-
-  // 显示时播报
-  useEffect(() => {
-    if (showTimeLimitModal && !hasSpoken && !isUnlocked) {
-      setHasSpoken(true);
-      // 温馨提醒内容
+      // 语音播报
       const messages = [
         `嗨，${profile.name}！今天的训练时间到啦～`,
         `${profile.name}今天学习得好棒呀！`,
@@ -34,16 +29,18 @@ const TimeLimitModal = () => {
       const randomMsg = messages[Math.floor(Math.random() * messages.length)];
       speakText(`${randomMsg} 去休息一下吧，明天再来一起玩！🌙`);
     }
-  }, [showTimeLimitModal, profile.name, hasSpoken, isUnlocked]);
+  }, [showTimeLimitModal, profile.name]);
 
-  // 密码正确后播报并显示解锁状态
+  // 解锁后语音播报
   useEffect(() => {
-    if (isUnlocked) {
+    if (showUnlock) {
       speakText(`好啦${profile.name}！我们继续玩吧！😊`);
     }
-  }, [isUnlocked, profile.name]);
+  }, [showUnlock, profile.name]);
 
+  // 输入密码
   const handlePin = (num: string) => {
+    if (showUnlock) return; // 已解锁，不响应
     if (pin.length < 4) {
       const newPin = pin + num;
       setPin(newPin);
@@ -51,8 +48,8 @@ const TimeLimitModal = () => {
       
       if (newPin.length === 4) {
         if (newPin === '1234') {
-          // 密码正确，进入解锁状态
-          setIsUnlocked(true);
+          // 密码正确，显示解锁状态
+          setShowUnlock(true);
         } else {
           // 密码错误
           setError(true);
@@ -65,13 +62,9 @@ const TimeLimitModal = () => {
     }
   };
 
-  // 点击任意部位关闭
+  // 关闭弹窗
   const handleClose = () => {
     setShowTimeLimitModal(false);
-    setPin('');
-    setIsUnlocked(false);
-    setHasSpoken(false);
-    // 重新开始计时
     resetTimeLimit();
   };
 
@@ -93,11 +86,10 @@ const TimeLimitModal = () => {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           className="fixed inset-0 z-[200] bg-gradient-to-b from-indigo-900/90 via-purple-900/90 to-slate-900/95 flex items-center justify-center p-6"
-          onClick={handleClose}
+          onClick={showUnlock ? handleClose : undefined} // 解锁后才能点击关闭
         >
           {/* 背景装饰 */}
           <div className="absolute inset-0 overflow-hidden pointer-events-none">
-            {/* 星星 */}
             {[...Array(20)].map((_, i) => (
               <motion.div
                 key={i}
@@ -109,8 +101,7 @@ const TimeLimitModal = () => {
                 }}
                 animate={{ 
                   opacity: [0.1, 0.4, 0.1], 
-                  scale: [0.8, 1.2, 0.8],
-                  y: [0, -10, 0]
+                  scale: [0.8, 1.2, 0.8]
                 }}
                 transition={{ 
                   repeat: Infinity, 
@@ -121,7 +112,6 @@ const TimeLimitModal = () => {
                 ⭐
               </motion.div>
             ))}
-            {/* 月亮 */}
             <motion.div 
               className="absolute top-16 right-12 text-6xl"
               animate={{ rotate: [-5, 5, -5] }}
@@ -129,7 +119,6 @@ const TimeLimitModal = () => {
             >
               🌙
             </motion.div>
-            {/* 云朵 */}
             <motion.div 
               className="absolute bottom-32 left-8 text-4xl opacity-40"
               animate={{ x: [-5, 5, -5] }}
@@ -137,16 +126,9 @@ const TimeLimitModal = () => {
             >
               ☁️
             </motion.div>
-            <motion.div 
-              className="absolute top-1/3 left-12 text-3xl opacity-30"
-              animate={{ x: [5, -5, 5] }}
-              transition={{ repeat: Infinity, duration: 5 }}
-            >
-              ☁️
-            </motion.div>
           </div>
 
-          {/* 主内容卡片 - 点击不关闭 */}
+          {/* 主内容卡片 */}
           <motion.div
             initial={{ scale: 0.8, y: 50 }}
             animate={{ scale: 1, y: 0 }}
@@ -155,17 +137,13 @@ const TimeLimitModal = () => {
             className="bg-gradient-to-b from-white to-purple-50 rounded-3xl p-6 w-full max-w-[300px] shadow-2xl relative overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* 顶部装饰 */}
             <div className="absolute top-0 left-0 right-0 h-24 bg-gradient-to-b from-purple-100/50 to-transparent rounded-t-3xl" />
 
             <div className="relative z-10 flex flex-col items-center">
               {/* 头像 */}
               <motion.div
-                animate={{ 
-                  y: [0, -5, 0],
-                  scale: isUnlocked ? [1, 1.1, 1] : [0, -5, 0]
-                }}
-                transition={{ repeat: isUnlocked ? Infinity : 0, duration: 1.5 }}
+                animate={{ y: showUnlock ? [0, -8, 0] : [0, -5, 0] }}
+                transition={{ repeat: Infinity, duration: showUnlock ? 1 : 2 }}
                 className="w-20 h-20 rounded-full p-1 bg-gradient-to-br from-purple-300 to-pink-300 shadow-lg mb-4"
               >
                 <div className={cn(
@@ -179,10 +157,10 @@ const TimeLimitModal = () => {
               {/* 标题 */}
               <h2 className="text-xl font-bold text-purple-700 mb-2 flex items-center gap-2">
                 <Moon size={20} className="text-purple-400" />
-                {isUnlocked ? '继续玩吧！' : '休息时间到啦'}
+                {showUnlock ? '继续玩吧！' : '休息时间到啦'}
               </h2>
 
-              {isUnlocked ? (
+              {showUnlock ? (
                 /* 解锁状态 */
                 <>
                   <p className="text-purple-600 text-sm text-center mb-2">
@@ -192,20 +170,18 @@ const TimeLimitModal = () => {
                     好啦好啦，我们继续玩吧！😊
                   </p>
                   
-                  {/* 爱心装饰 */}
                   <div className="flex gap-2 mb-6">
                     {['💖', '✨', '💖'].map((emoji, i) => (
-                      <motion.div
+                      <motion.span
                         key={i}
                         animate={{ scale: [1, 1.2, 1] }}
                         transition={{ repeat: Infinity, duration: 1, delay: i * 0.2 }}
                       >
                         {emoji}
-                      </motion.div>
+                      </motion.span>
                     ))}
                   </div>
 
-                  {/* 点击关闭提示 */}
                   <p className="text-slate-400 text-xs text-center">
                     点击任意位置继续玩耍~
                   </p>
@@ -224,7 +200,6 @@ const TimeLimitModal = () => {
                     <span className="text-slate-600"> 啦</span>
                   </p>
 
-                  {/* 温馨建议 */}
                   <div className="bg-gradient-to-r from-purple-100 to-pink-100 rounded-2xl px-4 py-3 mb-6 text-center">
                     <p className="text-purple-700 text-sm font-medium">
                       🌟 去休息一下吧 🌟
@@ -234,11 +209,10 @@ const TimeLimitModal = () => {
                     </p>
                   </div>
 
-                  {/* 解除限制 - 家长入口 */}
+                  {/* 密码输入 */}
                   <div className="w-full bg-slate-100 rounded-2xl p-4">
                     <p className="text-center text-xs text-slate-400 mb-3">如需解除，请联系家长</p>
                     
-                    {/* PIN 显示 */}
                     <div className="flex justify-center gap-3 mb-4">
                       {[0, 1, 2, 3].map((i) => (
                         <div 
@@ -253,7 +227,6 @@ const TimeLimitModal = () => {
                       ))}
                     </div>
                     
-                    {/* 数字键盘 */}
                     <div className="grid grid-cols-3 gap-2">
                       {['1', '2', '3', '4', '5', '6', '7', '8', '9', '', '0', '⌫'].map((num, i) => {
                         if (num === '') return <div key={i} />;
