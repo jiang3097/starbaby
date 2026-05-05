@@ -1,20 +1,20 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { TrendingUp, Clock, MessageSquare, BookOpen, Star, Calendar, ChevronLeft, Award, Heart } from 'lucide-react';
+import { TrendingUp, Clock, MessageSquare, BookOpen, Star, ChevronLeft, Award, Heart } from 'lucide-react';
 import MobileShell from '../components/MobileShell';
 import Navigation from '../components/Navigation';
 import { Card } from '../components/ui/card';
 import { cn } from '../lib/utils';
 import { useUser } from '../context/UserContext';
-import { useStats } from '../context/StatsContext';
+import { useStats, getWeekDates } from '../context/StatsContext';
 
 const GrowthRecord = () => {
   const navigate = useNavigate();
   const { profile, avatar } = useUser();
-  const { dailyStats } = useStats();
+  const { dailyStats, weeklyStats } = useStats();
 
-  // 计算增长百分比（模拟）
+  // 计算增长百分比
   const chatGrowth = dailyStats.chatMessages > 0 ? Math.min(dailyStats.chatMessages * 8, 50) : 0;
   const trainingGrowth = dailyStats.trainingMinutes > 0 ? Math.min(dailyStats.trainingMinutes * 2, 30) : 0;
 
@@ -24,11 +24,47 @@ const GrowthRecord = () => {
     { label: '趣味闯关', value: dailyStats.gamePassCount, unit: '关卡', icon: BookOpen, gradient: 'from-emerald-200 to-teal-300', emoji: '📚' },
   ];
 
+  // 计算本周活跃度数据
+  const weekData = useMemo(() => {
+    const dates = getWeekDates();
+    const dayNames = ['一', '二', '三', '四', '五', '六', '日'];
+    
+    return dates.map((date, index) => {
+      const dayStats = weeklyStats[date] || { trainingMinutes: 0, expressionCount: 0, gamePassCount: 0 };
+      
+      // 计算综合活跃度：训练时长40% + 主动表达30% + 趣味闯关30%
+      // 为了可视化效果，将数值归一化到合理范围
+      const normalizedTraining = dayStats.trainingMinutes * 0.4;
+      const normalizedExpression = dayStats.expressionCount * 0.3 * 10; // 表达次数放大10倍
+      const normalizedGame = dayStats.gamePassCount * 0.3 * 20; // 闯关放大20倍
+      const total = normalizedTraining + normalizedExpression + normalizedGame;
+      
+      return {
+        date,
+        dayName: dayNames[index],
+        trainingMinutes: dayStats.trainingMinutes,
+        expressionCount: dayStats.expressionCount,
+        gamePassCount: dayStats.gamePassCount,
+        total: Math.round(total),
+      };
+    });
+  }, [weeklyStats]);
+
+  // 计算折线图的数据点和最大值
+  const chartData = useMemo(() => {
+    const values = weekData.map(d => d.total);
+    const maxValue = Math.max(...values, 10); // 最小为10，保证有高度
+    return { values, maxValue };
+  }, [weekData]);
+
+  // 星期几（0-6），周日为0
+  const today = new Date().getDay();
+  const todayIndex = today === 0 ? 6 : today - 1; // 转换为0-6，0=周一
+
   return (
     <MobileShell showNav className="bg-gradient-to-b from-purple-50 via-pink-50 to-white">
       {/* 背景装饰 */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {/* 星星装饰 */}
         {[...Array(10)].map((_, i) => (
           <motion.div
             key={i}
@@ -99,7 +135,6 @@ const GrowthRecord = () => {
               <Card className={cn(
                 "p-5 flex items-center justify-between border-none shadow-md rounded-[28px] overflow-hidden relative"
               )}>
-                {/* 装饰 */}
                 <div className={cn(
                   "absolute inset-0 opacity-30",
                   `bg-gradient-to-r ${stat.gradient}`
@@ -130,14 +165,14 @@ const GrowthRecord = () => {
           ))}
         </div>
 
-        {/* Weekly Progress */}
+        {/* Weekly Progress - 折线图 */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
         >
           <Card className="p-6 border-none shadow-md rounded-[32px] mb-6 bg-gradient-to-br from-purple-50 to-pink-50 overflow-hidden">
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
                 <span className="text-2xl">📈</span>
                 <h3 className="font-bold text-slate-800">本周语言活跃度</h3>
@@ -147,24 +182,146 @@ const GrowthRecord = () => {
                 稳步提升
               </div>
             </div>
-            
-            <div className="flex items-end justify-between h-40 px-2">
-              {[30, 45, 60, 25, 80, 50, 40].map((height, i) => (
-                <div key={i} className="flex flex-col items-center gap-3">
-                  <motion.div
-                    initial={{ height: 0 }}
-                    animate={{ height: `${height}%` }}
-                    transition={{ delay: 0.5 + i * 0.1, duration: 0.8 }}
-                    className={cn(
-                      "w-8 rounded-full shadow-md",
-                      i === 4 ? "bg-gradient-to-t from-purple-400 to-pink-400" : "bg-purple-200"
-                    )}
-                  />
-                  <span className="text-xs font-bold text-slate-400">
-                    {['一', '二', '三', '四', '五', '六', '日'][i]}
-                  </span>
+
+            {/* 图例 */}
+            <div className="flex items-center gap-4 mb-4 text-xs">
+              <div className="flex items-center gap-1">
+                <div className="w-3 h-3 rounded-full bg-amber-400" />
+                <span className="text-slate-500">训练时长40%</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <div className="w-3 h-3 rounded-full bg-rose-400" />
+                <span className="text-slate-500">主动表达30%</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <div className="w-3 h-3 rounded-full bg-emerald-400" />
+                <span className="text-slate-500">趣味闯关30%</span>
+              </div>
+            </div>
+
+            {/* 折线图 */}
+            <div className="relative h-48 px-2">
+              {/* Y轴刻度 */}
+              <div className="absolute left-0 top-0 bottom-0 flex flex-col justify-between text-xs text-slate-400 font-medium pr-2">
+                <span>{chartData.maxValue}</span>
+                <span>{Math.round(chartData.maxValue * 0.75)}</span>
+                <span>{Math.round(chartData.maxValue * 0.5)}</span>
+                <span>{Math.round(chartData.maxValue * 0.25)}</span>
+                <span>0</span>
+              </div>
+
+              {/* 图表区域 */}
+              <div className="absolute left-8 right-0 top-2 bottom-8">
+                {/* 网格线 */}
+                <div className="absolute inset-0 flex flex-col justify-between">
+                  {[0, 1, 2, 3, 4].map(i => (
+                    <div key={i} className="border-b border-slate-100" />
+                  ))}
                 </div>
-              ))}
+
+                {/* 折线 */}
+                <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
+                  {/* 面积填充 */}
+                  <defs>
+                    <linearGradient id="lineGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                      <stop offset="0%" stopColor="rgba(139, 92, 246, 0.3)" />
+                      <stop offset="100%" stopColor="rgba(139, 92, 246, 0.02)" />
+                    </linearGradient>
+                  </defs>
+                  
+                  {/* 面积 */}
+                  <path
+                    d={`M 0,100 ${chartData.values.map((v, i) => {
+                      const x = (i / 6) * 100;
+                      const y = 100 - (v / chartData.maxValue) * 100;
+                      return `L ${x},${y}`;
+                    }).join(' ')} L 100,100 Z`}
+                    fill="url(#lineGradient)"
+                  />
+
+                  {/* 线条 */}
+                  <path
+                    d={`M 0,100 ${chartData.values.map((v, i) => {
+                      const x = (i / 6) * 100;
+                      const y = 100 - (v / chartData.maxValue) * 100;
+                      return `L ${x},${y}`;
+                    }).join(' ')}`}
+                    fill="none"
+                    stroke="url(#lineGradientStroke)"
+                    strokeWidth="0.5"
+                    vectorEffect="non-scaling-stroke"
+                  />
+                  <defs>
+                    <linearGradient id="lineGradientStroke" x1="0%" y1="0%" x2="100%" y2="0%">
+                      <stop offset="0%" stopColor="#f472b6" />
+                      <stop offset="100%" stopColor="#8b5cf6" />
+                    </linearGradient>
+                  </defs>
+
+                  {/* 数据点 */}
+                  {chartData.values.map((v, i) => {
+                    const x = (i / 6) * 100;
+                    const y = 100 - (v / chartData.maxValue) * 100;
+                    const isToday = i === todayIndex;
+                    return (
+                      <g key={i}>
+                        {/* 今日高亮点 */}
+                        {isToday && (
+                          <circle
+                            cx={x}
+                            cy={y}
+                            r="3"
+                            fill="#8b5cf6"
+                            stroke="white"
+                            strokeWidth="0.5"
+                          />
+                        )}
+                        {/* 普通点 */}
+                        {!isToday && v > 0 && (
+                          <circle
+                            cx={x}
+                            cy={y}
+                            r="1.5"
+                            fill="#c4b5fd"
+                            stroke="white"
+                            strokeWidth="0.3"
+                          />
+                        )}
+                        {/* 零值点 */}
+                        {v === 0 && (
+                          <circle
+                            cx={x}
+                            cy={y}
+                            r="1"
+                            fill="#e5e7eb"
+                          />
+                        )}
+                      </g>
+                    );
+                  })}
+                </svg>
+              </div>
+
+              {/* X轴标签 */}
+              <div className="absolute left-8 right-0 bottom-0 flex justify-between px-1">
+                {weekData.map((d, i) => (
+                  <div
+                    key={d.date}
+                    className={cn(
+                      "flex flex-col items-center",
+                      i === todayIndex && "text-purple-600 font-bold"
+                    )}
+                  >
+                    <span className="text-xs">{d.dayName}</span>
+                    <span className={cn(
+                      "text-[10px] mt-0.5",
+                      i === todayIndex ? "text-purple-500 font-bold" : "text-slate-400"
+                    )}>
+                      {d.total > 0 ? d.total : '-'}
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
           </Card>
         </motion.div>
@@ -180,7 +337,7 @@ const GrowthRecord = () => {
             <span className="text-xl">🏅</span>
             <h3 className="font-bold text-slate-800">获得的徽章</h3>
           </div>
-          <div className="flex gap-4 overflow-x-auto py-2 px-2 scrollbar-hide">
+          <div className="flex gap-4 overflow-x-auto py-2 px-2">
             {[
               { name: '开口小达人', emoji: '🎤', gradient: 'from-amber-200 to-orange-300' },
               { name: '场景专家', emoji: '🎭', gradient: 'from-sky-200 to-blue-300' },
@@ -204,6 +361,7 @@ const GrowthRecord = () => {
           </div>
         </motion.div>
       </div>
+      
       <Navigation />
     </MobileShell>
   );

@@ -169,28 +169,35 @@ const MyComponent = () => {
 |------|------|----------|
 | trainingMinutes | 今日训练时长(分钟) | 进入训练页面时开始计时，每分钟+1 |
 | expressionCount | 主动表达次数 | AI聊天发送消息 + 绘本答题完成 |
-| gamePassCount | 趣味闯关通关次数 | 每完成一个趣味训练游戏 |
+| gamePassCount | 趣味闯关通关次数 | 每完成趣味训练一道题 |
 | chatMessages | AI聊天消息数 | AI聊天发送消息 |
 | bookCompleted | 绘本完成题目数 | 绘本答题完成 |
 | trainingGames | 趣味训练完成数 | 每个趣味训练游戏完成 |
 
+### 周数据（本周活跃度）
+- 存储结构：`WeeklyStats { [date: string]: { trainingMinutes, expressionCount, gamePassCount } }`
+- 以天为单位记录本周数据（周一到周日）
+- 存储在 localStorage，Key: `star_baby_weekly_stats`
+
 ### 数据重置
-- 每日0点自动重置统计数据
-- 存储在 localStorage，Key: `star_baby_stats`
+- 每日自动重置统计数据
+- 周数据每周一自动重置
+- 存储在 localStorage，Key: `star_baby_daily_stats`
 
 ### 页面关联
 - AI聊天页面 (03_AIChat.tsx): 发送消息时计数，进入页面开始计时
 - 绘本闯关页面 (05_BookInteraction.tsx): 答题完成时计数，进入页面开始计时
-- 趣味训练页面 (09/10/11): 进入页面开始计时，游戏完成时计数
-- 成长记录页面 (07_GrowthRecord.tsx): 读取并显示统计数据
+- 趣味训练页面 (09/10/11): 进入页面开始计时，每道题完成时趣味闯关+1
+- 成长记录页面 (07_GrowthRecord.tsx): 读取并显示统计数据和折线图
 
 ### 使用方式
 ```typescript
-import { useStats } from '../context/StatsContext';
+import { useStats, getWeekDates } from '../context/StatsContext';
 
 const MyComponent = () => {
   const { 
     dailyStats,           // 当前统计数据
+    weeklyStats,         // 本周数据
     startTraining,        // 开始训练计时
     endTraining,          // 结束训练计时
     incrementExpression,  // 增加主动表达次数
@@ -198,3 +205,9 @@ const MyComponent = () => {
   } = useStats();
 };
 ```
+
+### 成长记录折线图
+- 本周语言活跃度折线图
+- 权重计算：训练时长40% + 主动表达30% + 趣味闯关30%
+- 以天为单位显示本周7天数据
+- 今日数据高亮显示

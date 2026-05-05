@@ -10,6 +10,14 @@ interface DailyStats {
   trainingGames: number;        // 趣味训练完成数
 }
 
+interface WeeklyStats {
+  [date: string]: {
+    trainingMinutes: number;
+    expressionCount: number;
+    gamePassCount: number;
+  };
+}
+
 interface TrainingSession {
   startTime: number | null;
   type: 'chat' | 'book' | 'training' | null;
@@ -17,6 +25,7 @@ interface TrainingSession {
 
 interface StatsContextType {
   dailyStats: DailyStats;
+  weeklyStats: WeeklyStats;
   startTraining: (type: 'chat' | 'book' | 'training') => void;
   endTraining: () => void;
   incrementExpression: (source: 'chat' | 'book') => void;
@@ -39,13 +48,40 @@ const defaultStats: DailyStats = {
 
 const StatsContext = createContext<StatsContextType | undefined>(undefined);
 
-const STORAGE_KEY = 'star_baby_stats';
+const DAILY_STORAGE_KEY = 'star_baby_daily_stats';
+const WEEKLY_STORAGE_KEY = 'star_baby_weekly_stats';
+
+// 获取本周一和周日日期
+const getWeekRange = (): { start: string; end: string } => {
+  const now = new Date();
+  const dayOfWeek = now.getDay() || 7; // 将周日的0转为7
+  const monday = new Date(now);
+  monday.setDate(now.getDate() - dayOfWeek + 1);
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
+  return {
+    start: monday.toISOString().split('T')[0],
+    end: sunday.toISOString().split('T')[0]
+  };
+};
+
+// 获取本周所有日期
+const getWeekDates = (): string[] => {
+  const { start } = getWeekRange();
+  const dates: string[] = [];
+  const monday = new Date(start);
+  for (let i = 0; i < 7; i++) {
+    const date = new Date(monday);
+    date.setDate(monday.getDate() + i);
+    dates.push(date.toISOString().split('T')[0]);
+  }
+  return dates;
+};
 
 export const StatsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [dailyStats, setDailyStats] = useState<DailyStats>(() => {
-    // 初始化时从 localStorage 读取
     const today = new Date().toISOString().split('T')[0];
-    const stored = localStorage.getItem(STORAGE_KEY);
+    const stored = localStorage.getItem(DAILY_STORAGE_KEY);
     if (stored) {
       try {
         const parsed = JSON.parse(stored);
@@ -59,6 +95,28 @@ export const StatsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return { ...defaultStats, date: today };
   });
 
+  const [weeklyStats, setWeeklyStats] = useState<WeeklyStats>(() => {
+    const stored = localStorage.getItem(WEEKLY_STORAGE_KEY);
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored);
+        // 检查是否是本周的数据
+        const { start, end } = getWeekRange();
+        if (parsed.weekStart === start && parsed.weekEnd === end) {
+          return parsed.data || {};
+        }
+      } catch {
+        // ignore
+      }
+    }
+    // 返回本周空数据
+    const weekData: WeeklyStats = {};
+    getWeekDates().forEach(date => {
+      weekData[date] = { trainingMinutes: 0, expressionCount: 0, gamePassCount: 0 };
+    });
+    return weekData;
+  });
+
   const currentSession = useRef<TrainingSession>({ startTime: null, type: null });
   const sessionTimer = useRef<ReturnType<typeof setInterval> | null>(null);
   const isInitialized = useRef(false);
@@ -68,7 +126,28 @@ export const StatsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return new Date().toISOString().split('T')[0];
   }, []);
 
-  // 防抖保存到 localStorage
+  // 更新周数据
+  const updateWeeklyStats = useCallback((updates: Partial<{ trainingMinutes: number; expressionCount: number; gamePassCount: number }>) => {
+    const today = getTodayDate();
+    setWeeklyStats(prev => {
+      const newData = { ...prev };
+      if (!newData[today]) {
+        newData[today] = { trainingMinutes: 0, expressionCount: 0, gamePassCount: 0 };
+      }
+      if (updates.trainingMinutes !== undefined) {
+        newData[today].trainingMinutes += updates.trainingMinutes;
+      }
+      if (updates.expressionCount !== undefined) {
+        newData[today].expressionCount += updates.expressionCount;
+      }
+      if (updates.gamePassCount !== undefined) {
+        newData[today].gamePassCount += updates.gamePassCount;
+      }
+      return newData;
+    });
+  }, [getTodayDate]);
+
+  // 防抖保存日数据到 localStorage
   useEffect(() => {
     if (!isInitialized.current) {
       isInitialized.current = true;
@@ -76,11 +155,25 @@ export const StatsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
     
     const timeout = setTimeout(() => {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(dailyStats));
-    }, 500); // 500ms 防抖
+      localStorage.setItem(DAILY_STORAGE_KEY, JSON.stringify(dailyStats));
+    }, 500);
 
     return () => clearTimeout(timeout);
   }, [dailyStats]);
+
+  // 防抖保存周数据到 localStorage
+  useEffect(() => {
+    const { start, end } = getWeekRange();
+    const timeout = setTimeout(() => {
+      localStorage.setItem(WEEKLY_STORAGE_KEY, JSON.stringify({
+        weekStart: start,
+        weekEnd: end,
+        data: weeklyStats
+      }));
+    }, 500);
+
+    return () => clearTimeout(timeout);
+  }, [weeklyStats]);
 
   // 结束训练计时
   const endTraining = useCallback(() => {
@@ -90,7 +183,6 @@ export const StatsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
 
     if (currentSession.current.startTime) {
-      // 计算本次训练时长（不足1分钟按1分钟算）
       const elapsed = Date.now() - currentSession.current.startTime;
       const minutes = Math.max(1, Math.ceil(elapsed / 60000));
       
@@ -98,25 +190,25 @@ export const StatsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         ...prev,
         trainingMinutes: prev.trainingMinutes + minutes,
       }));
+      
+      // 更新周数据
+      updateWeeklyStats({ trainingMinutes: minutes });
     }
 
     currentSession.current = { startTime: null, type: null };
-  }, []);
+  }, [updateWeeklyStats]);
 
   // 开始训练计时
   const startTraining = useCallback((type: 'chat' | 'book' | 'training') => {
-    // 如果已经有在进行的同类型训练，不重复启动
     if (currentSession.current.startTime && currentSession.current.type === type) {
       return;
     }
     
-    // 先结束之前的训练
     if (currentSession.current.startTime) {
       if (sessionTimer.current) {
         clearInterval(sessionTimer.current);
         sessionTimer.current = null;
       }
-      // 计算之前训练的时长
       const elapsed = Date.now() - currentSession.current.startTime;
       const minutes = Math.max(1, Math.ceil(elapsed / 60000));
       currentSession.current = { startTime: null, type: null };
@@ -127,14 +219,14 @@ export const StatsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       type,
     };
 
-    // 每分钟更新一次训练时长
     sessionTimer.current = setInterval(() => {
       setDailyStats(prev => ({
         ...prev,
         trainingMinutes: prev.trainingMinutes + 1,
       }));
+      updateWeeklyStats({ trainingMinutes: 1 });
     }, 60000);
-  }, []);
+  }, [updateWeeklyStats]);
 
   // 增加主动表达次数
   const incrementExpression = useCallback((source: 'chat' | 'book') => {
@@ -144,7 +236,8 @@ export const StatsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       chatMessages: source === 'chat' ? prev.chatMessages + 1 : prev.chatMessages,
       bookCompleted: source === 'book' ? prev.bookCompleted + 1 : prev.bookCompleted,
     }));
-  }, []);
+    updateWeeklyStats({ expressionCount: 1 });
+  }, [updateWeeklyStats]);
 
   // 增加闯关次数
   const incrementGamePass = useCallback(() => {
@@ -152,7 +245,8 @@ export const StatsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       ...prev,
       gamePassCount: prev.gamePassCount + 1,
     }));
-  }, []);
+    updateWeeklyStats({ gamePassCount: 1 });
+  }, [updateWeeklyStats]);
 
   // 增加聊天消息数
   const incrementChatMessage = useCallback(() => {
@@ -191,6 +285,7 @@ export const StatsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     <StatsContext.Provider
       value={{
         dailyStats,
+        weeklyStats,
         startTraining,
         endTraining,
         incrementExpression,
@@ -213,3 +308,6 @@ export const useStats = (): StatsContextType => {
   }
   return context;
 };
+
+// 导出辅助函数供组件使用
+export { getWeekDates };
