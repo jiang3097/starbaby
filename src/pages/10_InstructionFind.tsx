@@ -180,11 +180,10 @@ const InstructionFind = () => {
     };
   }, []); // 空依赖，确保只执行一次
 
-  // 游戏完成时增加统计（只执行一次）
+  // 游戏完成时增加统计
   useEffect(() => {
     if (isFinished) {
       incrementTrainingGame();
-      incrementGamePass();
     }
   }, [isFinished]); // 只依赖 isFinished
 
@@ -233,6 +232,8 @@ const InstructionFind = () => {
     if (correct) {
       setScore(prev => prev + 1);
       setShowCelebration(true);
+      // 统计：趣味闯关+1
+      incrementGamePass();
       setIsSpeaking(true);
       // 随机鼓励语
       const encouragements = ['太棒了！', '你真厉害！', '回答正确！', '太聪明了！'];
@@ -246,7 +247,7 @@ const InstructionFind = () => {
         setIsSpeaking(false);
       });
     }
-  }, [question, showResult]);
+  }, [question, showResult, incrementGamePass]);
 
   // 下一题
   const handleNext = useCallback(() => {

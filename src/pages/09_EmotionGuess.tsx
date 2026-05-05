@@ -175,11 +175,10 @@ const EmotionGuess = () => {
     };
   }, []); // 空依赖，确保只执行一次
 
-  // 游戏完成时增加统计（只执行一次）
+  // 游戏完成时增加统计
   useEffect(() => {
     if (isFinished) {
       incrementTrainingGame();
-      incrementGamePass();
     }
   }, [isFinished]); // 只依赖 isFinished
 
@@ -211,6 +210,8 @@ const EmotionGuess = () => {
     if (correct) {
       setScore(prev => prev + 1);
       setShowCelebration(true);
+      // 统计：趣味闯关+1
+      incrementGamePass();
       // 播报鼓励内容
       const encouragements = ['太棒了！', '你真厉害！', '回答正确！', '太聪明了！'];
       const randomEnc = encouragements[Math.floor(Math.random() * encouragements.length)];
@@ -219,7 +220,7 @@ const EmotionGuess = () => {
       const correctOption = question.options.find(o => o.id === question.answer);
       speakText(`${selectedText}，正确答案是${correctOption?.name}。${question.hint}`);
     }
-  }, [question, showResult]);
+  }, [question, showResult, incrementGamePass]);
 
   // 跳过当前题
   const handleSkip = useCallback(() => {
