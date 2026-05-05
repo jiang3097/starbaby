@@ -1,5 +1,6 @@
 import React from 'react';
 import { Routes, Route } from 'react-router-dom';
+import Welcome from './pages/00_Welcome';
 import Splash from './pages/01_Splash';
 import Home from './pages/02_Home';
 import AIChat from './pages/03_AIChat';
@@ -15,7 +16,8 @@ import PuzzleExpress from './pages/11_PuzzleExpress';
 const App = () => {
   return (
     <Routes>
-      <Route path="/" element={<Splash />} />
+      <Route path="/" element={<Welcome />} />
+      <Route path="/splash" element={<Splash />} />
       <Route path="/home" element={<Home />} />
       <Route path="/chat" element={<AIChat />} />
       <Route path="/books" element={<BookList />} />
