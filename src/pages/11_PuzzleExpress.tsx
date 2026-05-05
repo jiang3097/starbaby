@@ -507,7 +507,7 @@ const PuzzleExpress = () => {
                       onMouseDown={(e) => handleDragStart(e, piece)}
                       onTouchStart={(e) => handleDragStart(e, piece)}
                       className={cn(
-                        "absolute cursor-grab active:cursor-grabbing transition-all duration-150",
+                        "absolute cursor-grab active:cursor-grabbing transition-all duration-150 overflow-hidden rounded-md",
                         isCorrect && "pointer-events-none"
                       )}
                       style={{
@@ -516,20 +516,11 @@ const PuzzleExpress = () => {
                         left: center.x - cellSize / 2,
                         top: center.y - cellSize / 2,
                         zIndex: 1,
+                        backgroundImage: `url(${currentImage.url})`,
+                        backgroundSize: `${gridSize}px ${gridSize}px`,
+                        backgroundPosition: getBgPosition(piece.id),
                       }}
                     >
-                      <img
-                        src={currentImage.url}
-                        alt=""
-                        className="w-full h-full"
-                        style={{
-                          objectPosition: getBgPosition(piece.id),
-                          objectFit: 'cover',
-                          width: gridSize,
-                          height: gridSize,
-                        }}
-                        draggable={false}
-                      />
                       {/* 边框 */}
                       <div className="absolute inset-0 border-2 border-white/50 pointer-events-none" />
                       
@@ -546,27 +537,18 @@ const PuzzleExpress = () => {
                 {/* 正在拖拽的碎片 */}
                 {draggingPiece !== null && (
                   <div
-                    className="absolute cursor-grabbing transition-none z-50"
+                    className="absolute cursor-grabbing transition-none z-50 overflow-hidden rounded-md"
                     style={{
                       width: cellSize,
                       height: cellSize,
                       left: dragPosition.x - cellSize / 2,
                       top: dragPosition.y - cellSize / 2,
                       boxShadow: '0 10px 30px rgba(0,0,0,0.3)',
+                      backgroundImage: `url(${currentImage.url})`,
+                      backgroundSize: `${gridSize}px ${gridSize}px`,
+                      backgroundPosition: getBgPosition(draggingPiece),
                     }}
                   >
-                    <img
-                      src={currentImage.url}
-                      alt=""
-                      className="w-full h-full"
-                      style={{
-                        objectPosition: getBgPosition(draggingPiece),
-                        objectFit: 'cover',
-                        width: gridSize,
-                        height: gridSize,
-                      }}
-                      draggable={false}
-                    />
                     <div className="absolute inset-0 border-2 border-orange-400 rounded-md pointer-events-none" />
                   </div>
                 )}
