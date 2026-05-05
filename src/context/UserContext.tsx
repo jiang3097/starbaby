@@ -200,12 +200,12 @@ export const UserProvider = ({ children }: UserProviderProps) => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
   };
 
-  // 增加亲密度 - 上限60
+  // 增加亲密度 - 上限100，每天最多+10
   const incrementIntimacy = () => {
     if (profile.todayIntimacyAdded >= 10) return;
-    if (profile.intimacy < 60) {
+    if (profile.intimacy < 100) {
       updateProfile({ 
-        intimacy: Math.min(profile.intimacy + 1, 60),
+        intimacy: Math.min(profile.intimacy + 1, 100),
         todayIntimacyAdded: profile.todayIntimacyAdded + 1
       });
     }
