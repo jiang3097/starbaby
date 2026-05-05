@@ -111,34 +111,40 @@ const GrowthRecord = () => {
     preloadVoices();
   }, []);
 
-  // 计算本周活跃度 - 基于实际每日数据，确保与成长板块数据同步
+  // 计算今日活跃度 - 直接使用 dailyStats 确保完全同步
+  const todayMinutes = dailyStats.trainingMinutes;
+  const todayExpression = dailyStats.expressionCount;
+  const todayGame = dailyStats.gamePassCount;
+  const todayActivity = Math.round(
+    Math.min(todayMinutes * 4, 100) * 0.4 +
+    Math.min(todayExpression * 10, 100) * 0.3 +
+    Math.min(todayGame * 10, 100) * 0.3
+  );
+  
+  // 计算本周活跃度 - 往日数据使用 weeklyStats
   const weekDates = getWeekDates();
   const today = new Date().toISOString().split('T')[0];
   
-  const weekData = weekDates.map((date, index) => {
+  const weekData = weekDates.map((date) => {
     const isToday = date === today;
-    // 今日使用 dailyStats 保证数据同步，往日使用 weeklyStats
     let minutes, expression, game;
     if (isToday) {
-      minutes = dailyStats.trainingMinutes;
-      expression = dailyStats.expressionCount;
-      game = dailyStats.gamePassCount;
+      // 今日使用 dailyStats
+      minutes = todayMinutes;
+      expression = todayExpression;
+      game = todayGame;
     } else {
       const dayData = weeklyStats[date];
       minutes = dayData?.trainingMinutes || 0;
       expression = dayData?.expressionCount || 0;
       game = dayData?.gamePassCount || 0;
     }
-    // 权重计算：训练时长40% + 主动表达30% + 趣味闯关30%
     const minutesScore = Math.min(minutes * 4, 100) * 0.4;
     const expressionScore = Math.min(expression * 10, 100) * 0.3;
     const gameScore = Math.min(game * 10, 100) * 0.3;
     const activity = Math.round(minutesScore + expressionScore + gameScore);
     return { date, activity, minutes, expression, game, isToday };
   });
-  
-  // 今日活跃度（用于显示）
-  const todayActivity = weekData[weekData.length - 1]?.activity || 0;
 
   const maxActivity = Math.max(...weekData.map(d => d.activity), 1);
 
