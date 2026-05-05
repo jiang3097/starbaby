@@ -39,6 +39,8 @@ export interface UserProfile {
   avatarId: number;
   name: string;
   intimacy: number; // 亲密度，从60开始，上限100
+  lastLoginDate: string; // 上次登录日期 YYYY-MM-DD
+  todayIntimacyAdded: number; // 当天已增加的亲密度，上限10
 }
 
 interface UserContextType {
@@ -52,6 +54,8 @@ const defaultProfile: UserProfile = {
   avatarId: 1,
   name: '星星',
   intimacy: 60,
+  lastLoginDate: new Date().toISOString().split('T')[0],
+  todayIntimacyAdded: 0,
 };
 
 const UserContext = createContext<UserContextType>({
@@ -72,7 +76,30 @@ export const UserProvider = ({ children }: UserProviderProps) => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        const today = new Date().toISOString().split('T')[0];
+        const lastLogin = parsed.lastLoginDate || today;
+        
+        // 检查是否跨天
+        if (lastLogin !== today) {
+          // 计算间隔天数
+          const lastDate = new Date(lastLogin);
+          const todayDate = new Date(today);
+          const diffDays = Math.floor((todayDate.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24));
+          
+          // 扣减亲密度（每天扣5点）
+          const deducted = Math.min(diffDays * 5, parsed.intimacy);
+          parsed.intimacy = Math.max(parsed.intimacy - deducted, 0);
+          
+          // 重置当天已增加亲密度
+          parsed.todayIntimacyAdded = 0;
+          parsed.lastLoginDate = today;
+          
+          // 保存更新后的数据
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
+        }
+        
+        return parsed;
       }
     } catch (e) {
       // ignore
@@ -89,9 +116,16 @@ export const UserProvider = ({ children }: UserProviderProps) => {
   };
 
   const incrementIntimacy = () => {
+    // 检查当天是否已达上限10点
+    if (profile.todayIntimacyAdded >= 10) {
+      return;
+    }
     if (profile.intimacy < 100) {
       const newIntimacy = Math.min(profile.intimacy + 1, 100);
-      updateProfile({ intimacy: newIntimacy });
+      updateProfile({ 
+        intimacy: newIntimacy,
+        todayIntimacyAdded: profile.todayIntimacyAdded + 1
+      });
     }
   };
 
