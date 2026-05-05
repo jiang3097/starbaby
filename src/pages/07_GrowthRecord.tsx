@@ -215,7 +215,7 @@ const GrowthRecord = () => {
         {/* Header */}
         <div className="flex items-center gap-4 mb-6">
           <button 
-            onClick={() => navigate('/training')}
+            onClick={() => navigate('/home')}
             className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-lg text-slate-600"
           >
             <ChevronLeft size={28} />
