@@ -98,13 +98,17 @@ const PuzzleExpress = () => {
     });
   }, []);
 
-  // 进入页面时开始训练计时
+  // 进入页面时开始训练计时（只执行一次）
   useEffect(() => {
-    if (!hasStartedTraining.current) {
+    let mounted = true;
+    if (!hasStartedTraining.current && mounted) {
       hasStartedTraining.current = true;
       startTraining('training');
     }
-  }, [startTraining]);
+    return () => {
+      mounted = false;
+    };
+  }, []); // 空依赖，确保只执行一次
 
   // 游戏完成时增加统计（只添加一次）
   useEffect(() => {
@@ -113,7 +117,7 @@ const PuzzleExpress = () => {
       incrementTrainingGame();
       incrementGamePass();
     }
-  }, [showSuccess, incrementTrainingGame, incrementGamePass]);
+  }, [showSuccess]); // 只依赖 showSuccess
 
   // 初始化位置
   useEffect(() => {

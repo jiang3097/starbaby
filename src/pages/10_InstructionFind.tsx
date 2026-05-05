@@ -168,21 +168,25 @@ const InstructionFind = () => {
     });
   }, []);
 
-  // 进入页面时开始训练计时
+  // 进入页面时开始训练计时（只执行一次）
   useEffect(() => {
-    if (!hasStartedTraining.current) {
+    let mounted = true;
+    if (!hasStartedTraining.current && mounted) {
       hasStartedTraining.current = true;
       startTraining('training');
     }
-  }, [startTraining]);
+    return () => {
+      mounted = false;
+    };
+  }, []); // 空依赖，确保只执行一次
 
-  // 游戏完成时增加统计
+  // 游戏完成时增加统计（只执行一次）
   useEffect(() => {
     if (isFinished) {
       incrementTrainingGame();
       incrementGamePass();
     }
-  }, [isFinished, incrementTrainingGame, incrementGamePass]);
+  }, [isFinished]); // 只依赖 isFinished
 
   // 朗读问题
   useEffect(() => {

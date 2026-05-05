@@ -6,8 +6,8 @@ interface DailyStats {
   expressionCount: number;       // 主动表达次数
   gamePassCount: number;        // 趣味闯关通关次数
   chatMessages: number;          // AI聊天消息数
-  bookCompleted: number;         // 绘本完成题目数
-  trainingGames: number;         // 趣味训练完成数
+  bookCompleted: number;        // 绘本完成题目数
+  trainingGames: number;        // 趣味训练完成数
 }
 
 interface TrainingSession {
@@ -42,67 +42,47 @@ const StatsContext = createContext<StatsContextType | undefined>(undefined);
 const STORAGE_KEY = 'star_baby_stats';
 
 export const StatsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [dailyStats, setDailyStats] = useState<DailyStats>(defaultStats);
+  const [dailyStats, setDailyStats] = useState<DailyStats>(() => {
+    // 初始化时从 localStorage 读取
+    const today = new Date().toISOString().split('T')[0];
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored);
+        if (parsed.date === today) {
+          return parsed;
+        }
+      } catch {
+        // ignore
+      }
+    }
+    return { ...defaultStats, date: today };
+  });
+
   const currentSession = useRef<TrainingSession>({ startTime: null, type: null });
   const sessionTimer = useRef<ReturnType<typeof setInterval> | null>(null);
+  const isInitialized = useRef(false);
 
   // 获取今天的日期字符串
   const getTodayDate = useCallback(() => {
     return new Date().toISOString().split('T')[0];
   }, []);
 
-  // 从 localStorage 加载数据
+  // 防抖保存到 localStorage
   useEffect(() => {
-    const today = getTodayDate();
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored);
-        // 检查是否是今天的数据
-        if (parsed.date === today) {
-          setDailyStats(parsed);
-        } else {
-          // 新的一天，重置数据
-          setDailyStats({ ...defaultStats, date: today });
-        }
-      } catch {
-        setDailyStats({ ...defaultStats, date: today });
-      }
-    }
-  }, [getTodayDate]);
-
-  // 保存数据到 localStorage
-  const saveStats = useCallback((stats: DailyStats) => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(stats));
-  }, []);
-
-  // 保存统计
-  useEffect(() => {
-    saveStats(dailyStats);
-  }, [dailyStats, saveStats]);
-
-  // 开始训练计时
-  const startTraining = useCallback((type: 'chat' | 'book' | 'training') => {
-    // 如果已经有在进行的训练，先结束
-    if (currentSession.current.startTime && currentSession.current.type) {
-      endTraining();
+    if (!isInitialized.current) {
+      isInitialized.current = true;
+      return;
     }
     
-    currentSession.current = {
-      startTime: Date.now(),
-      type,
-    };
+    const timeout = setTimeout(() => {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(dailyStats));
+    }, 500); // 500ms 防抖
 
-    // 每分钟更新一次训练时长
-    sessionTimer.current = setInterval(() => {
-      setDailyStats(prev => ({
-        ...prev,
-        trainingMinutes: prev.trainingMinutes + 1,
-      }));
-    }, 60000); // 60秒
-  }, []);
+    return () => clearTimeout(timeout);
+  }, [dailyStats]);
 
-  // 结束训练
+  // 结束训练计时
   const endTraining = useCallback(() => {
     if (sessionTimer.current) {
       clearInterval(sessionTimer.current);
@@ -121,6 +101,39 @@ export const StatsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
 
     currentSession.current = { startTime: null, type: null };
+  }, []);
+
+  // 开始训练计时
+  const startTraining = useCallback((type: 'chat' | 'book' | 'training') => {
+    // 如果已经有在进行的同类型训练，不重复启动
+    if (currentSession.current.startTime && currentSession.current.type === type) {
+      return;
+    }
+    
+    // 先结束之前的训练
+    if (currentSession.current.startTime) {
+      if (sessionTimer.current) {
+        clearInterval(sessionTimer.current);
+        sessionTimer.current = null;
+      }
+      // 计算之前训练的时长
+      const elapsed = Date.now() - currentSession.current.startTime;
+      const minutes = Math.max(1, Math.ceil(elapsed / 60000));
+      currentSession.current = { startTime: null, type: null };
+    }
+    
+    currentSession.current = {
+      startTime: Date.now(),
+      type,
+    };
+
+    // 每分钟更新一次训练时长
+    sessionTimer.current = setInterval(() => {
+      setDailyStats(prev => ({
+        ...prev,
+        trainingMinutes: prev.trainingMinutes + 1,
+      }));
+    }, 60000);
   }, []);
 
   // 增加主动表达次数
@@ -163,6 +176,15 @@ export const StatsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       ...prev,
       trainingGames: prev.trainingGames + 1,
     }));
+  }, []);
+
+  // 组件卸载时清理
+  useEffect(() => {
+    return () => {
+      if (sessionTimer.current) {
+        clearInterval(sessionTimer.current);
+      }
+    };
   }, []);
 
   return (

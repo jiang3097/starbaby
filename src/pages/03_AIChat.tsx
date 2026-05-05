@@ -37,17 +37,17 @@ const AIChat = () => {
     preloadVoices();
   }, []);
 
-  // 进入页面时开始训练计时
+  // 进入页面时开始训练计时（只执行一次）
   useEffect(() => {
-    if (!hasStartedTraining.current) {
+    let mounted = true;
+    if (!hasStartedTraining.current && mounted) {
       hasStartedTraining.current = true;
       startTraining('chat');
     }
-    
     return () => {
-      // 组件卸载时不结束计时，由父组件控制
+      mounted = false;
     };
-  }, [startTraining]);
+  }, []); // 空依赖，确保只执行一次
 
   // 滚动到底部
   useEffect(() => {

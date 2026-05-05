@@ -157,13 +157,17 @@ const BookInteraction = () => {
     preloadVoices();
   }, []);
 
-  // 进入页面时开始训练计时
+  // 进入页面时开始训练计时（只执行一次）
   useEffect(() => {
-    if (!hasStartedTraining.current && bookId) {
+    let mounted = true;
+    if (!hasStartedTraining.current && bookId && mounted) {
       hasStartedTraining.current = true;
       startTraining('book');
     }
-  }, [bookId, startTraining]);
+    return () => {
+      mounted = false;
+    };
+  }, [bookId]); // 只依赖 bookId
 
   const resetState = useCallback(() => {
     setPhase('intro');
