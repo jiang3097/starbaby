@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { TrendingUp, Clock, MessageSquare, BookOpen, Star, ChevronLeft, Award, Heart } from 'lucide-react';
@@ -13,16 +13,39 @@ const GrowthRecord = () => {
   const navigate = useNavigate();
   const { profile, avatar } = useUser();
   const { dailyStats, weeklyStats } = useStats();
+  
+  // 使用 ref 存储最新数据，避免闭包问题
+  const weeklyStatsRef = useRef(weeklyStats);
+  weeklyStatsRef.current = weeklyStats;
 
-  // 计算增长百分比
-  const chatGrowth = dailyStats.chatMessages > 0 ? Math.min(dailyStats.chatMessages * 8, 50) : 0;
-  const trainingGrowth = dailyStats.trainingMinutes > 0 ? Math.min(dailyStats.trainingMinutes * 2, 30) : 0;
+  // 稳定显示的数据（用于展示，不频繁更新）
+  const [displayStats, setDisplayStats] = React.useState({
+    trainingMinutes: dailyStats.trainingMinutes,
+    expressionCount: dailyStats.expressionCount,
+    gamePassCount: dailyStats.gamePassCount,
+  });
+
+  // 防抖更新显示数据
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      setDisplayStats({
+        trainingMinutes: dailyStats.trainingMinutes,
+        expressionCount: dailyStats.expressionCount,
+        gamePassCount: dailyStats.gamePassCount,
+      });
+    }, 2000); // 2秒防抖，避免频繁更新
+    return () => clearTimeout(timeout);
+  }, [dailyStats.trainingMinutes, dailyStats.expressionCount, dailyStats.gamePassCount]);
 
   const stats = [
-    { label: '今日训练', value: dailyStats.trainingMinutes, unit: '分钟', icon: Clock, gradient: 'from-amber-200 to-orange-300', emoji: '🎯' },
-    { label: '主动表达', value: dailyStats.expressionCount, unit: '次数', icon: MessageSquare, gradient: 'from-rose-200 to-pink-300', emoji: '💬' },
-    { label: '趣味闯关', value: dailyStats.gamePassCount, unit: '关卡', icon: BookOpen, gradient: 'from-emerald-200 to-teal-300', emoji: '📚' },
+    { label: '今日训练', value: displayStats.trainingMinutes, unit: '分钟', icon: Clock, gradient: 'from-amber-200 to-orange-300', emoji: '🎯' },
+    { label: '主动表达', value: displayStats.expressionCount, unit: '次数', icon: MessageSquare, gradient: 'from-rose-200 to-pink-300', emoji: '💬' },
+    { label: '趣味闯关', value: displayStats.gamePassCount, unit: '关卡', icon: BookOpen, gradient: 'from-emerald-200 to-teal-300', emoji: '📚' },
   ];
+
+  // 增长百分比
+  const chatGrowth = displayStats.expressionCount > 0 ? Math.min(displayStats.expressionCount * 8, 50) : 0;
+  const trainingGrowth = displayStats.trainingMinutes > 0 ? Math.min(displayStats.trainingMinutes * 2, 30) : 0;
 
   // 计算本周活跃度数据
   const weekData = useMemo(() => {
