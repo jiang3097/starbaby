@@ -49,8 +49,86 @@ const Home = () => {
   ];
 
   return (
-    <MobileShell showNav className="bg-gradient-to-b from-sky-50 via-blue-50 to-white">
-      <div className="px-6 py-4">
+    <MobileShell showNav className="bg-gradient-to-b from-sky-100 via-blue-50 to-amber-50">
+      {/* 背景装饰层 */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        {/* 顶部装饰云朵 */}
+        <motion.div
+          animate={{ x: [0, 20, 0] }}
+          transition={{ repeat: Infinity, duration: 8 }}
+          className="absolute top-8 left-8 text-5xl opacity-40"
+        >
+          ☁️
+        </motion.div>
+        <motion.div
+          animate={{ x: [0, -15, 0] }}
+          transition={{ repeat: Infinity, duration: 10 }}
+          className="absolute top-16 right-12 text-4xl opacity-30"
+        >
+          ☁️
+        </motion.div>
+        
+        {/* 星星装饰 */}
+        {[...Array(6)].map((_, i) => (
+          <motion.div
+            key={i}
+            className="absolute text-amber-300"
+            style={{ 
+              left: `${10 + i * 15}%`, 
+              top: `${5 + (i % 3) * 8}%` 
+            }}
+            animate={{ 
+              opacity: [0.3, 0.8, 0.3], 
+              scale: [0.9, 1.2, 0.9],
+              rotate: [0, 10, 0]
+            }}
+            transition={{ repeat: Infinity, duration: 3 + i * 0.4 }}
+          >
+            ⭐
+          </motion.div>
+        ))}
+        
+        {/* 小爱心装饰 */}
+        <motion.div
+          animate={{ scale: [1, 1.2, 1] }}
+          transition={{ repeat: Infinity, duration: 2 }}
+          className="absolute top-1/3 right-8 text-2xl opacity-40"
+        >
+          💕
+        </motion.div>
+        <motion.div
+          animate={{ scale: [1, 1.3, 1] }}
+          transition={{ repeat: Infinity, duration: 2.5, delay: 0.5 }}
+          className="absolute top-1/4 left-12 text-xl opacity-30"
+        >
+          💗
+        </motion.div>
+        
+        {/* 彩虹弧装饰 */}
+        <div className="absolute top-0 left-0 right-0 h-24 bg-gradient-to-b from-pink-100/20 via-purple-100/10 to-transparent rounded-b-full" />
+        
+        {/* 底部草地装饰 */}
+        <div className="absolute bottom-24 left-0 right-0 h-16 bg-gradient-to-t from-emerald-100/30 to-transparent" />
+        
+        {/* 小花朵装饰 */}
+        <motion.div
+          animate={{ rotate: [-5, 5, -5] }}
+          transition={{ repeat: Infinity, duration: 3 }}
+          className="absolute bottom-32 left-8 text-2xl opacity-40"
+        >
+          🌸
+        </motion.div>
+        <motion.div
+          animate={{ rotate: [5, -5, 5] }}
+          transition={{ repeat: Infinity, duration: 3.5, delay: 0.3 }}
+          className="absolute bottom-36 right-10 text-xl opacity-30"
+        >
+          🌼
+        </motion.div>
+      </div>
+
+      {/* 主内容 */}
+      <div className="relative px-6 py-4">
         {/* AI Pet Hero Area */}
         <div className="relative mb-8 pt-4">
           {/* 设置按钮 */}
@@ -81,7 +159,7 @@ const Home = () => {
               className="w-48 h-48 relative cursor-pointer"
             >
               {/* 光环效果 */}
-              <div className="absolute inset-0 bg-gradient-to-br from-yellow-200/50 to-amber-200/50 rounded-full blur-3xl animate-pulse" />
+              <div className="absolute inset-0 bg-gradient-to-br from-yellow-200/60 to-amber-200/60 rounded-full blur-3xl animate-pulse" />
               
               {/* 背景圆 */}
               <div className={cn(
@@ -94,11 +172,18 @@ const Home = () => {
                   className="w-full h-full object-cover"
                 />
               </div>
+              
+              {/* 环绕装饰 */}
+              <motion.div
+                animate={{ rotate: 360 }}
+                transition={{ repeat: Infinity, duration: 20, ease: "linear" }}
+                className="absolute -inset-2 border-2 border-dashed border-amber-200/30 rounded-full"
+              />
             </motion.div>
             
             <div className="mt-4 text-center">
               <h2 className="text-2xl font-bold text-slate-800">{profile.name}</h2>
-              <p className="text-sm text-slate-400 mt-1">你好！今天要和我玩什么呢？</p>
+              <p className="text-sm text-slate-500 mt-1">你好！今天要和我玩什么呢？</p>
             </div>
           </div>
         </div>
