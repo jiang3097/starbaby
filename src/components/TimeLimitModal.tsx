@@ -47,7 +47,8 @@ const TimeLimitModal = () => {
       setError(false);
       
       if (newPin.length === 4) {
-        if (newPin === '1234') {
+        const storedPassword = localStorage.getItem('parent_password') || '1234';
+        if (newPin === storedPassword) {
           // 密码正确，显示解锁状态
           setShowUnlock(true);
         } else {
