@@ -23,6 +23,7 @@ const AIChat = () => {
   ]);
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [showIntimacyTip, setShowIntimacyTip] = useState(false);
   const hasStartedTraining = useRef(false);
   
   const stopListeningFnRef = useRef<(() => void) | null>(null);
@@ -59,6 +60,10 @@ const AIChat = () => {
     // 清理emoji用于处理
     const cleanText = text.toString().replace(/[\u{1F300}-\u{1F9FF}]/gu, '').trim();
     
+    // 获取当前亲密度和今日使用次数（用于判断是否增加）
+    const currentIntimacy = profile.intimacy;
+    const currentTodayAdded = profile.todayIntimacyAdded;
+    
     // 添加用户消息
     const userMsg: Message = { id: Date.now(), type: 'user', text: cleanText };
     setMessages(prev => [...prev, userMsg]);
@@ -67,6 +72,16 @@ const AIChat = () => {
     incrementExpression('chat');
     incrementChatMessage();
     incrementIntimacy(); // 增加亲密度
+
+    // 检测亲密度是否真的增加了
+    const newIntimacy = profile.intimacy;
+    const newTodayAdded = profile.todayIntimacyAdded;
+    
+    // 如果亲密度增加了，显示提示
+    if (newTodayAdded > currentTodayAdded || (newIntimacy > currentIntimacy && newIntimacy < 100)) {
+      setShowIntimacyTip(true);
+      setTimeout(() => setShowIntimacyTip(false), 2000);
+    }
 
     // AI 响应
     setTimeout(() => {
@@ -99,7 +114,7 @@ const AIChat = () => {
       // AI 自动朗读回复
       speakText(reply);
     }, 800);
-  }, [profile.name]);
+  }, [profile.name, profile.intimacy, profile.todayIntimacyAdded]);
 
   // 点击麦克风开始说话
   const handleMicClick = () => {
@@ -204,6 +219,22 @@ const AIChat = () => {
         
         <div className="w-12" />
       </div>
+
+      {/* 亲密度增加提示 */}
+      <AnimatePresence>
+        {showIntimacyTip && (
+          <motion.div
+            initial={{ opacity: 0, y: 20, scale: 0.8 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -20, scale: 0.8 }}
+            transition={{ type: 'spring', duration: 0.5 }}
+            className="absolute top-24 left-1/2 -translate-x-1/2 z-30 bg-gradient-to-r from-pink-400 to-rose-400 text-white px-5 py-2 rounded-full shadow-lg flex items-center gap-2"
+          >
+            <span className="text-lg">💕</span>
+            <span className="text-sm font-bold">亲密度+1</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Chat Area */}
       <div 
