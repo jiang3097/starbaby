@@ -165,18 +165,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   
   statsRef.current = { dailyStats, weeklyStats };
 
-  // 检查是否达到限时
+  // 检查是否达到限时（计时器每分钟触发）
   useEffect(() => {
-    if (timeLimit.enabled && !hasShownLimitModal.current) {
-      const limitMinutes = timeLimit.customMinutes || timeLimit.minutes;
-      if (dailyStats.trainingMinutes >= limitMinutes && !isTimeLimitReached) {
-        setIsTimeLimitReached(true);
-        setShowTimeLimitModal(true);
-        hasShownLimitModal.current = true;
-        // 保存状态
-        const today = new Date().toISOString().split('T')[0];
-        localStorage.setItem(REACHED_STORAGE_KEY, JSON.stringify({ date: today, reached: true }));
-      }
+    if (!timeLimit.enabled || hasShownLimitModal.current || isTimeLimitReached) {
+      return;
+    }
+    const limitMinutes = timeLimit.customMinutes || timeLimit.minutes;
+    if (dailyStats.trainingMinutes >= limitMinutes) {
+      setIsTimeLimitReached(true);
+      setShowTimeLimitModal(true);
+      hasShownLimitModal.current = true;
     }
   }, [dailyStats.trainingMinutes, timeLimit, isTimeLimitReached]);
 
@@ -192,13 +190,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   }, []);
 
-  // 重置限时
+  // 重置限时 - 解锁后继续使用
   const resetTimeLimit = useCallback(() => {
     setShowTimeLimitModal(false);
     setIsTimeLimitReached(false);
+    // 重置标记，这样下次达到限时可以再次触发
     hasShownLimitModal.current = false;
-    const today = new Date().toISOString().split('T')[0];
-    localStorage.setItem(REACHED_STORAGE_KEY, JSON.stringify({ date: today, reached: false }));
   }, []);
 
   // 开始训练计时
@@ -233,9 +230,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
     
     sessionTimer.current = setInterval(() => {
+      // 暂停状态下不更新计时（但计时器继续运行，等待解锁后继续）
       if (isTimeLimitReached) {
-        if (sessionTimer.current) clearInterval(sessionTimer.current);
-        return;
+        return; // 只暂停更新，不停止计时器
       }
       const today = new Date().toISOString().split('T')[0];
       setDailyStats(prev => ({ ...prev, trainingMinutes: prev.trainingMinutes + 1 }));
