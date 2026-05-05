@@ -168,8 +168,14 @@ export const UserProvider = ({ children }: UserProviderProps) => {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
       const parsed = JSON.parse(saved);
-      if (parsed.intimacy > 60) {
-        const today = new Date().toISOString().split('T')[0];
+      const today = new Date().toISOString().split('T')[0];
+      
+      // 检查是否需要重置（确保新用户有道具）
+      const needsReset = parsed.intimacy > 60 || 
+                         (parsed.toys === 0 && parsed.foods === 0) ||
+                         !parsed.fullnessUsedToday;
+      
+      if (needsReset) {
         const corrected = { 
           ...parsed, 
           intimacy: 60,
@@ -183,15 +189,14 @@ export const UserProvider = ({ children }: UserProviderProps) => {
           mood: 60,
           moodUsedToday: 0,
           moodDate: today,
-          toys: parsed.toys ?? 0,
-          foods: parsed.foods ?? 0,
+          toys: 1, // 重置为1个玩具
+          foods: 1, // 重置为1个食物
           totalGamePassed: 0,
         };
         setProfile(corrected);
         localStorage.setItem(STORAGE_KEY, JSON.stringify(corrected));
       } else {
         // 检查是否跨天，重置每日计数
-        const today = new Date().toISOString().split('T')[0];
         const lastLogin = parsed.lastLoginDate || today;
         
         if (lastLogin !== today) {
