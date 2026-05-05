@@ -55,6 +55,7 @@ const PuzzleExpress = () => {
   const [cellSize, setCellSize] = useState(140);
   const [showCelebration, setShowCelebration] = useState(false);
   const [dragPosition, setDragPosition] = useState({ x: 0, y: 0 }); // 正在拖拽的碎片位置
+  const [containerReady, setContainerReady] = useState(false);
 
   const gridCols = difficulty === 4 ? 2 : 3;
 
@@ -90,6 +91,15 @@ const PuzzleExpress = () => {
 
   // 初始化碎片
   const initializePieces = useCallback(() => {
+    if (!containerRef.current) return;
+    
+    const containerWidth = containerRef.current.offsetWidth;
+    const size = Math.min(containerWidth - 40, 280);
+    const cell = size / gridCols;
+    
+    setGridSize(size);
+    setCellSize(cell);
+    
     const count = difficulty;
     const newPieces: Piece[] = [];
     
@@ -105,20 +115,22 @@ const PuzzleExpress = () => {
     setPieces(newPieces);
     setCorrectCount(0);
     hasAddedStats.current = false;
-  }, [difficulty]);
+  }, [difficulty, gridCols]);
 
-  // 初始化位置
+  // 容器准备好后初始化
   useEffect(() => {
-    if (gameStarted && containerRef.current) {
-      const containerWidth = containerRef.current.offsetWidth;
-      const size = Math.min(containerWidth - 40, 280);
-      const cell = size / gridCols;
-      
-      setGridSize(size);
-      setCellSize(cell);
+    if (gameStarted && containerRef.current && !containerReady) {
+      setContainerReady(true);
       initializePieces();
     }
-  }, [gameStarted, currentImage, difficulty, gridCols, initializePieces]);
+  }, [gameStarted, containerReady, initializePieces]);
+
+  // 切换图片或难度时重新初始化
+  useEffect(() => {
+    if (gameStarted && containerReady) {
+      initializePieces();
+    }
+  }, [currentImage, difficulty]);
 
   // 获取格子中心坐标
   const getSlotCenter = (slot: number): { x: number; y: number } => {
@@ -147,6 +159,7 @@ const PuzzleExpress = () => {
     if (image) setCurrentImage(image);
     if (diff !== undefined) setDifficulty(diff);
     setShowSuccess(false);
+    setContainerReady(false);
     setGameStarted(true);
     speakText('拼图开始！把碎片拖到正确位置！');
   }, []);
