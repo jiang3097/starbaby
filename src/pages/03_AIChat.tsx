@@ -24,10 +24,22 @@ const AIChat = () => {
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [showIntimacyTip, setShowIntimacyTip] = useState(false);
+  const [currentIntimacy, setCurrentIntimacy] = useState(profile.intimacy);
   const hasStartedTraining = useRef(false);
+  const prevIntimacyRef = useRef(profile.intimacy);
   
   const stopListeningFnRef = useRef<(() => void) | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // 监听亲密度变化
+  useEffect(() => {
+    if (profile.intimacy > prevIntimacyRef.current) {
+      setCurrentIntimacy(profile.intimacy);
+      setShowIntimacyTip(true);
+      setTimeout(() => setShowIntimacyTip(false), 2000);
+    }
+    prevIntimacyRef.current = profile.intimacy;
+  }, [profile.intimacy]);
 
   // 预加载语音
   useEffect(() => {
@@ -60,10 +72,6 @@ const AIChat = () => {
     // 清理emoji用于处理
     const cleanText = text.toString().replace(/[\u{1F300}-\u{1F9FF}]/gu, '').trim();
     
-    // 获取当前亲密度和今日使用次数（用于判断是否增加）
-    const currentIntimacy = profile.intimacy;
-    const currentTodayAdded = profile.todayIntimacyAdded;
-    
     // 添加用户消息
     const userMsg: Message = { id: Date.now(), type: 'user', text: cleanText };
     setMessages(prev => [...prev, userMsg]);
@@ -71,17 +79,9 @@ const AIChat = () => {
     // 统计：增加主动表达次数和聊天消息数
     incrementExpression('chat');
     incrementChatMessage();
-    incrementIntimacy(); // 增加亲密度
-
-    // 检测亲密度是否真的增加了
-    const newIntimacy = profile.intimacy;
-    const newTodayAdded = profile.todayIntimacyAdded;
     
-    // 如果亲密度增加了，显示提示
-    if (newTodayAdded > currentTodayAdded || (newIntimacy > currentIntimacy && newIntimacy < 100)) {
-      setShowIntimacyTip(true);
-      setTimeout(() => setShowIntimacyTip(false), 2000);
-    }
+    // 增加亲密度 - 会在 useEffect 中检测并显示提示
+    incrementIntimacy();
 
     // AI 响应
     setTimeout(() => {
@@ -114,7 +114,7 @@ const AIChat = () => {
       // AI 自动朗读回复
       speakText(reply);
     }, 800);
-  }, [profile.name, profile.intimacy, profile.todayIntimacyAdded]);
+  }, [profile.name]);
 
   // 点击麦克风开始说话
   const handleMicClick = () => {
