@@ -163,7 +163,9 @@ const EmotionGuess = () => {
   useEffect(() => {
     if (question && !showResult) {
       setTimeout(() => {
-        speakText(question.question);
+        // 朗读题目和选项
+        const optionsText = question.options.map(o => `${o.id}、${o.name}`).join('，');
+        speakText(`${question.question}。选项：${optionsText}`);
       }, 300);
     }
   }, [currentQuestion, showResult, question]);
@@ -178,13 +180,20 @@ const EmotionGuess = () => {
     const correct = optionId === question.answer;
     setIsCorrect(correct);
     
+    // 播报选中的选项
+    const selectedOptionObj = question.options.find(o => o.id === optionId);
+    const selectedText = `你选择了${selectedOptionObj?.name}`;
+    
     if (correct) {
       setScore(prev => prev + 1);
       setShowCelebration(true);
-      speakText("太棒了！回答正确！你真厉害！");
+      // 播报鼓励内容
+      const encouragements = ['太棒了！', '你真厉害！', '回答正确！', '太聪明了！'];
+      const randomEnc = encouragements[Math.floor(Math.random() * encouragements.length)];
+      speakText(`${selectedText}，${randomEnc}`);
     } else {
       const correctOption = question.options.find(o => o.id === question.answer);
-      speakText(`没关系，正确答案是${correctOption?.name}。${question.hint}`);
+      speakText(`${selectedText}，正确答案是${correctOption?.name}。${question.hint}`);
     }
   }, [question, showResult]);
 
