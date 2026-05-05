@@ -51,6 +51,37 @@ React + Vite + TypeScript + Tailwind CSS 的前端项目，支持多套 UI 组�
 - 预览链路与部署链路脚本分离，避免混淆
 - 端口 5000 是唯一对外暴露端口，禁止使用其他端口
 
+## 用户形象系统
+
+使用 React Context 实现全局用户状态管理。
+
+### 核心模块
+- `src/context/UserContext.tsx` - 用户状态管理
+- `src/pages/00_Welcome.tsx` - 欢迎/形象选择页面
+
+### 形象数据 (STAR_AVATARS)
+4种可爱形象可选：星星、月亮、太阳、云朵，每种包含：
+- id: 唯一标识
+- name: 默认名称
+- color: 渐变色配置
+- emoji: 对应表情
+- image: 形象图片URL
+
+### 使用方式
+```typescript
+import { useUser, STAR_AVATARS } from '../context/UserContext';
+
+const MyComponent = () => {
+  const { profile, avatar, updateProfile } = useUser();
+  // profile: { avatarId, name }
+  // avatar: STAR_AVATARS 中的完整对象
+};
+```
+
+### 持久化
+- 使用 localStorage 存储用户选择
+- Key: `star_baby_profile`
+
 ## 语音功能
 
 基于 Web Speech API 实现，支持多种声音包选择。

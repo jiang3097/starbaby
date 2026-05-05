@@ -1,14 +1,16 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { MessageCircle, BookOpen, Gamepad2, Heart } from 'lucide-react';
+import { MessageCircle, BookOpen, Gamepad2, Heart, Settings } from 'lucide-react';
 import MobileShell from '../components/MobileShell';
 import Navigation from '../components/Navigation';
 import { Card } from '../components/ui/card';
 import { cn } from '../lib/utils';
+import { useUser } from '../context/UserContext';
 
 const Home = () => {
   const navigate = useNavigate();
+  const { profile, avatar } = useUser();
 
   const features = [
     {
@@ -47,13 +49,22 @@ const Home = () => {
   ];
 
   return (
-    <MobileShell showNav className="bg-white">
+    <MobileShell showNav className="bg-gradient-to-b from-sky-50 via-blue-50 to-white">
       <div className="px-6 py-4">
         {/* AI Pet Hero Area */}
         <div className="relative mb-8 pt-4">
-          <div className="absolute top-0 right-0 bg-sky-50 px-4 py-1.5 rounded-full border border-sky-100 flex items-center gap-2">
+          {/* 设置按钮 */}
+          <button 
+            onClick={() => navigate('/settings')}
+            className="absolute top-0 right-0 w-10 h-10 bg-white/80 backdrop-blur rounded-full flex items-center justify-center shadow-md z-20"
+          >
+            <Settings size={18} className="text-slate-400" />
+          </button>
+          
+          {/* 亲密度 */}
+          <div className="absolute top-0 left-0 bg-gradient-to-r from-pink-100 to-rose-100 px-4 py-1.5 rounded-full border border-pink-200 flex items-center gap-2">
             <Heart size={14} className="text-rose-400 fill-rose-400" />
-            <span className="text-xs font-bold text-sky-600">亲密度 85</span>
+            <span className="text-xs font-bold text-rose-600">亲密度 85</span>
           </div>
           
           <div className="flex flex-col items-center justify-center py-6">
@@ -69,15 +80,24 @@ const Home = () => {
               }}
               className="w-48 h-48 relative cursor-pointer"
             >
-              <div className="absolute inset-0 bg-sky-100/50 rounded-full blur-2xl" />
-              <img 
-                src="https://modao.cc/agent-py/media/generated_images/2026-05-02/d3bbb6c79bf243fe94c28470c58ecd95.jpg#desc=Cute%20pastel%20blue%20round%20monster%2C%20small%20horns%2C%20friendly%20smile%2C%20big%20eyes%2C%20waving%20hand" 
-                alt="AI Pet"
-                className="w-full h-full object-contain relative z-10"
-              />
+              {/* 光环效果 */}
+              <div className="absolute inset-0 bg-gradient-to-br from-yellow-200/50 to-amber-200/50 rounded-full blur-3xl animate-pulse" />
+              
+              {/* 背景圆 */}
+              <div className={cn(
+                "absolute inset-2 rounded-full bg-gradient-to-br shadow-lg overflow-hidden",
+                avatar.color
+              )}>
+                <img 
+                  src={avatar.image} 
+                  alt={profile.name}
+                  className="w-full h-full object-cover"
+                />
+              </div>
             </motion.div>
+            
             <div className="mt-4 text-center">
-              <h2 className="text-2xl font-bold text-slate-800">星小宝</h2>
+              <h2 className="text-2xl font-bold text-slate-800">{profile.name}</h2>
               <p className="text-sm text-slate-400 mt-1">你好！今天要和我玩什么呢？</p>
             </div>
           </div>

@@ -5,6 +5,7 @@ import { ChevronLeft, Mic, Volume2, Send, RefreshCw, Check, VolumeX } from 'luci
 import MobileShell from '../components/MobileShell';
 import { cn } from '../lib/utils';
 import { speakText, startListening, preloadVoices } from '../lib/useSpeech';
+import { useUser } from '../context/UserContext';
 
 interface Message {
   id: number;
@@ -15,8 +16,9 @@ interface Message {
 
 const AIChat = () => {
   const navigate = useNavigate();
+  const { profile, avatar } = useUser();
   const [messages, setMessages] = useState<Message[]>([
-    { id: 1, type: 'bot', text: '你好呀，星宝！今天心情怎么样？' },
+    { id: 1, type: 'bot', text: `你好呀，${profile.name}！今天心情怎么样？` },
   ]);
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
@@ -177,11 +179,14 @@ const AIChat = () => {
           <ChevronLeft size={28} />
         </button>
         <div className="flex flex-col items-center">
-          <div className="w-10 h-10 rounded-full bg-white p-1 shadow-sm border border-sky-100">
+          <div className={cn(
+            "w-12 h-12 rounded-full p-0.5 shadow-md border-2 border-white bg-gradient-to-br overflow-hidden",
+            avatar.color
+          )}>
             <img 
-              src="https://modao.cc/agent-py/media/generated_images/2026-05-02/01867dd933bf4127ae61cc9c7cc4a8e1.jpg#desc=Pet" 
-              alt="Pet" 
-              className="w-full h-full object-contain"
+              src={avatar.image}
+              alt={profile.name} 
+              className="w-full h-full object-cover rounded-full"
             />
           </div>
           <span className="text-[10px] font-bold text-sky-500 mt-0.5">
