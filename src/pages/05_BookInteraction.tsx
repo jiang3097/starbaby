@@ -29,33 +29,33 @@ const BOOKS_DATA: Record<number, {
   successText: string;
   stories: StoryPage[];
 }> = {
-  // 情绪识别
+  // 情绪识别 - 交换后变成"日常使用"
   1: {
-    id: 'emotion',
-    title: '情绪识别',
-    subtitle: '认识不同的情绪',
-    successText: '星宝学会了识别不同的情绪',
+    id: 'daily',
+    title: '日常使用',
+    subtitle: '学习日常表达',
+    successText: '星宝学会了日常沟通表达',
     stories: [
       {
         id: 1,
-        text: "今天妈妈带我去公园玩，我非常开心。",
-        image: "https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?w=600&h=400&fit=crop",
-        question: "故事里的小朋友为什么很开心？",
-        answer: "因为妈妈带他去公园玩"
+        text: "早上好，妈妈。今天天气真好啊！",
+        image: "https://images.unsplash.com/photo-1476703993599-0035a21b17a9?w=600&h=400&fit=crop",
+        question: "故事里的小朋友早上和妈妈说了什么？",
+        answer: "早上好，妈妈"
       },
       {
         id: 2,
-        text: "我的气球飞走了，我有点难过。",
-        image: "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?w=600&h=400&fit=crop",
-        question: "故事里的小朋友为什么难过？",
-        answer: "因为气球飞走了"
+        text: "谢谢阿姨送我礼物，阿姨你真好！",
+        image: "https://images.unsplash.com/photo-1516627145497-ae6968895b74?w=600&h=400&fit=crop",
+        question: "故事里的小朋友收到礼物后说了什么？",
+        answer: "谢谢阿姨，阿姨你真好"
       },
       {
         id: 3,
-        text: "弟弟抢走了我的玩具，我很生气。",
-        image: "https://images.unsplash.com/photo-1476703993599-0035a21b17a9?w=600&h=400&fit=crop",
-        question: "故事里的小朋友为什么生气？",
-        answer: "因为弟弟抢走了他的玩具"
+        text: "对不起，我不小心弄坏了你的书。",
+        image: "https://images.unsplash.com/photo-1457369804613-52c61a468e7d?w=600&h=400&fit=crop",
+        question: "故事里的小朋友做了什么？",
+        answer: "道歉，因为弄坏了书"
       }
     ]
   },
@@ -89,33 +89,33 @@ const BOOKS_DATA: Record<number, {
       }
     ]
   },
-  // 日常使用
+  // 日常使用 - 交换后变成"情绪识别"
   3: {
-    id: 'daily',
-    title: '日常使用',
-    subtitle: '学习日常表达',
-    successText: '星宝学会了日常沟通表达',
+    id: 'emotion',
+    title: '情绪识别',
+    subtitle: '认识不同的情绪',
+    successText: '星宝学会了识别不同的情绪',
     stories: [
       {
         id: 1,
-        text: "早上好，妈妈。今天天气真好啊！",
-        image: "https://images.unsplash.com/photo-1476703993599-0035a21b17a9?w=600&h=400&fit=crop",
-        question: "故事里的小朋友早上和妈妈说了什么？",
-        answer: "早上好，妈妈"
+        text: "今天妈妈带我去公园玩，我非常开心。",
+        image: "https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?w=600&h=400&fit=crop",
+        question: "故事里的小朋友为什么很开心？",
+        answer: "因为妈妈带他去公园玩"
       },
       {
         id: 2,
-        text: "谢谢阿姨送我礼物，阿姨你真好！",
-        image: "https://images.unsplash.com/photo-1516627145497-ae6968895b74?w=600&h=400&fit=crop",
-        question: "故事里的小朋友收到礼物后说了什么？",
-        answer: "谢谢阿姨，阿姨你真好"
+        text: "我的气球飞走了，我有点难过。",
+        image: "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?w=600&h=400&fit=crop",
+        question: "故事里的小朋友为什么难过？",
+        answer: "因为气球飞走了"
       },
       {
         id: 3,
-        text: "对不起，我不小心弄坏了你的书。",
-        image: "https://images.unsplash.com/photo-1457369804613-52c61a468e7d?w=600&h=400&fit=crop",
-        question: "故事里的小朋友做了什么？",
-        answer: "道歉，因为弄坏了书"
+        text: "弟弟抢走了我的玩具，我很生气。",
+        image: "https://images.unsplash.com/photo-1476703993599-0035a21b17a9?w=600&h=400&fit=crop",
+        question: "故事里的小朋友为什么生气？",
+        answer: "因为弟弟抢走了他的玩具"
       }
     ]
   }
