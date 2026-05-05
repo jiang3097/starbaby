@@ -325,6 +325,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
   }, []);
 
+  // 保存日数据到 localStorage
+  useEffect(() => {
+    localStorage.setItem(DAILY_STORAGE_KEY, JSON.stringify(dailyStats));
+  }, [dailyStats]);
+
+  // 保存周数据到 localStorage
+  useEffect(() => {
+    const { start, end } = getWeekRange();
+    localStorage.setItem(WEEKLY_STORAGE_KEY, JSON.stringify({ weekStart: start, weekEnd: end, data: weeklyStats }));
+  }, [weeklyStats]);
+
   return (
     <AppContext.Provider
       value={{

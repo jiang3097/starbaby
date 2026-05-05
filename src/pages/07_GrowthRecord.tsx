@@ -25,7 +25,7 @@ const GrowthRecord = () => {
     gamePassCount: dailyStats.gamePassCount,
   });
 
-  // 防抖更新显示数据
+  // 防抖更新显示数据（缩短到500ms，保持流畅但不过于频繁）
   useEffect(() => {
     const timeout = setTimeout(() => {
       setDisplayStats({
@@ -33,7 +33,7 @@ const GrowthRecord = () => {
         expressionCount: dailyStats.expressionCount,
         gamePassCount: dailyStats.gamePassCount,
       });
-    }, 2000); // 2秒防抖，避免频繁更新
+    }, 500);
     return () => clearTimeout(timeout);
   }, [dailyStats.trainingMinutes, dailyStats.expressionCount, dailyStats.gamePassCount]);
 
