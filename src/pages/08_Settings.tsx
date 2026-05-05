@@ -51,7 +51,8 @@ const Settings = () => {
       setError(false);
       
       if (newPin.length === 4) {
-        if (newPin === '1234') {
+        const storedPassword = localStorage.getItem('parent_password') || '1234';
+        if (newPin === storedPassword) {
           setTimeout(() => {
             setShowPinModal(false);
             setParentView('timeLimit');
