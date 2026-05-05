@@ -9,19 +9,29 @@ import { cn } from '../lib/utils';
 import { useUser } from '../context/UserContext';
 import { useApp } from '../context/AppContext';
 
-type ParentView = 'settings' | 'timeLimit' | 'aboutProject';
+type ParentView = 'settings' | 'timeLimit' | 'aboutProject' | 'changePassword';
+type ParentViewState = 'enterPin' | 'main';
 
 const Settings = () => {
   const navigate = useNavigate();
   const { profile, avatar } = useUser();
   const { timeLimit, setTimeLimit } = useApp();
   const [parentView, setParentView] = useState<ParentView>('settings');
+  const [parentViewState, setParentViewState] = useState<ParentViewState>('enterPin');
   const [showPinModal, setShowPinModal] = useState(false);
   const [pin, setPin] = useState('');
   const [error, setError] = useState(false);
   const [selectedMinutes, setSelectedMinutes] = useState(timeLimit.minutes);
   const [customMinutes, setCustomMinutes] = useState('');
   const [showCustomInput, setShowCustomInput] = useState(false);
+  
+  // 修改密码状态
+  const [currentPin, setCurrentPin] = useState('');
+  const [newPin, setNewPin] = useState('');
+  const [confirmPin, setConfirmPin] = useState('');
+  const [pinStep, setPinStep] = useState<'current' | 'new' | 'confirm'>('current');
+  const [pinError, setPinError] = useState(false);
+  const [pinSuccess, setPinSuccess] = useState(false);
 
   // 关于项目内容
   const settingsItems = [
@@ -93,6 +103,69 @@ const Settings = () => {
       return mins > 0 ? `${hours}小时${mins}分钟` : `${hours}小时`;
     }
     return `${minutes}分钟`;
+  };
+
+  // 密码修改相关
+  const storedPassword = '1234'; // 实际应该存在localStorage或AppContext中
+  
+  const handlePinInput = (num: string, setter: React.Dispatch<React.SetStateAction<string>>, target: string) => {
+    if (num === '⌫') {
+      setter(prev => prev.slice(0, -1));
+      return;
+    }
+    if (pinStep === target && (target === 'current' ? currentPin : target === 'new' ? newPin : confirmPin).length < 4) {
+      if (target === 'current') {
+        const newVal = currentPin + num;
+        setCurrentPin(newVal);
+        if (newVal.length === 4) {
+          if (newVal === storedPassword) {
+            setPinStep('new');
+            setCurrentPin('');
+          } else {
+            setPinError(true);
+            setTimeout(() => { setCurrentPin(''); setPinError(false); }, 800);
+          }
+        }
+      } else if (target === 'new') {
+        const newVal = newPin + num;
+        setNewPin(newVal);
+        if (newVal.length === 4) {
+          setPinStep('confirm');
+          setNewPin('');
+        }
+      } else if (target === 'confirm') {
+        const newVal = confirmPin + num;
+        setConfirmPin(newVal);
+        if (newVal.length === 4) {
+          if (newVal === newPin) {
+            // 密码相同，保存新密码（这里简化处理，实际应该保存到存储）
+            localStorage.setItem('parent_password', newVal);
+            setPinSuccess(true);
+            setTimeout(() => {
+              setPinStep('current');
+              setNewPin('');
+              setConfirmPin('');
+              setPinSuccess(false);
+              setParentView('settings');
+            }, 1500);
+          } else {
+            setPinError(true);
+            setTimeout(() => { setConfirmPin(''); setPinError(false); }, 800);
+          }
+        }
+      }
+    }
+  };
+
+  const getPinDisplay = (val: string) => {
+    if (pinSuccess) return '✓';
+    return val;
+  };
+
+  const getPinValue = () => {
+    if (pinStep === 'current') return currentPin;
+    if (pinStep === 'new') return newPin;
+    return confirmPin;
   };
 
   return (
@@ -427,6 +500,18 @@ const Settings = () => {
               保存设置
             </motion.button>
 
+            {/* 修改密码按钮 */}
+            <motion.button
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.35 }}
+              onClick={() => setParentView('changePassword')}
+              className="w-full p-4 mt-3 bg-white rounded-2xl shadow-md border-2 border-slate-200 flex items-center justify-center gap-2 text-slate-600 hover:bg-slate-50 transition-colors"
+            >
+              <Shield size={20} />
+              <span className="font-bold">修改密码</span>
+            </motion.button>
+
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -567,6 +652,125 @@ const Settings = () => {
             <div className="mt-4 text-center">
               <p className="text-slate-400 text-xs">© 2026 守护星宝项目组</p>
               <p className="text-amber-400 text-xs mt-1">陪伴星宝健康成长 💕</p>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* 修改密码视图 */}
+      {parentView === 'changePassword' && (
+        <>
+          <div className="px-4 py-6">
+            <div className="flex items-center gap-4 mb-6">
+              <button 
+                onClick={() => {
+                  setParentView('timeLimit');
+                  setPinStep('current');
+                  setCurrentPin('');
+                  setNewPin('');
+                  setConfirmPin('');
+                  setPinError(false);
+                }}
+                className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-lg text-slate-600"
+              >
+                <ChevronLeft size={28} />
+              </button>
+              <div className="flex-1">
+                <div className="flex items-center gap-2">
+                  <span className="text-2xl">🔐</span>
+                  <h1 className="text-2xl font-bold text-slate-800">修改密码</h1>
+                </div>
+              </div>
+              <div className="w-12" />
+            </div>
+
+            <div className="bg-white rounded-3xl p-6 shadow-lg border-2 border-slate-100">
+              {pinSuccess ? (
+                /* 成功状态 */
+                <motion.div
+                  initial={{ scale: 0.8 }}
+                  animate={{ scale: 1 }}
+                  className="text-center py-8"
+                >
+                  <div className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Check size={40} className="text-emerald-500" />
+                  </div>
+                  <h2 className="text-xl font-bold text-slate-800 mb-2">密码修改成功！</h2>
+                  <p className="text-slate-500">请牢记您的新密码</p>
+                </motion.div>
+              ) : (
+                <>
+                  {/* 步骤提示 */}
+                  <div className="flex items-center justify-center gap-2 mb-6">
+                    <div className={cn(
+                      "w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold",
+                      pinStep === 'current' ? 'bg-purple-500 text-white' : 'bg-purple-100 text-purple-500'
+                    )}>
+                      {pinStep === 'current' ? '1' : <Check size={16} />}
+                    </div>
+                    <div className="w-8 h-0.5 bg-slate-200" />
+                    <div className={cn(
+                      "w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold",
+                      pinStep === 'new' ? 'bg-purple-500 text-white' : 'bg-purple-100 text-purple-500'
+                    )}>
+                      {pinStep === 'new' ? '2' : pinStep === 'confirm' ? <Check size={16} /> : '2'}
+                    </div>
+                    <div className="w-8 h-0.5 bg-slate-200" />
+                    <div className={cn(
+                      "w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold",
+                      pinStep === 'confirm' ? 'bg-purple-500 text-white' : 'bg-purple-100 text-purple-500'
+                    )}>
+                      3
+                    </div>
+                  </div>
+
+                  <p className="text-center text-sm text-slate-500 mb-4">
+                    {pinStep === 'current' && '请输入当前密码'}
+                    {pinStep === 'new' && '请输入新密码（4位数字）'}
+                    {pinStep === 'confirm' && '请再次输入新密码'}
+                  </p>
+
+                  {/* 密码点 */}
+                  <div className="flex justify-center gap-3 mb-6">
+                    {[0, 1, 2, 3].map((i) => (
+                      <div 
+                        key={i} 
+                        className={cn(
+                          "w-5 h-5 rounded-full transition-all duration-150",
+                          getPinValue().length > i 
+                            ? pinError ? "bg-rose-400 scale-125" : "bg-purple-500 scale-125" 
+                            : "bg-slate-200"
+                        )} 
+                      />
+                    ))}
+                  </div>
+
+                  {/* 数字键盘 */}
+                  <div className="grid grid-cols-3 gap-2">
+                    {['1', '2', '3', '4', '5', '6', '7', '8', '9', '', '0', '⌫'].map((num, i) => {
+                      if (num === '') return <div key={i} />;
+                      return (
+                        <button
+                          key={i}
+                          onClick={() => handlePinInput(num, () => {}, pinStep === 'current' ? 'current' : pinStep === 'new' ? 'new' : 'confirm')}
+                          className={cn(
+                            "h-14 rounded-xl flex items-center justify-center text-xl font-medium transition-all active:scale-95",
+                            num === '⌫' 
+                              ? "bg-slate-100 text-slate-400" 
+                              : "bg-slate-50 text-slate-700 hover:bg-slate-100 shadow-sm"
+                          )}
+                        >
+                          {num}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {pinError && (
+                    <p className="text-center text-rose-500 text-sm mt-4">密码错误，请重试</p>
+                  )}
+                </>
+              )}
             </div>
           </div>
         </>

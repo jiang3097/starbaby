@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, Mic, Volume2, Send, RefreshCw, Check, VolumeX } from 'lucide-react';
+import { ChevronLeft, Mic, Volume2, Send } from 'lucide-react';
 import MobileShell from '../components/MobileShell';
 import { cn } from '../lib/utils';
 import { speakText, startListening, preloadVoices } from '../lib/useSpeech';
@@ -12,7 +12,6 @@ interface Message {
   id: number;
   type: 'bot' | 'user';
   text: string;
-  followingText?: string;
 }
 
 const AIChat = () => {
@@ -24,9 +23,6 @@ const AIChat = () => {
   ]);
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
-  const [isFollowing, setIsFollowing] = useState(false);
-  const [currentFollowingText, setCurrentFollowingText] = useState('');
-  const [userSpeakingText, setUserSpeakingText] = useState('');
   const hasStartedTraining = useRef(false);
   
   const stopListeningFnRef = useRef<(() => void) | null>(null);
@@ -54,9 +50,9 @@ const AIChat = () => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [messages, isFollowing]);
+  }, [messages]);
 
-  const quickPhrases = ['我开心 😊', '我要喝水 🚰', '我想玩球 🎾', '抱抱我 🤗'];
+  const quickPhrases = ['我开心 😊', '我要喝水 🚰', '我想玩球 🎾'];
 
   // 处理发送消息
   const handleSend = useCallback((text: String) => {
@@ -75,7 +71,6 @@ const AIChat = () => {
     // AI 响应
     setTimeout(() => {
       let reply = '听到你这么说真棒！';
-      let followingText: string | undefined;
 
       if (cleanText === '我要喝水') {
         reply = '好哒，我们去拿杯子喝水吧！';
@@ -83,9 +78,6 @@ const AIChat = () => {
         reply = '太棒了！开心的时候可以做什么呢？要不要一起唱首歌？';
       } else if (cleanText === '我想玩球' || cleanText === '玩球') {
         reply = '玩球真有趣！你会拍球吗？我们一起练习吧！';
-      } else if (cleanText === '抱抱我' || cleanText === '抱抱') {
-        reply = '给你一个大大的拥抱！🤗 抱抱可以让人感觉温暖和安全哦。';
-        followingText = '抱抱';
       } else if (cleanText.includes('难过') || cleanText.includes('不开心')) {
         reply = '没关系，我陪着你哦。要不要听个有趣的故事？📖';
       } else if (cleanText.includes('生气')) {
@@ -100,7 +92,6 @@ const AIChat = () => {
         id: Date.now() + 1, 
         type: 'bot', 
         text: reply,
-        followingText
       };
       
       setMessages(prev => [...prev, botMsg]);
@@ -122,7 +113,6 @@ const AIChat = () => {
     } else {
       // 开始录音
       setIsListening(true);
-      setUserSpeakingText('');
 
       stopListeningFnRef.current = startListening(
         (text) => {
@@ -144,59 +134,6 @@ const AIChat = () => {
     speakText(text, () => {
       setIsSpeaking(false);
     });
-  };
-
-  // 开始跟读
-  const handleStartFollowing = (text: string) => {
-    setIsFollowing(true);
-    setCurrentFollowingText(text);
-    setUserSpeakingText('');
-
-    // AI 先读一遍
-    speakText(text, () => {
-      // 读完后开始监听用户跟读
-      stopListeningFnRef.current = startListening(
-        (spokenText) => {
-          setUserSpeakingText(spokenText);
-        },
-        () => {
-          // 识别结束但不关闭面板
-        }
-      );
-    });
-  };
-
-  // 停止跟读
-  const handleStopFollowing = () => {
-    if (stopListeningFnRef.current) {
-      stopListeningFnRef.current();
-      stopListeningFnRef.current = null;
-    }
-    setIsFollowing(false);
-    setCurrentFollowingText('');
-    setUserSpeakingText('');
-  };
-
-  // 完成跟读
-  const handleCompleteFollowing = () => {
-    handleStopFollowing();
-    // 鼓励消息
-    const encourageMsg: Message = {
-      id: Date.now(),
-      type: 'bot',
-      text: '太棒了！✨ 你说得真好听，继续加油！'
-    };
-    setMessages(prev => [...prev, encourageMsg]);
-    speakText('太棒了！你说得真好听，继续加油！');
-  };
-
-  // 再听一遍
-  const handleReplay = () => {
-    if (stopListeningFnRef.current) {
-      stopListeningFnRef.current();
-      stopListeningFnRef.current = null;
-    }
-    handleStartFollowing(currentFollowingText);
   };
 
   return (
@@ -259,76 +196,14 @@ const AIChat = () => {
           </motion.div>
           <span className={cn(
             "text-xs font-bold mt-1 px-3 py-0.5 rounded-full",
-            isSpeaking ? "bg-amber-100 text-amber-600" : 
-            isFollowing ? "bg-green-100 text-green-600" : 
-            isListening ? "bg-rose-100 text-rose-500" : 
-            "bg-sky-100 text-sky-500"
+            isSpeaking ? 'bg-amber-100 text-amber-600' : isListening ? 'bg-rose-100 text-rose-500' : 'bg-sky-100 text-sky-500'
           )}>
-            {isSpeaking ? '正在朗读' : isFollowing ? '请跟读' : isListening ? '正在听...' : profile.name}
+          {isSpeaking ? '正在朗读' : isListening ? '正在听...' : profile.name}
           </span>
         </div>
         
         <div className="w-12" />
       </div>
-
-      {/* Following Mode Banner */}
-      <AnimatePresence>
-        {isFollowing && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            className="bg-gradient-to-r from-green-50 to-emerald-50 px-6 py-4 border-t border-b border-green-100"
-          >
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-full bg-green-200 flex items-center justify-center shadow-md">
-                  <Volume2 size={24} className="text-green-600" />
-                </div>
-                <div>
-                  <p className="text-xs text-green-600 font-bold">✨ 请跟着我读</p>
-                  <p className="text-lg font-bold text-green-800">{currentFollowingText}</p>
-                </div>
-              </div>
-              <button
-                onClick={handleStopFollowing}
-                className="p-3 bg-white rounded-full shadow-md text-green-400 hover:text-green-600 hover:bg-green-50 transition-colors"
-              >
-                <VolumeX size={20} />
-              </button>
-            </div>
-            
-            {/* User's speech result */}
-            <div className="bg-white rounded-2xl p-4 shadow-md border-2 border-green-100 mb-3">
-              <p className="text-xs text-slate-500 mb-1">你说的 👇</p>
-              <p className={cn(
-                "text-base font-medium",
-                userSpeakingText ? 'text-slate-800' : 'text-slate-400 italic'
-              )}>
-                {userSpeakingText || '请跟着朗读上方文字...'}
-              </p>
-            </div>
-            
-            {/* Action buttons */}
-            <div className="flex gap-3">
-              <button
-                onClick={handleReplay}
-                className="flex-1 py-3 rounded-full border-2 border-green-300 text-green-600 text-sm font-bold flex items-center justify-center gap-2 bg-white shadow-sm"
-              >
-                <RefreshCw size={18} />
-                再听一遍
-              </button>
-              <button
-                onClick={handleCompleteFollowing}
-                className="flex-1 py-3 rounded-full bg-gradient-to-r from-green-400 to-emerald-500 text-white text-sm font-bold flex items-center justify-center gap-2 shadow-lg"
-              >
-                <Check size={18} />
-                完成跟读
-              </button>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       {/* Chat Area */}
       <div 
@@ -394,16 +269,6 @@ const AIChat = () => {
                     <Volume2 size={14} className={isSpeaking ? 'animate-pulse' : ''} />
                     <span>朗读</span>
                   </button>
-                  
-                  {msg.followingText && (
-                    <button
-                      onClick={() => msg.followingText && handleStartFollowing(msg.followingText)}
-                      className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full bg-green-50 text-green-500 hover:bg-green-100 transition-all shadow-sm"
-                    >
-                      <RefreshCw size={14} />
-                      <span>跟读练习</span>
-                    </button>
-                  )}
                 </div>
               )}
             </div>
