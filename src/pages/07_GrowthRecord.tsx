@@ -90,9 +90,22 @@ const GrowthRecord = () => {
   const [showBathEffect, setShowBathEffect] = useState(false);
   const [usedFood, setUsedFood] = useState(false);
   const [usedToy, setUsedToy] = useState(false);
+  const [showTip, setShowTip] = useState(false);
+  const [tipMessage, setTipMessage] = useState('');
+  const [tipType, setTipType] = useState<'warning' | 'success'>('warning');
   
   const usedFoodTimerRef = useRef<ReturnType<typeof setTimeout>>();
   const usedToyTimerRef = useRef<ReturnType<typeof setTimeout>>();
+  const tipTimerRef = useRef<ReturnType<typeof setTimeout>>();
+
+  // 显示提示
+  const showMessage = (message: string, type: 'warning' | 'success' = 'warning') => {
+    setTipMessage(message);
+    setTipType(type);
+    setShowTip(true);
+    if (tipTimerRef.current) clearTimeout(tipTimerRef.current);
+    tipTimerRef.current = setTimeout(() => setShowTip(false), 2500);
+  };
 
   // 防抖更新显示数据 - 与每日数据同步
   useEffect(() => {
@@ -169,16 +182,24 @@ const GrowthRecord = () => {
     if (usedFood) return;
     if (profile.foods <= 0) {
       speakText('没有食物道具啦，下次通关再获得吧！');
+      showMessage('没有食物啦，去通关获得吧！');
+      return;
+    }
+    if (profile.fullnessDate === new Date().toISOString().split('T')[0] && profile.fullnessUsedToday >= 3) {
+      speakText('今天已经吃过三次啦，明天再来吧！');
+      showMessage('今日使用次数已达上限！');
       return;
     }
     if (profile.fullness >= 100) {
       speakText('我已经吃饱啦！');
+      showMessage('已经吃饱啦！');
       return;
     }
     const success = useFood();
     if (success) {
       setUsedFood(true);
       speakText('好吃！谢谢喂我吃东西！🍖');
+      showMessage('饱腹值+4', 'success');
       usedFoodTimerRef.current = setTimeout(() => setUsedFood(false), 1000);
     }
   };
@@ -188,16 +209,24 @@ const GrowthRecord = () => {
     if (usedToy) return;
     if (profile.toys <= 0) {
       speakText('没有玩具道具啦，下次通关再获得吧！');
+      showMessage('没有玩具啦，去通关获得吧！');
+      return;
+    }
+    if (profile.moodDate === new Date().toISOString().split('T')[0] && profile.moodUsedToday >= 3) {
+      speakText('今天已经玩过三次啦，明天再来吧！');
+      showMessage('今日使用次数已达上限！');
       return;
     }
     if (profile.mood >= 100) {
       speakText('我现在很开心呀！');
+      showMessage('已经很开心啦！');
       return;
     }
     const success = useToy();
     if (success) {
       setUsedToy(true);
       speakText('玩具好好玩！好开心呀！🎉');
+      showMessage('心情值+4', 'success');
       usedToyTimerRef.current = setTimeout(() => setUsedToy(false), 1000);
     }
   };
@@ -229,6 +258,29 @@ const GrowthRecord = () => {
   return (
     <MobileShell className="bg-gradient-to-b from-purple-50 to-white">
       <BathEffect show={showBathEffect} onComplete={handleBathComplete} />
+
+      {/* 提示弹窗 */}
+      <AnimatePresence>
+        {showTip && (
+          <motion.div
+            initial={{ opacity: 0, y: -30, scale: 0.8 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -30, scale: 0.8 }}
+            transition={{ type: 'spring', duration: 0.5 }}
+            className={cn(
+              "absolute top-24 left-1/2 -translate-x-1/2 z-50 px-6 py-3 rounded-2xl shadow-xl text-white text-center",
+              tipType === 'success' 
+                ? "bg-gradient-to-r from-emerald-400 to-teal-400" 
+                : "bg-gradient-to-r from-amber-400 to-orange-400"
+            )}
+          >
+            <div className="flex items-center gap-2">
+              <span className="text-lg">{tipType === 'success' ? '✨' : '⚠️'}</span>
+              <span className="font-bold">{tipMessage}</span>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <div className="px-4 py-6">
         {/* Header */}
