@@ -8,12 +8,13 @@ import { Card } from '../components/ui/card';
 import { cn } from '../lib/utils';
 import { useUser } from '../context/UserContext';
 
-type ParentView = 'lock' | 'home';
+type ParentView = 'settings' | 'parent';
 
 const Settings = () => {
   const navigate = useNavigate();
   const { profile, avatar } = useUser();
-  const [parentView, setParentView] = useState<ParentView>('lock');
+  const [parentView, setParentView] = useState<ParentView>('settings');
+  const [showPinModal, setShowPinModal] = useState(false);
   const [pin, setPin] = useState('');
   const [error, setError] = useState(false);
 
@@ -38,7 +39,9 @@ const Settings = () => {
         if (newPin === '1234') {
           // 密码正确，进入家长空间
           setTimeout(() => {
-            setParentView('home');
+            setShowPinModal(false);
+            setParentView('parent');
+            setPin('');
           }, 200);
         } else {
           // 密码错误
@@ -78,8 +81,87 @@ const Settings = () => {
   ];
 
   return (
-    <MobileShell showNav={parentView === 'lock'} className="bg-gradient-to-b from-amber-50 via-yellow-50 to-white">
-      {parentView === 'lock' ? (
+    <MobileShell showNav className="bg-gradient-to-b from-amber-50 via-yellow-50 to-white">
+      {/* PIN 输入弹窗 - 打电话样式 */}
+      <AnimatePresence>
+        {showPinModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-center p-6"
+            onClick={() => { setShowPinModal(false); setPin(''); }}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              transition={{ type: "spring", damping: 20, stiffness: 300 }}
+              className="bg-white rounded-3xl p-5 w-full max-w-[280px] shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between mb-4">
+                <button 
+                  onClick={() => { setShowPinModal(false); setPin(''); }}
+                  className="w-8 h-8 flex items-center justify-center text-slate-400"
+                >
+                  <ChevronLeft size={20} />
+                </button>
+                <div className="flex items-center gap-2">
+                  <Shield size={18} className="text-sky-500" />
+                  <span className="font-bold text-slate-700">家长验证</span>
+                </div>
+                <div className="w-8" />
+              </div>
+              
+              {/* 密码提示 */}
+              <p className="text-center text-xs text-slate-400 mb-4">请输入四位数字密码</p>
+              
+              {/* PIN 显示 */}
+              <div className="flex justify-center gap-3 mb-5">
+                {[0, 1, 2, 3].map((i) => (
+                  <div 
+                    key={i} 
+                    className={cn(
+                      "w-4 h-4 rounded-full transition-all duration-150",
+                      pin.length > i 
+                        ? error ? "bg-rose-400 scale-110" : "bg-sky-500 scale-110" 
+                        : "bg-slate-200"
+                    )} 
+                  />
+                ))}
+              </div>
+              
+              {/* 数字键盘 */}
+              <div className="grid grid-cols-3 gap-2">
+                {['1', '2', '3', '4', '5', '6', '7', '8', '9', '', '0', '⌫'].map((num, i) => {
+                  if (num === '') return <div key={i} />;
+                  return (
+                    <button
+                      key={i}
+                      onClick={() => num === '⌫' ? setPin(pin.slice(0, -1)) : handlePin(num)}
+                      className={cn(
+                        "h-12 rounded-xl flex items-center justify-center text-lg font-medium transition-all active:scale-95",
+                        num === '⌫' 
+                          ? "bg-slate-100 text-slate-400" 
+                          : "bg-slate-50 text-slate-700 hover:bg-slate-100"
+                      )}
+                    >
+                      {num}
+                    </button>
+                  );
+                })}
+              </div>
+              
+              {/* Demo 提示 */}
+              <p className="text-center text-[10px] text-slate-300 mt-3">Demo 密码: 1234</p>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {parentView === 'settings' ? (
         <>
           {/* 普通设置界面 */}
           <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -141,7 +223,7 @@ const Settings = () => {
             {/* Parent Portal Trigger */}
             <motion.div
               whileTap={{ scale: 0.98 }}
-              onClick={() => setParentView('lock')}
+              onClick={() => setShowPinModal(true)}
               className="mb-6"
             >
               <Card className="p-5 bg-gradient-to-r from-slate-700 to-slate-800 text-white rounded-[28px] border-none shadow-xl flex items-center justify-between cursor-pointer overflow-hidden relative">
@@ -223,85 +305,6 @@ const Settings = () => {
           </div>
 
           <Navigation />
-
-          {/* PIN 输入弹窗 - 打电话样式 */}
-          <AnimatePresence>
-            {parentView === 'lock' && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-center p-6"
-                onClick={() => setParentView('lock')}
-              >
-                <motion.div
-                  initial={{ scale: 0.9, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  exit={{ scale: 0.9, opacity: 0 }}
-                  transition={{ type: "spring", damping: 20, stiffness: 300 }}
-                  className="bg-white rounded-3xl p-5 w-full max-w-[280px] shadow-2xl"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  {/* Header */}
-                  <div className="flex items-center justify-between mb-4">
-                    <button 
-                      onClick={() => { setParentView('lock'); setPin(''); }}
-                      className="w-8 h-8 flex items-center justify-center text-slate-400"
-                    >
-                      <ChevronLeft size={20} />
-                    </button>
-                    <div className="flex items-center gap-2">
-                      <Shield size={18} className="text-sky-500" />
-                      <span className="font-bold text-slate-700">家长验证</span>
-                    </div>
-                    <div className="w-8" />
-                  </div>
-                  
-                  {/* 密码提示 */}
-                  <p className="text-center text-xs text-slate-400 mb-4">请输入四位数字密码</p>
-                  
-                  {/* PIN 显示 */}
-                  <div className="flex justify-center gap-3 mb-5">
-                    {[0, 1, 2, 3].map((i) => (
-                      <div 
-                        key={i} 
-                        className={cn(
-                          "w-4 h-4 rounded-full transition-all duration-150",
-                          pin.length > i 
-                            ? error ? "bg-rose-400 scale-110" : "bg-sky-500 scale-110" 
-                            : "bg-slate-200"
-                        )} 
-                      />
-                    ))}
-                  </div>
-                  
-                  {/* 数字键盘 */}
-                  <div className="grid grid-cols-3 gap-2">
-                    {['1', '2', '3', '4', '5', '6', '7', '8', '9', '', '0', '⌫'].map((num, i) => {
-                      if (num === '') return <div key={i} />;
-                      return (
-                        <button
-                          key={i}
-                          onClick={() => num === '⌫' ? setPin(pin.slice(0, -1)) : handlePin(num)}
-                          className={cn(
-                            "h-12 rounded-xl flex items-center justify-center text-lg font-medium transition-all active:scale-95",
-                            num === '⌫' 
-                              ? "bg-slate-100 text-slate-400" 
-                              : "bg-slate-50 text-slate-700 hover:bg-slate-100"
-                          )}
-                        >
-                          {num}
-                        </button>
-                      );
-                    })}
-                  </div>
-                  
-                  {/* Demo 提示 */}
-                  <p className="text-center text-[10px] text-slate-300 mt-3">Demo 密码: 1234</p>
-                </motion.div>
-              </motion.div>
-            )}
-          </AnimatePresence>
         </>
       ) : (
         <>
@@ -310,7 +313,7 @@ const Settings = () => {
             {/* Header */}
             <div className="flex items-center gap-4 mb-6">
               <button 
-                onClick={() => { setParentView('lock'); setPin(''); }}
+                onClick={() => setParentView('settings')}
                 className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-lg text-slate-600"
               >
                 <ChevronLeft size={28} />
@@ -379,7 +382,7 @@ const Settings = () => {
               className="mt-8"
             >
               <button
-                onClick={() => { setParentView('lock'); setPin(''); }}
+                onClick={() => setParentView('settings')}
                 className="w-full p-4 bg-slate-100 rounded-2xl shadow-md flex items-center justify-center gap-2 text-slate-500 hover:bg-slate-200 transition-colors"
               >
                 <ChevronLeft size={18} />
