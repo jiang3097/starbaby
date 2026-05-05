@@ -79,12 +79,13 @@ export const UserProvider = ({ children }: UserProviderProps) => {
         const parsed = JSON.parse(saved);
         const today = new Date().toISOString().split('T')[0];
         
-        // 迁移旧数据：确保有新字段
-        const migrated = {
-          ...defaultProfile,
-          ...parsed,
+        // 强制使用默认值60（忽略旧缓存数据）
+        const migrated: UserProfile = {
+          avatarId: parsed.avatarId ?? 1,
+          name: parsed.name ?? '星星',
+          intimacy: 60, // 强制初始值60
           lastLoginDate: today,
-          todayIntimacyAdded: parsed.todayIntimacyAdded ?? 0,
+          todayIntimacyAdded: 0,
         };
         
         // 检查是否跨天
@@ -98,10 +99,6 @@ export const UserProvider = ({ children }: UserProviderProps) => {
           // 扣减亲密度（每天扣5点）
           const deducted = Math.min(diffDays * 5, migrated.intimacy);
           migrated.intimacy = Math.max(migrated.intimacy - deducted, 0);
-          
-          // 重置当天已增加亲密度
-          migrated.todayIntimacyAdded = 0;
-          migrated.lastLoginDate = today;
         }
         
         // 保存更新后的数据
