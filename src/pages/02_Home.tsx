@@ -10,6 +10,7 @@ import { useUser } from '../context/UserContext';
 
 // 圆形环绕的数值模块
 const statusModules = [
+  { key: 'intimacy', label: '亲密', icon: '❤️', color: 'from-rose-400 to-pink-400', bgColor: 'bg-rose-100' },
   { key: 'fullness', label: '饱腹', icon: '🍖', color: 'from-orange-400 to-amber-400', bgColor: 'bg-orange-100' },
   { key: 'cleanliness', label: '清洁', icon: '🛁', color: 'from-sky-400 to-blue-400', bgColor: 'bg-sky-100' },
   { key: 'mood', label: '心情', icon: '😊', color: 'from-pink-400 to-rose-400', bgColor: 'bg-pink-100' },
@@ -60,11 +61,11 @@ const Home = () => {
     return profile[key as keyof typeof profile] as number || 0;
   };
 
-  // 计算圆形位置（围绕中心）
+  // 计算圆形位置（围绕中心，4个均匀分布）
   const getCirclePosition = (index: number, total: number, radius: number) => {
-    // 从45度开始，均匀分布
-    const startAngle = Math.PI / 4; // 45度
-    const angleStep = (Math.PI * 2 - startAngle * 2) / (total - 1);
+    // 从顶部开始，均匀分布
+    const startAngle = -Math.PI / 2; // 从顶部开始
+    const angleStep = (Math.PI * 2) / total;
     const angle = startAngle + index * angleStep;
     return {
       x: Math.cos(angle) * radius,
@@ -154,12 +155,6 @@ const Home = () => {
           >
             <span className="text-2xl">⚙️</span>
           </button>
-          
-          {/* 亲密度 */}
-          <div className="absolute top-0 left-0 bg-gradient-to-r from-pink-100 to-rose-100 px-4 py-1.5 rounded-full border-2 border-rose-200 flex items-center gap-2 shadow-sm">
-            <Heart size={14} className="text-rose-400 fill-rose-400" />
-            <span className="text-xs font-bold text-rose-600">亲密度 {profile.intimacy}</span>
-          </div>
           
           <div className="flex flex-col items-center justify-center py-6">
             {/* 星小宝头像区域 */}
