@@ -9,7 +9,7 @@ import { cn } from '../lib/utils';
 import { useUser } from '../context/UserContext';
 import { useApp } from '../context/AppContext';
 
-type ParentView = 'settings' | 'parent' | 'timeLimit';
+type ParentView = 'settings' | 'timeLimit';
 
 const Settings = () => {
   const navigate = useNavigate();
@@ -44,7 +44,7 @@ const Settings = () => {
         if (newPin === '1234') {
           setTimeout(() => {
             setShowPinModal(false);
-            setParentView('parent');
+            setParentView('timeLimit');
             setPin('');
           }, 200);
         } else {
@@ -57,39 +57,6 @@ const Settings = () => {
       }
     }
   };
-
-  // 家长空间内容
-  const parentMenuItems = [
-    { 
-      label: '训练报告', 
-      desc: '查看今日训练数据',
-      emoji: '📊',
-      color: 'from-emerald-200 to-teal-200',
-      textColor: 'text-emerald-600'
-    },
-    { 
-      label: '使用限制', 
-      desc: '设置使用时间限制',
-      emoji: '⏰',
-      color: 'from-purple-200 to-pink-200',
-      textColor: 'text-purple-600',
-      action: () => setParentView('timeLimit')
-    },
-    { 
-      label: '使用记录', 
-      desc: '查看历史使用情况',
-      emoji: '📅',
-      color: 'from-sky-200 to-blue-200',
-      textColor: 'text-sky-600'
-    },
-    { 
-      label: '数据管理', 
-      desc: '重置训练数据',
-      emoji: '🗑️',
-      color: 'from-rose-200 to-pink-200',
-      textColor: 'text-rose-600'
-    },
-  ];
 
   // 预设时间选项
   const timeOptions = [
@@ -109,13 +76,13 @@ const Settings = () => {
         minutes: timeOptions.find(o => o.value === minutes)?.value || 30,
         customMinutes: showCustomInput && customMinutes ? parseInt(customMinutes) : null
       });
-      setParentView('parent');
+      setParentView('settings');
     }
   };
 
   const handleDisableLimit = () => {
     setTimeLimit({ enabled: false, minutes: 30, customMinutes: null });
-    setParentView('parent');
+    setParentView('settings');
   };
 
   const getLimitText = () => {
@@ -344,105 +311,12 @@ const Settings = () => {
         </>
       )}
 
-      {parentView === 'parent' && (
-        <>
-          <div className="px-6 py-6">
-            <div className="flex items-center gap-4 mb-6">
-              <button 
-                onClick={() => setParentView('settings')}
-                className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-lg text-slate-600"
-              >
-                <ChevronLeft size={28} />
-              </button>
-              <div className="flex-1">
-                <div className="flex items-center gap-2">
-                  <span className="text-2xl">👨‍👩‍👧</span>
-                  <h1 className="text-2xl font-bold text-slate-800">家长空间</h1>
-                </div>
-                <p className="text-sm text-slate-500">管理孩子的学习进度</p>
-              </div>
-              <div className="w-12" />
-            </div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="bg-gradient-to-r from-sky-100 to-blue-100 rounded-3xl p-5 mb-6 shadow-lg border-2 border-white"
-            >
-              <div className="flex items-center gap-4">
-                <div className={cn(
-                  "w-14 h-14 rounded-full p-0.5 shadow-md border-2 border-white bg-gradient-to-br overflow-hidden",
-                  avatar.color
-                )}>
-                  <img src={avatar.image} alt={profile.name} className="w-full h-full object-cover rounded-full" />
-                </div>
-                <div>
-                  <h2 className="text-lg font-bold text-slate-800">{profile.name}</h2>
-                  <p className="text-sm text-sky-600">学习小达人</p>
-                </div>
-              </div>
-            </motion.div>
-
-            <div className="space-y-4">
-              {parentMenuItems.map((item, index) => (
-                <motion.div
-                  key={item.label}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: index * 0.1 }}
-                >
-                  <Card 
-                    onClick={item.action || (() => {})}
-                    className={cn(
-                      "p-5 border-none shadow-md rounded-2xl cursor-pointer active:scale-[0.98] transition-all overflow-hidden relative",
-                      item.action && "hover:shadow-lg"
-                    )}
-                  >
-                    <div className={cn("absolute inset-0 opacity-10 bg-gradient-to-r", item.color)} />
-                    <div className="flex items-center gap-4 relative z-10">
-                      <div className="w-12 h-12 rounded-xl bg-white shadow-sm flex items-center justify-center text-2xl">
-                        {item.emoji}
-                      </div>
-                      <div className="flex-1">
-                        <h3 className={cn("font-bold text-lg", item.textColor)}>{item.label}</h3>
-                        <p className="text-slate-400 text-xs">{item.desc}</p>
-                        {item.label === '使用限制' && timeLimit.enabled && (
-                          <span className="inline-block mt-1 text-xs bg-purple-100 text-purple-600 px-2 py-0.5 rounded-full">
-                            已设置 {getLimitText()}
-                          </span>
-                        )}
-                      </div>
-                      <ChevronRight size={20} className="text-slate-300" />
-                    </div>
-                  </Card>
-                </motion.div>
-              ))}
-            </div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4 }}
-              className="mt-8"
-            >
-              <button
-                onClick={() => { setParentView('settings'); setPin(''); }}
-                className="w-full p-4 bg-slate-100 rounded-2xl shadow-md flex items-center justify-center gap-2 text-slate-500 hover:bg-slate-200 transition-colors"
-              >
-                <ChevronLeft size={18} />
-                <span className="font-bold">退出家长空间</span>
-              </button>
-            </motion.div>
-          </div>
-        </>
-      )}
-
       {parentView === 'timeLimit' && (
         <>
           <div className="px-6 py-6">
             <div className="flex items-center gap-4 mb-6">
               <button 
-                onClick={() => setParentView('parent')}
+                onClick={() => setParentView('settings')}
                 className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-lg text-slate-600"
               >
                 <ChevronLeft size={28} />
