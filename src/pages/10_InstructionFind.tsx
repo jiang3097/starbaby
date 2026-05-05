@@ -7,6 +7,7 @@ import { Button } from '../components/ui/button';
 import { cn } from '../lib/utils';
 import { speakText, preloadVoices } from '../lib/useSpeech';
 import CelebrationEffect from '../components/CelebrationEffect';
+import ToyRewardEffect from '../components/ToyRewardEffect';
 import { useApp } from '../context/AppContext';
 import { useUser } from '../context/UserContext';
 
@@ -145,7 +146,7 @@ function shuffleArray<T>(array: T[]): T[] {
 const InstructionFind = () => {
   const navigate = useNavigate();
   const { startTraining, incrementGamePass, incrementTrainingGame } = useApp();
-  const { addToy, addFood } = useUser();
+  const { checkAndAddToy } = useUser();
   const hasStartedTraining = useRef(false);
   const hasGivenReward = useRef(false);
   
@@ -159,6 +160,9 @@ const InstructionFind = () => {
   const [isFinished, setIsFinished] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [showCelebration, setShowCelebration] = useState(false);
+  const [showToyReward, setShowToyReward] = useState(false);
+  const [toyEmoji, setToyEmoji] = useState('');
+  const [totalCorrect, setTotalCorrect] = useState(0);
 
   const question = questions[currentQuestion];
 
@@ -188,18 +192,14 @@ const InstructionFind = () => {
     if (isFinished && !hasGivenReward.current) {
       hasGivenReward.current = true;
       incrementTrainingGame();
-      
-      // 通关奖励：根据答对题数奖励道具
-      if (score >= 8) {
-        addFood();
-        addToy();
-      } else if (score >= 7) {
-        addFood();
-      } else if (score >= 3) {
-        addFood();
+      // 检查是否获得新玩具（根据累计答对题数判断）
+      const newToy = checkAndAddToy(totalCorrect);
+      if (newToy) {
+        setToyEmoji(newToy);
+        setTimeout(() => setShowToyReward(true), 300);
       }
     }
-  }, [isFinished]); // 只依赖 isFinished
+  }, [isFinished, totalCorrect]);
 
   // 朗读问题
   useEffect(() => {
@@ -245,6 +245,7 @@ const InstructionFind = () => {
     
     if (correct) {
       setScore(prev => prev + 1);
+      setTotalCorrect(prev => prev + 1); // 累计答对+1
       setShowCelebration(true);
       // 统计：趣味闯关+1
       incrementGamePass();
@@ -300,6 +301,13 @@ const InstructionFind = () => {
       <CelebrationEffect 
         show={showCelebration} 
         onComplete={() => setShowCelebration(false)} 
+      />
+
+      {/* 玩具奖励特效 */}
+      <ToyRewardEffect
+        show={showToyReward}
+        toyEmoji={toyEmoji}
+        onClose={() => setShowToyReward(false)}
       />
       
       <AnimatePresence mode="wait">

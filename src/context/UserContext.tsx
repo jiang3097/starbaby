@@ -3,6 +3,18 @@ import { STAR_AVATARS, type STAR_AVATAR } from '../lib/starAvatars';
 
 const STORAGE_KEY = 'star_baby_profile';
 
+// 玩具类型定义
+export const TOY_TYPES = [
+  { id: 1, name: '小熊', emoji: '🧸', color: 'from-amber-300 to-orange-400' },
+  { id: 2, name: '毛绒球', emoji: '🎾', color: 'from-pink-300 to-rose-400' },
+  { id: 3, name: '积木', emoji: '🧱', color: 'from-blue-300 to-cyan-400' },
+  { id: 4, name: '音乐盒', emoji: '🎵', color: 'from-purple-300 to-violet-400' },
+  { id: 5, name: '小汽车', emoji: '🚗', color: 'from-red-300 to-orange-400' },
+  { id: 6, name: '玩偶', emoji: '🪆', color: 'from-green-300 to-emerald-400' },
+  { id: 7, name: '风车', emoji: '🎡', color: 'from-teal-300 to-cyan-400' },
+  { id: 8, name: '皮球', emoji: '⚽', color: 'from-yellow-300 to-amber-400' },
+];
+
 export interface UserProfile {
   avatarId: number;
   name: string;
@@ -14,7 +26,7 @@ export interface UserProfile {
   
   // 饱腹值
   fullness: number;
-  fullnessCooldown: string; // 上次使用食物的日期
+  fullnessCooldown: string;
   
   // 清洁值
   cleanliness: number;
@@ -24,8 +36,11 @@ export interface UserProfile {
   mood: number;
   
   // 道具
-  toys: number; // 心情道具（玩具）
-  foods: number; // 饱腹道具（食物）
+  toys: number;
+  foods: number;
+  
+  // 累计通关次数（用于判断获得玩具条件）
+  totalGamePassed: number;
 }
 
 interface UserContextType {
@@ -36,8 +51,9 @@ interface UserContextType {
   useFood: () => boolean;
   useToy: () => boolean;
   takeBath: () => void;
-  addToy: () => void;
+  addToy: () => string | null;
   addFood: () => void;
+  checkAndAddToy: (currentPassCount: number) => string | null;
 }
 
 const defaultProfile: UserProfile = {
@@ -53,6 +69,7 @@ const defaultProfile: UserProfile = {
   mood: 100,
   toys: 0,
   foods: 0,
+  totalGamePassed: 0,
 };
 
 const UserContext = createContext<UserContextType>({
@@ -63,8 +80,9 @@ const UserContext = createContext<UserContextType>({
   useFood: () => false,
   useToy: () => false,
   takeBath: () => {},
-  addToy: () => {},
+  addToy: () => null,
   addFood: () => {},
+  checkAndAddToy: () => null,
 });
 
 export const useUser = () => useContext(UserContext);
@@ -72,6 +90,12 @@ export const useUser = () => useContext(UserContext);
 interface UserProviderProps {
   children: React.ReactNode;
 }
+
+// 随机获取一个玩具
+const getRandomToy = () => {
+  const index = Math.floor(Math.random() * TOY_TYPES.length);
+  return TOY_TYPES[index];
+};
 
 export const UserProvider = ({ children }: UserProviderProps) => {
   const getInitialProfile = (): UserProfile => {
@@ -97,6 +121,7 @@ export const UserProvider = ({ children }: UserProviderProps) => {
             mood: parsed.mood ?? 100,
             toys: parsed.toys ?? 0,
             foods: parsed.foods ?? 0,
+            totalGamePassed: 0,
           };
           localStorage.setItem(STORAGE_KEY, JSON.stringify(migrated));
           return migrated;
@@ -109,6 +134,7 @@ export const UserProvider = ({ children }: UserProviderProps) => {
           lastLoginDate: today,
           fullnessCooldown: parsed.fullnessCooldown || today,
           lastBathDate: parsed.lastBathDate || today,
+          totalGamePassed: parsed.totalGamePassed || 0,
         };
       }
     } catch (e) {
@@ -132,11 +158,12 @@ export const UserProvider = ({ children }: UserProviderProps) => {
           todayIntimacyAdded: 0,
           fullness: parsed.fullness ?? 100,
           fullnessCooldown: new Date().toISOString().split('T')[0],
-          cleanliness: parsed.cleanliness ?? 100,
+          cleanliness: parsed.cleanness ?? 100,
           lastBathDate: new Date().toISOString().split('T')[0],
           mood: parsed.mood ?? 100,
           toys: parsed.toys ?? 0,
           foods: parsed.foods ?? 0,
+          totalGamePassed: 0,
         };
         setProfile(corrected);
         localStorage.setItem(STORAGE_KEY, JSON.stringify(corrected));
@@ -194,14 +221,52 @@ export const UserProvider = ({ children }: UserProviderProps) => {
     });
   };
 
-  // 增加玩具（通关奖励）
-  const addToy = () => {
-    updateProfile({ toys: profile.toys + 1 });
-  };
-
   // 增加食物（通关奖励）
   const addFood = () => {
     updateProfile({ foods: profile.foods + 1 });
+  };
+
+  // 检查并增加玩具 - 根据累计通关次数判断
+  // 条件：3题获得第一个，7题获得第二个，全部通关(13题)获得第三个
+  const checkAndAddToy = (currentPassCount: number): string | null => {
+    const prevTotal = profile.totalGamePassed;
+    const thresholds = [3, 7, 13]; // 获得玩具的门槛
+    const toyCount = profile.toys;
+    
+    // 如果已经有3个玩具，不再获得
+    if (toyCount >= 3) return null;
+    
+    // 检查是否达到新的门槛
+    let newThreshold = null;
+    for (let i = toyCount; i < thresholds.length; i++) {
+      if (currentPassCount >= thresholds[i] && prevTotal < thresholds[i]) {
+        newThreshold = thresholds[i];
+        break;
+      }
+    }
+    
+    if (newThreshold !== null) {
+      const toy = getRandomToy();
+      updateProfile({ 
+        toys: profile.toys + 1,
+        totalGamePassed: currentPassCount
+      });
+      return toy.emoji;
+    }
+    
+    // 更新累计通关次数
+    if (currentPassCount > prevTotal) {
+      updateProfile({ totalGamePassed: currentPassCount });
+    }
+    
+    return null;
+  };
+
+  // 增加玩具（旧方法，保留兼容性）
+  const addToy = (): string | null => {
+    const toy = getRandomToy();
+    updateProfile({ toys: profile.toys + 1 });
+    return toy.emoji;
   };
 
   return (
@@ -214,7 +279,8 @@ export const UserProvider = ({ children }: UserProviderProps) => {
       useToy,
       takeBath,
       addToy,
-      addFood
+      addFood,
+      checkAndAddToy
     }}>
       {children}
     </UserContext.Provider>

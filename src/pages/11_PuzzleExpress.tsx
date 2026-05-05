@@ -7,6 +7,7 @@ import { Button } from '../components/ui/button';
 import { cn } from '../lib/utils';
 import { speakText, preloadVoices } from '../lib/useSpeech';
 import CelebrationEffect from '../components/CelebrationEffect';
+import ToyRewardEffect from '../components/ToyRewardEffect';
 import { useApp } from '../context/AppContext';
 import { useUser } from '../context/UserContext';
 
@@ -28,7 +29,7 @@ interface Piece {
 const PuzzleExpress = () => {
   const navigate = useNavigate();
   const { startTraining, incrementGamePass, incrementTrainingGame } = useApp();
-  const { addToy, addFood } = useUser();
+  const { checkAndAddToy } = useUser();
   const hasStartedTraining = useRef(false);
   const hasGivenReward = useRef(false);
   const hasAddedStats = useRef(false);
@@ -42,7 +43,9 @@ const PuzzleExpress = () => {
   const [gameStarted, setGameStarted] = useState(false);
   const [showCelebration, setShowCelebration] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
-  const [completedLevels, setCompletedLevels] = useState(0); // 已完成的关卡数
+  const [completedLevels, setCompletedLevels] = useState(0);
+  const [showToyReward, setShowToyReward] = useState(false);
+  const [toyEmoji, setToyEmoji] = useState('');
   
   const containerRef = useRef<HTMLDivElement>(null);
   const gridSize = 280;
@@ -73,15 +76,11 @@ const PuzzleExpress = () => {
       const newCompletedLevels = completedLevels + 1;
       setCompletedLevels(newCompletedLevels);
       
-      // 通关奖励：根据完成的关卡数奖励道具
-      // 3题：食物，7题：食物和玩具，全部通关（4关）：食物和玩具
-      if (newCompletedLevels >= 4) {
-        addFood();
-        addToy();
-      } else if (newCompletedLevels >= 3) {
-        addFood();
-      } else if (newCompletedLevels >= 1) {
-        addFood();
+      // 检查是否获得新玩具（每关算1题，累计4题通关）
+      const newToy = checkAndAddToy(newCompletedLevels);
+      if (newToy) {
+        setToyEmoji(newToy);
+        setTimeout(() => setShowToyReward(true), 300);
       }
     }
   }, [showSuccess]);
@@ -255,6 +254,13 @@ const PuzzleExpress = () => {
       </div>
 
       <CelebrationEffect show={showCelebration} onComplete={() => setShowCelebration(false)} />
+
+      {/* 玩具奖励特效 */}
+      <ToyRewardEffect
+        show={showToyReward}
+        toyEmoji={toyEmoji}
+        onClose={() => setShowToyReward(false)}
+      />
       
       <AnimatePresence mode="wait">
         {/* ========== 开始界面 ========== */}
