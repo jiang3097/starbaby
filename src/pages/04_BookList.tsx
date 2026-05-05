@@ -93,13 +93,7 @@ const BookList = () => {
             <motion.div
               key={book.id}
               whileTap={book.status !== 'locked' ? { scale: 0.98 } : {}}
-              onClick={() => {
-                if (book.status !== 'locked') {
-                  // 交换跳转：日常沟通(1)->3, 情绪表达(2)->1
-                  const routeId = book.id === 1 ? 3 : book.id === 2 ? 1 : book.id;
-                  navigate(`/book-interaction/${routeId}`);
-                }
-              }}
+              onClick={() => book.status !== 'locked' && navigate(`/book-interaction/${book.id}`)}
             >
               <Card className={cn(
                 "overflow-hidden border-2 rounded-[32px] shadow-sm relative",
