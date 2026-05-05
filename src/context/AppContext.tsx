@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback, useRef } from 'react';
+import React, { createContext, useContext, useState, useCallback, useRef, useEffect } from 'react';
 
 interface DailyStats {
   date: string;
@@ -18,14 +18,26 @@ interface WeeklyStats {
   };
 }
 
+interface TimeLimit {
+  enabled: boolean;
+  minutes: number;
+  customMinutes: number | null;
+}
+
 interface TrainingSession {
   startTime: number | null;
   type: 'chat' | 'book' | 'training' | null;
 }
 
-interface StatsContextType {
+interface AppContextType {
   dailyStats: DailyStats;
   weeklyStats: WeeklyStats;
+  timeLimit: TimeLimit;
+  isTimeLimitReached: boolean;
+  showTimeLimitModal: boolean;
+  setTimeLimit: (limit: TimeLimit) => void;
+  setShowTimeLimitModal: (show: boolean) => void;
+  resetTimeLimit: () => void;
   startTraining: (type: 'chat' | 'book' | 'training') => void;
   endTraining: () => void;
   incrementExpression: (source: 'chat' | 'book') => void;
@@ -45,10 +57,12 @@ const defaultStats: DailyStats = {
   trainingGames: 0,
 };
 
-const StatsContext = createContext<StatsContextType | undefined>(undefined);
+const AppContext = createContext<AppContextType | undefined>(undefined);
 
 const DAILY_STORAGE_KEY = 'star_baby_daily_stats';
 const WEEKLY_STORAGE_KEY = 'star_baby_weekly_stats';
+const LIMIT_STORAGE_KEY = 'star_baby_time_limit';
+const REACHED_STORAGE_KEY = 'star_baby_time_reached';
 
 // 获取本周一和周日日期
 const getWeekRange = (): { start: string; end: string } => {
@@ -111,32 +125,90 @@ const initWeeklyStats = (): WeeklyStats => {
   return weekData;
 };
 
-export const StatsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+// 初始化限时
+const initTimeLimit = (): TimeLimit => {
+  const stored = localStorage.getItem(LIMIT_STORAGE_KEY);
+  if (stored) {
+    try {
+      return JSON.parse(stored);
+    } catch { /* ignore */ }
+  }
+  return { enabled: false, minutes: 30, customMinutes: null };
+};
+
+// 初始化是否已达限
+const initTimeReached = (): boolean => {
+  const stored = localStorage.getItem(REACHED_STORAGE_KEY);
+  if (stored) {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      const parsed = JSON.parse(stored);
+      if (parsed.date === today) {
+        return parsed.reached;
+      }
+    } catch { /* ignore */ }
+  }
+  return false;
+};
+
+export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [dailyStats, setDailyStats] = useState<DailyStats>(initDailyStats);
   const [weeklyStats, setWeeklyStats] = useState<WeeklyStats>(initWeeklyStats);
+  const [timeLimit, setTimeLimitState] = useState<TimeLimit>(initTimeLimit);
+  const [isTimeLimitReached, setIsTimeLimitReached] = useState(initTimeReached);
+  const [showTimeLimitModal, setShowTimeLimitModal] = useState(false);
 
   const currentSession = useRef<TrainingSession>({ startTime: null, type: null });
   const sessionTimer = useRef<ReturnType<typeof setInterval> | null>(null);
   const statsRef = useRef({ dailyStats, weeklyStats });
+  const hasShownLimitModal = useRef(false);
   
-  // 保持 ref 同步
   statsRef.current = { dailyStats, weeklyStats };
 
-  // 保存数据到 localStorage（不在渲染时保存）
-  const saveToStorage = useCallback(() => {
-    const { dailyStats: d, weeklyStats: w } = statsRef.current;
-    const { start, end } = getWeekRange();
-    localStorage.setItem(DAILY_STORAGE_KEY, JSON.stringify(d));
-    localStorage.setItem(WEEKLY_STORAGE_KEY, JSON.stringify({ weekStart: start, weekEnd: end, data: w }));
+  // 检查是否达到限时
+  useEffect(() => {
+    if (timeLimit.enabled && !hasShownLimitModal.current) {
+      const limitMinutes = timeLimit.customMinutes || timeLimit.minutes;
+      if (dailyStats.trainingMinutes >= limitMinutes && !isTimeLimitReached) {
+        setIsTimeLimitReached(true);
+        setShowTimeLimitModal(true);
+        hasShownLimitModal.current = true;
+        // 保存状态
+        const today = new Date().toISOString().split('T')[0];
+        localStorage.setItem(REACHED_STORAGE_KEY, JSON.stringify({ date: today, reached: true }));
+      }
+    }
+  }, [dailyStats.trainingMinutes, timeLimit, isTimeLimitReached]);
+
+  // 设置限时
+  const setTimeLimit = useCallback((limit: TimeLimit) => {
+    setTimeLimitState(limit);
+    localStorage.setItem(LIMIT_STORAGE_KEY, JSON.stringify(limit));
+    if (!limit.enabled) {
+      setIsTimeLimitReached(false);
+      hasShownLimitModal.current = false;
+      const today = new Date().toISOString().split('T')[0];
+      localStorage.setItem(REACHED_STORAGE_KEY, JSON.stringify({ date: today, reached: false }));
+    }
+  }, []);
+
+  // 重置限时
+  const resetTimeLimit = useCallback(() => {
+    setShowTimeLimitModal(false);
+    setIsTimeLimitReached(false);
+    hasShownLimitModal.current = false;
+    const today = new Date().toISOString().split('T')[0];
+    localStorage.setItem(REACHED_STORAGE_KEY, JSON.stringify({ date: today, reached: false }));
   }, []);
 
   // 开始训练计时
   const startTraining = useCallback((type: 'chat' | 'book' | 'training') => {
+    if (isTimeLimitReached) return; // 已达限时不允许开始
+    
     if (currentSession.current.startTime && currentSession.current.type === type) {
       return;
     }
     
-    // 先结束之前的
     if (currentSession.current.startTime) {
       if (sessionTimer.current) {
         clearInterval(sessionTimer.current);
@@ -156,13 +228,15 @@ export const StatsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     
     currentSession.current = { startTime: Date.now(), type };
     
-    // 清理之前的定时器
     if (sessionTimer.current) {
       clearInterval(sessionTimer.current);
     }
     
-    // 每分钟更新
     sessionTimer.current = setInterval(() => {
+      if (isTimeLimitReached) {
+        if (sessionTimer.current) clearInterval(sessionTimer.current);
+        return;
+      }
       const today = new Date().toISOString().split('T')[0];
       setDailyStats(prev => ({ ...prev, trainingMinutes: prev.trainingMinutes + 1 }));
       setWeeklyStats(prev => {
@@ -172,7 +246,7 @@ export const StatsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         return newData;
       });
     }, 60000);
-  }, []);
+  }, [isTimeLimitReached]);
 
   // 结束训练计时
   const endTraining = useCallback(() => {
@@ -198,6 +272,7 @@ export const StatsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   // 增加主动表达次数
   const incrementExpression = useCallback((source: 'chat' | 'book') => {
+    if (isTimeLimitReached) return;
     const today = new Date().toISOString().split('T')[0];
     setDailyStats(prev => ({
       ...prev,
@@ -211,10 +286,11 @@ export const StatsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       newData[today].expressionCount += 1;
       return newData;
     });
-  }, []);
+  }, [isTimeLimitReached]);
 
   // 增加闯关次数
   const incrementGamePass = useCallback(() => {
+    if (isTimeLimitReached) return;
     const today = new Date().toISOString().split('T')[0];
     setDailyStats(prev => ({ ...prev, gamePassCount: prev.gamePassCount + 1 }));
     setWeeklyStats(prev => {
@@ -223,28 +299,46 @@ export const StatsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       newData[today].gamePassCount += 1;
       return newData;
     });
-  }, []);
+  }, [isTimeLimitReached]);
 
   // 增加聊天消息数
   const incrementChatMessage = useCallback(() => {
+    if (isTimeLimitReached) return;
     setDailyStats(prev => ({ ...prev, chatMessages: prev.chatMessages + 1 }));
-  }, []);
+  }, [isTimeLimitReached]);
 
   // 增加绘本完成数
   const incrementBookCompleted = useCallback(() => {
+    if (isTimeLimitReached) return;
     setDailyStats(prev => ({ ...prev, bookCompleted: prev.bookCompleted + 1 }));
-  }, []);
+  }, [isTimeLimitReached]);
 
   // 增加趣味训练完成数
   const incrementTrainingGame = useCallback(() => {
+    if (isTimeLimitReached) return;
     setDailyStats(prev => ({ ...prev, trainingGames: prev.trainingGames + 1 }));
+  }, [isTimeLimitReached]);
+
+  // 组件卸载时清理
+  useEffect(() => {
+    return () => {
+      if (sessionTimer.current) {
+        clearInterval(sessionTimer.current);
+      }
+    };
   }, []);
 
   return (
-    <StatsContext.Provider
+    <AppContext.Provider
       value={{
         dailyStats,
         weeklyStats,
+        timeLimit,
+        isTimeLimitReached,
+        showTimeLimitModal,
+        setTimeLimit,
+        setShowTimeLimitModal,
+        resetTimeLimit,
         startTraining,
         endTraining,
         incrementExpression,
@@ -255,14 +349,14 @@ export const StatsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       }}
     >
       {children}
-    </StatsContext.Provider>
+    </AppContext.Provider>
   );
 };
 
-export const useStats = (): StatsContextType => {
-  const context = useContext(StatsContext);
+export const useApp = (): AppContextType => {
+  const context = useContext(AppContext);
   if (!context) {
-    throw new Error('useStats must be used within a StatsProvider');
+    throw new Error('useApp must be used within an AppProvider');
   }
   return context;
 };

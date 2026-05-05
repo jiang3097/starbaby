@@ -1,22 +1,27 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Shield, ChevronRight, Info, User, Sparkles, ChevronLeft, Trash2 } from 'lucide-react';
+import { Shield, ChevronRight, Info, User, Sparkles, ChevronLeft, Clock, Check, X } from 'lucide-react';
 import MobileShell from '../components/MobileShell';
 import Navigation from '../components/Navigation';
 import { Card } from '../components/ui/card';
 import { cn } from '../lib/utils';
 import { useUser } from '../context/UserContext';
+import { useApp } from '../context/AppContext';
 
-type ParentView = 'settings' | 'parent';
+type ParentView = 'settings' | 'parent' | 'timeLimit';
 
 const Settings = () => {
   const navigate = useNavigate();
   const { profile, avatar } = useUser();
+  const { timeLimit, setTimeLimit } = useApp();
   const [parentView, setParentView] = useState<ParentView>('settings');
   const [showPinModal, setShowPinModal] = useState(false);
   const [pin, setPin] = useState('');
   const [error, setError] = useState(false);
+  const [selectedMinutes, setSelectedMinutes] = useState(timeLimit.minutes);
+  const [customMinutes, setCustomMinutes] = useState('');
+  const [showCustomInput, setShowCustomInput] = useState(false);
 
   // 关于项目内容
   const settingsItems = [
@@ -37,14 +42,12 @@ const Settings = () => {
       
       if (newPin.length === 4) {
         if (newPin === '1234') {
-          // 密码正确，进入家长空间
           setTimeout(() => {
             setShowPinModal(false);
             setParentView('parent');
             setPin('');
           }, 200);
         } else {
-          // 密码错误
           setError(true);
           setTimeout(() => {
             setPin('');
@@ -65,6 +68,14 @@ const Settings = () => {
       textColor: 'text-emerald-600'
     },
     { 
+      label: '使用限制', 
+      desc: '设置使用时间限制',
+      emoji: '⏰',
+      color: 'from-purple-200 to-pink-200',
+      textColor: 'text-purple-600',
+      action: () => setParentView('timeLimit')
+    },
+    { 
       label: '使用记录', 
       desc: '查看历史使用情况',
       emoji: '📅',
@@ -80,9 +91,46 @@ const Settings = () => {
     },
   ];
 
+  // 预设时间选项
+  const timeOptions = [
+    { label: '15分钟', value: 15 },
+    { label: '30分钟', value: 30 },
+    { label: '45分钟', value: 45 },
+    { label: '1小时', value: 60 },
+    { label: '1.5小时', value: 90 },
+    { label: '2小时', value: 120 },
+  ];
+
+  const handleSaveTimeLimit = () => {
+    const minutes = showCustomInput && customMinutes ? parseInt(customMinutes) : selectedMinutes;
+    if (minutes > 0) {
+      setTimeLimit({
+        enabled: true,
+        minutes: timeOptions.find(o => o.value === minutes)?.value || 30,
+        customMinutes: showCustomInput && customMinutes ? parseInt(customMinutes) : null
+      });
+      setParentView('parent');
+    }
+  };
+
+  const handleDisableLimit = () => {
+    setTimeLimit({ enabled: false, minutes: 30, customMinutes: null });
+    setParentView('parent');
+  };
+
+  const getLimitText = () => {
+    const minutes = timeLimit.customMinutes || timeLimit.minutes;
+    if (minutes >= 60) {
+      const hours = Math.floor(minutes / 60);
+      const mins = minutes % 60;
+      return mins > 0 ? `${hours}小时${mins}分钟` : `${hours}小时`;
+    }
+    return `${minutes}分钟`;
+  };
+
   return (
-    <MobileShell showNav className="bg-gradient-to-b from-amber-50 via-yellow-50 to-white">
-      {/* PIN 输入弹窗 - 打电话样式 */}
+    <MobileShell showNav={parentView === 'settings'} className="bg-gradient-to-b from-amber-50 via-yellow-50 to-white">
+      {/* PIN 输入弹窗 */}
       <AnimatePresence>
         {showPinModal && (
           <motion.div
@@ -100,7 +148,6 @@ const Settings = () => {
               className="bg-white rounded-3xl p-5 w-full max-w-[280px] shadow-2xl"
               onClick={(e) => e.stopPropagation()}
             >
-              {/* Header */}
               <div className="flex items-center justify-between mb-4">
                 <button 
                   onClick={() => { setShowPinModal(false); setPin(''); }}
@@ -115,10 +162,8 @@ const Settings = () => {
                 <div className="w-8" />
               </div>
               
-              {/* 密码提示 */}
               <p className="text-center text-xs text-slate-400 mb-4">请输入四位数字密码</p>
               
-              {/* PIN 显示 */}
               <div className="flex justify-center gap-3 mb-5">
                 {[0, 1, 2, 3].map((i) => (
                   <div 
@@ -133,7 +178,6 @@ const Settings = () => {
                 ))}
               </div>
               
-              {/* 数字键盘 */}
               <div className="grid grid-cols-3 gap-2">
                 {['1', '2', '3', '4', '5', '6', '7', '8', '9', '', '0', '⌫'].map((num, i) => {
                   if (num === '') return <div key={i} />;
@@ -154,16 +198,14 @@ const Settings = () => {
                 })}
               </div>
               
-              {/* Demo 提示 */}
               <p className="text-center text-[10px] text-slate-300 mt-3">Demo 密码: 1234</p>
             </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {parentView === 'settings' ? (
+      {parentView === 'settings' && (
         <>
-          {/* 普通设置界面 */}
           <div className="absolute inset-0 overflow-hidden pointer-events-none">
             {[...Array(8)].map((_, i) => (
               <motion.div
@@ -179,7 +221,6 @@ const Settings = () => {
           </div>
 
           <div className="px-6 py-6 relative">
-            {/* Header */}
             <div className="flex items-center gap-4 mb-6">
               <button 
                 onClick={() => navigate('/home')}
@@ -197,7 +238,6 @@ const Settings = () => {
               <div className="w-12" />
             </div>
 
-            {/* 用户信息卡片 */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -220,7 +260,6 @@ const Settings = () => {
               </div>
             </motion.div>
 
-            {/* Parent Portal Trigger */}
             <motion.div
               whileTap={{ scale: 0.98 }}
               onClick={() => setShowPinModal(true)}
@@ -243,7 +282,6 @@ const Settings = () => {
               </Card>
             </motion.div>
 
-            {/* General Settings */}
             <div className="space-y-4">
               <h3 className="font-bold text-slate-700 px-2 flex items-center gap-2">
                 <span className="text-lg">📋</span>
@@ -275,7 +313,6 @@ const Settings = () => {
               ))}
             </div>
 
-            {/* 重新选择形象 */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -291,7 +328,6 @@ const Settings = () => {
               </button>
             </motion.div>
 
-            {/* Version Info */}
             <div className="mt-12 text-center">
               <div className="flex items-center justify-center gap-2 mb-2">
                 <span className="text-2xl">🌟</span>
@@ -306,11 +342,11 @@ const Settings = () => {
 
           <Navigation />
         </>
-      ) : (
+      )}
+
+      {parentView === 'parent' && (
         <>
-          {/* 家长空间页面 */}
           <div className="px-6 py-6">
-            {/* Header */}
             <div className="flex items-center gap-4 mb-6">
               <button 
                 onClick={() => setParentView('settings')}
@@ -328,7 +364,6 @@ const Settings = () => {
               <div className="w-12" />
             </div>
 
-            {/* 用户信息 */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -348,7 +383,6 @@ const Settings = () => {
               </div>
             </motion.div>
 
-            {/* 功能菜单 */}
             <div className="space-y-4">
               {parentMenuItems.map((item, index) => (
                 <motion.div
@@ -357,7 +391,13 @@ const Settings = () => {
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: index * 0.1 }}
                 >
-                  <Card className="p-5 border-none shadow-md rounded-2xl cursor-pointer active:scale-[0.98] transition-all overflow-hidden relative">
+                  <Card 
+                    onClick={item.action || (() => {})}
+                    className={cn(
+                      "p-5 border-none shadow-md rounded-2xl cursor-pointer active:scale-[0.98] transition-all overflow-hidden relative",
+                      item.action && "hover:shadow-lg"
+                    )}
+                  >
                     <div className={cn("absolute inset-0 opacity-10 bg-gradient-to-r", item.color)} />
                     <div className="flex items-center gap-4 relative z-10">
                       <div className="w-12 h-12 rounded-xl bg-white shadow-sm flex items-center justify-center text-2xl">
@@ -366,6 +406,11 @@ const Settings = () => {
                       <div className="flex-1">
                         <h3 className={cn("font-bold text-lg", item.textColor)}>{item.label}</h3>
                         <p className="text-slate-400 text-xs">{item.desc}</p>
+                        {item.label === '使用限制' && timeLimit.enabled && (
+                          <span className="inline-block mt-1 text-xs bg-purple-100 text-purple-600 px-2 py-0.5 rounded-full">
+                            已设置 {getLimitText()}
+                          </span>
+                        )}
                       </div>
                       <ChevronRight size={20} className="text-slate-300" />
                     </div>
@@ -374,7 +419,6 @@ const Settings = () => {
               ))}
             </div>
 
-            {/* 退出按钮 */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -382,12 +426,139 @@ const Settings = () => {
               className="mt-8"
             >
               <button
-                onClick={() => setParentView('settings')}
+                onClick={() => { setParentView('settings'); setPin(''); }}
                 className="w-full p-4 bg-slate-100 rounded-2xl shadow-md flex items-center justify-center gap-2 text-slate-500 hover:bg-slate-200 transition-colors"
               >
                 <ChevronLeft size={18} />
                 <span className="font-bold">退出家长空间</span>
               </button>
+            </motion.div>
+          </div>
+        </>
+      )}
+
+      {parentView === 'timeLimit' && (
+        <>
+          <div className="px-6 py-6">
+            <div className="flex items-center gap-4 mb-6">
+              <button 
+                onClick={() => setParentView('parent')}
+                className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-lg text-slate-600"
+              >
+                <ChevronLeft size={28} />
+              </button>
+              <div className="flex-1">
+                <div className="flex items-center gap-2">
+                  <span className="text-2xl">⏰</span>
+                  <h1 className="text-2xl font-bold text-slate-800">使用限制</h1>
+                </div>
+                <p className="text-sm text-slate-500">设置每日使用时长</p>
+              </div>
+              <div className="w-12" />
+            </div>
+
+            {timeLimit.enabled && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-gradient-to-r from-purple-100 to-pink-100 rounded-3xl p-5 mb-6 shadow-lg border-2 border-white"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-md">
+                      <Clock size={24} className="text-purple-500" />
+                    </div>
+                    <div>
+                      <p className="text-slate-600 text-sm">当前设置</p>
+                      <p className="text-2xl font-bold text-purple-700">{getLimitText()}</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={handleDisableLimit}
+                    className="px-4 py-2 bg-white rounded-full text-rose-500 text-sm font-bold shadow-md hover:bg-rose-50 transition-colors flex items-center gap-1"
+                  >
+                    <X size={16} />
+                    关闭
+                  </button>
+                </div>
+              </motion.div>
+            )}
+
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+              className="mb-4"
+            >
+              <h3 className="font-bold text-slate-700 mb-3">快速选择</h3>
+              <div className="grid grid-cols-3 gap-3">
+                {timeOptions.map((option) => (
+                  <button
+                    key={option.value}
+                    onClick={() => {
+                      setSelectedMinutes(option.value);
+                      setShowCustomInput(false);
+                    }}
+                    className={cn(
+                      "p-4 rounded-2xl text-center transition-all shadow-md",
+                      selectedMinutes === option.value && !showCustomInput
+                        ? "bg-purple-500 text-white scale-105"
+                        : "bg-white text-slate-600 hover:bg-purple-50"
+                    )}
+                  >
+                    <span className="font-bold">{option.label}</span>
+                  </button>
+                ))}
+              </div>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="mb-6"
+            >
+              <button
+                onClick={() => setShowCustomInput(!showCustomInput)}
+                className="w-full p-4 rounded-2xl bg-white shadow-md flex items-center justify-between text-slate-600 hover:bg-slate-50 transition-colors"
+              >
+                <span className="font-bold">自定义时间</span>
+                {showCustomInput ? <X size={20} /> : <ChevronRight size={20} />}
+              </button>
+              {showCustomInput && (
+                <div className="mt-3 flex items-center gap-3">
+                  <input
+                    type="number"
+                    value={customMinutes}
+                    onChange={(e) => setCustomMinutes(e.target.value)}
+                    placeholder="输入分钟"
+                    className="flex-1 p-3 rounded-xl border-2 border-purple-200 focus:border-purple-400 outline-none text-center font-bold"
+                  />
+                  <span className="text-slate-500 font-bold">分钟</span>
+                </div>
+              )}
+            </motion.div>
+
+            <motion.button
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              onClick={handleSaveTimeLimit}
+              className="w-full p-4 bg-gradient-to-r from-purple-500 to-pink-500 rounded-2xl shadow-lg text-white font-bold text-lg flex items-center justify-center gap-2"
+            >
+              <Check size={22} />
+              保存设置
+            </motion.button>
+
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4 }}
+              className="mt-6 p-4 bg-amber-50 rounded-2xl"
+            >
+              <p className="text-amber-700 text-sm font-medium">
+                💡 温馨提示：当使用时间达到设置限制时，会弹出温馨提醒，孩子需要家长输入密码才能继续使用。
+              </p>
             </motion.div>
           </div>
         </>

@@ -6,7 +6,7 @@ import MobileShell from '../components/MobileShell';
 import { cn } from '../lib/utils';
 import { speakText, startListening, preloadVoices } from '../lib/useSpeech';
 import { useUser } from '../context/UserContext';
-import { useStats } from '../context/StatsContext';
+import { useApp } from '../context/AppContext';
 
 interface Message {
   id: number;
@@ -18,7 +18,7 @@ interface Message {
 const AIChat = () => {
   const navigate = useNavigate();
   const { profile, avatar } = useUser();
-  const { startTraining, incrementExpression, incrementChatMessage } = useStats();
+  const { startTraining, incrementExpression, incrementChatMessage } = useApp();
   const [messages, setMessages] = useState<Message[]>([
     { id: 1, type: 'bot', text: `你好呀！我是${profile.name}！今天心情怎么样？` },
   ]);

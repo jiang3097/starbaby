@@ -7,12 +7,12 @@ import Navigation from '../components/Navigation';
 import { Card } from '../components/ui/card';
 import { cn } from '../lib/utils';
 import { useUser } from '../context/UserContext';
-import { useStats, getWeekDates } from '../context/StatsContext';
+import { useApp, getWeekDates } from '../context/AppContext';
 
 const GrowthRecord = () => {
   const navigate = useNavigate();
   const { profile, avatar } = useUser();
-  const { dailyStats, weeklyStats } = useStats();
+  const { dailyStats, weeklyStats } = useApp();
   
   // 使用 ref 存储最新数据，避免闭包问题
   const weeklyStatsRef = useRef(weeklyStats);

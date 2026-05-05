@@ -7,7 +7,7 @@ import { Button } from '../components/ui/button';
 import { cn } from '../lib/utils';
 import { speakText, preloadVoices } from '../lib/useSpeech';
 import CelebrationEffect from '../components/CelebrationEffect';
-import { useStats } from '../context/StatsContext';
+import { useApp } from '../context/AppContext';
 
 // 8张表情图片
 const IMAGE_1 = 'https://code.coze.cn/api/sandbox/coze_coding/file/proxy?expire_time=-1&file_path=assets%2F%E5%B1%8F%E5%B9%95%E6%88%AA%E5%9B%BE+2026-05-04+201524.png&nonce=3f68cfce-dd09-4065-9953-be96ea2bc305&project_id=7635954527711035402&sign=c03ab686b2c95964f0c974b9fec78ead09a927a3f354f7a88056b902366dbf56';
@@ -140,7 +140,7 @@ const QUESTIONS_DATA = [
 
 const EmotionGuess = () => {
   const navigate = useNavigate();
-  const { startTraining, incrementGamePass, incrementTrainingGame } = useStats();
+  const { startTraining, incrementGamePass, incrementTrainingGame } = useApp();
   const hasStartedTraining = useRef(false);
   
   const [currentQuestion, setCurrentQuestion] = useState(0);

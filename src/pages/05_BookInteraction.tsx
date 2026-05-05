@@ -9,7 +9,7 @@ import { speakText, startListening, preloadVoices } from '../lib/useSpeech';
 import VoiceSelector from '../components/VoiceSelector';
 import AIChatPanel from '../components/AIChatPanel';
 import { useUser } from '../context/UserContext';
-import { useStats } from '../context/StatsContext';
+import { useApp } from '../context/AppContext';
 
 type BookTheme = 'emotion' | 'help' | 'daily';
 type GamePhase = 'intro' | 'reading' | 'follow-up' | 'question' | 'answering' | 'feedback' | 'complete';
@@ -134,7 +134,7 @@ const BookInteraction = () => {
   const { bookId } = useParams<{ bookId: string }>();
   const navigate = useNavigate();
   const { profile, avatar } = useUser();
-  const { startTraining, incrementExpression, incrementBookCompleted, incrementGamePass } = useStats();
+  const { startTraining, incrementExpression, incrementBookCompleted, incrementGamePass } = useApp();
   const hasStartedTraining = useRef(false);
   
   const [currentStory, setCurrentStory] = useState(0);

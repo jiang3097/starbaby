@@ -7,7 +7,7 @@ import { Button } from '../components/ui/button';
 import { cn } from '../lib/utils';
 import { speakText, preloadVoices } from '../lib/useSpeech';
 import CelebrationEffect from '../components/CelebrationEffect';
-import { useStats } from '../context/StatsContext';
+import { useApp } from '../context/AppContext';
 
 // 4张拼图图片
 const PUZZLE_IMAGES = [
@@ -74,7 +74,7 @@ function getTargetCenter(position: PiecePosition, gridSize: number, pieceSize: n
 
 const PuzzleExpress = () => {
   const navigate = useNavigate();
-  const { startTraining, incrementGamePass, incrementTrainingGame } = useStats();
+  const { startTraining, incrementGamePass, incrementTrainingGame } = useApp();
   const hasStartedTraining = useRef(false);
   const hasAddedStats = useRef(false);
   const containerRef = useRef<HTMLDivElement>(null);

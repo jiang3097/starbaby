@@ -162,7 +162,8 @@ const MyComponent = () => {
 使用 React Context 实现全局训练数据统计。
 
 ### 核心模块
-- `src/context/StatsContext.tsx` - 训练数据统计管理
+- `src/context/AppContext.tsx` - 统一管理训练数据和使用限制
+- `src/components/TimeLimitModal.tsx` - 使用限制弹窗组件
 
 ### 统计数据
 | 字段 | 说明 | 更新时机 |
@@ -178,6 +179,14 @@ const MyComponent = () => {
 - 存储结构：`WeeklyStats { [date: string]: { trainingMinutes, expressionCount, gamePassCount } }`
 - 以天为单位记录本周数据（周一到周日）
 - 存储在 localStorage，Key: `star_baby_weekly_stats`
+
+### 使用限制功能
+- 家长可在家长空间设置每日使用时长限制
+- 预设选项：15分钟、30分钟、45分钟、1小时、1.5小时、2小时
+- 支持自定义输入分钟数
+- 达到限制时间后弹出温馨提醒弹窗
+- 弹窗包含星小宝形象、温馨提醒语、家长密码输入
+- 输入密码1234解除限制
 
 ### 数据重置
 - 每日自动重置统计数据
