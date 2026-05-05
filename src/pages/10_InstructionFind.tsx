@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, CheckCircle2, XCircle, ArrowRight, Trophy, Star, RotateCcw, Volume2, SkipForward } from 'lucide-react';
@@ -7,6 +7,7 @@ import { Button } from '../components/ui/button';
 import { cn } from '../lib/utils';
 import { speakText, preloadVoices } from '../lib/useSpeech';
 import CelebrationEffect from '../components/CelebrationEffect';
+import { useStats } from '../context/StatsContext';
 
 // 图片资源
 const IMAGE_1 = 'https://code.coze.cn/api/sandbox/coze_coding/file/proxy?expire_time=-1&file_path=assets%2F25-220Z514302MZ.jpg&nonce=3d40f70e-bfc3-4cc5-9779-d0c9d0bf3800&project_id=7635954527711035402&sign=9703c46a636c287f91ac2d7508e073ca120f417e8326c031fe39eedab840c60f';
@@ -142,6 +143,9 @@ function shuffleArray<T>(array: T[]): T[] {
 
 const InstructionFind = () => {
   const navigate = useNavigate();
+  const { startTraining, incrementGamePass, incrementTrainingGame } = useStats();
+  const hasStartedTraining = useRef(false);
+  
   const [currentQuestion, setCurrentQuestion] = useState(0);
   // 按顺序出题，不打乱
   const [questions] = useState(() => [...QUESTIONS_DATA]);
@@ -163,6 +167,22 @@ const InstructionFind = () => {
       img.src = src;
     });
   }, []);
+
+  // 进入页面时开始训练计时
+  useEffect(() => {
+    if (!hasStartedTraining.current) {
+      hasStartedTraining.current = true;
+      startTraining('training');
+    }
+  }, [startTraining]);
+
+  // 游戏完成时增加统计
+  useEffect(() => {
+    if (isFinished) {
+      incrementTrainingGame();
+      incrementGamePass();
+    }
+  }, [isFinished, incrementTrainingGame, incrementGamePass]);
 
   // 朗读问题
   useEffect(() => {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, CheckCircle2, XCircle, ArrowRight, Trophy, Star, RotateCcw, SkipForward } from 'lucide-react';
@@ -7,6 +7,7 @@ import { Button } from '../components/ui/button';
 import { cn } from '../lib/utils';
 import { speakText, preloadVoices } from '../lib/useSpeech';
 import CelebrationEffect from '../components/CelebrationEffect';
+import { useStats } from '../context/StatsContext';
 
 // 8张表情图片
 const IMAGE_1 = 'https://code.coze.cn/api/sandbox/coze_coding/file/proxy?expire_time=-1&file_path=assets%2F%E5%B1%8F%E5%B9%95%E6%88%AA%E5%9B%BE+2026-05-04+201524.png&nonce=3f68cfce-dd09-4065-9953-be96ea2bc305&project_id=7635954527711035402&sign=c03ab686b2c95964f0c974b9fec78ead09a927a3f354f7a88056b902366dbf56';
@@ -139,6 +140,9 @@ const QUESTIONS_DATA = [
 
 const EmotionGuess = () => {
   const navigate = useNavigate();
+  const { startTraining, incrementGamePass, incrementTrainingGame } = useStats();
+  const hasStartedTraining = useRef(false);
+  
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [questions] = useState(() => [...QUESTIONS_DATA]);
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
@@ -158,6 +162,22 @@ const EmotionGuess = () => {
       img.src = q.image;
     });
   }, []);
+
+  // 进入页面时开始训练计时
+  useEffect(() => {
+    if (!hasStartedTraining.current) {
+      hasStartedTraining.current = true;
+      startTraining('training');
+    }
+  }, [startTraining]);
+
+  // 游戏完成时增加统计
+  useEffect(() => {
+    if (isFinished) {
+      incrementTrainingGame();
+      incrementGamePass();
+    }
+  }, [isFinished, incrementTrainingGame, incrementGamePass]);
 
   // 朗读题目
   useEffect(() => {

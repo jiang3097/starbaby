@@ -9,6 +9,7 @@ import { speakText, startListening, preloadVoices } from '../lib/useSpeech';
 import VoiceSelector from '../components/VoiceSelector';
 import AIChatPanel from '../components/AIChatPanel';
 import { useUser } from '../context/UserContext';
+import { useStats } from '../context/StatsContext';
 
 type BookTheme = 'emotion' | 'help' | 'daily';
 type GamePhase = 'intro' | 'reading' | 'follow-up' | 'question' | 'answering' | 'feedback' | 'complete';
@@ -133,6 +134,8 @@ const BookInteraction = () => {
   const { bookId } = useParams<{ bookId: string }>();
   const navigate = useNavigate();
   const { profile, avatar } = useUser();
+  const { startTraining, incrementExpression, incrementBookCompleted, incrementGamePass } = useStats();
+  const hasStartedTraining = useRef(false);
   
   const [currentStory, setCurrentStory] = useState(0);
   const [phase, setPhase] = useState<GamePhase>('intro');
@@ -153,6 +156,14 @@ const BookInteraction = () => {
   useEffect(() => {
     preloadVoices();
   }, []);
+
+  // 进入页面时开始训练计时
+  useEffect(() => {
+    if (!hasStartedTraining.current && bookId) {
+      hasStartedTraining.current = true;
+      startTraining('book');
+    }
+  }, [bookId, startTraining]);
 
   const resetState = useCallback(() => {
     setPhase('intro');
@@ -200,6 +211,10 @@ const BookInteraction = () => {
         setShowResult(true);
         setPhase('feedback');
         
+        // 统计：增加主动表达次数和绘本完成数
+        incrementExpression('book');
+        incrementBookCompleted();
+        
         if (correct) {
           setScore(prev => prev + 1);
           speakText("太棒了！回答正确！");
@@ -212,7 +227,7 @@ const BookInteraction = () => {
         setIsListening(false);
       }
     );
-  }, [story]);
+  }, [story, incrementExpression, incrementBookCompleted]);
 
   // 停止录音
   const stopListening = useCallback(() => {
@@ -229,6 +244,8 @@ const BookInteraction = () => {
       resetState();
       setCurrentStory(prev => prev + 1);
     } else {
+      // 全部完成，增加闯关次数
+      incrementGamePass();
       setPhase('complete');
     }
   };

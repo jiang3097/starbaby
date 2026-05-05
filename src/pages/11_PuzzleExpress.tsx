@@ -7,6 +7,7 @@ import { Button } from '../components/ui/button';
 import { cn } from '../lib/utils';
 import { speakText, preloadVoices } from '../lib/useSpeech';
 import CelebrationEffect from '../components/CelebrationEffect';
+import { useStats } from '../context/StatsContext';
 
 // 4张拼图图片
 const PUZZLE_IMAGES = [
@@ -73,6 +74,9 @@ function getTargetCenter(position: PiecePosition, gridSize: number, pieceSize: n
 
 const PuzzleExpress = () => {
   const navigate = useNavigate();
+  const { startTraining, incrementGamePass, incrementTrainingGame } = useStats();
+  const hasStartedTraining = useRef(false);
+  const hasAddedStats = useRef(false);
   const containerRef = useRef<HTMLDivElement>(null);
   
   const [currentImage, setCurrentImage] = useState(PUZZLE_IMAGES[0]);
@@ -93,6 +97,23 @@ const PuzzleExpress = () => {
       image.src = img.url;
     });
   }, []);
+
+  // 进入页面时开始训练计时
+  useEffect(() => {
+    if (!hasStartedTraining.current) {
+      hasStartedTraining.current = true;
+      startTraining('training');
+    }
+  }, [startTraining]);
+
+  // 游戏完成时增加统计（只添加一次）
+  useEffect(() => {
+    if (showSuccess && !hasAddedStats.current) {
+      hasAddedStats.current = true;
+      incrementTrainingGame();
+      incrementGamePass();
+    }
+  }, [showSuccess, incrementTrainingGame, incrementGamePass]);
 
   // 初始化位置
   useEffect(() => {

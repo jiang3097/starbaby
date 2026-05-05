@@ -7,15 +7,21 @@ import Navigation from '../components/Navigation';
 import { Card } from '../components/ui/card';
 import { cn } from '../lib/utils';
 import { useUser } from '../context/UserContext';
+import { useStats } from '../context/StatsContext';
 
 const GrowthRecord = () => {
   const navigate = useNavigate();
   const { profile, avatar } = useUser();
+  const { dailyStats } = useStats();
+
+  // 计算增长百分比（模拟）
+  const chatGrowth = dailyStats.chatMessages > 0 ? Math.min(dailyStats.chatMessages * 8, 50) : 0;
+  const trainingGrowth = dailyStats.trainingMinutes > 0 ? Math.min(dailyStats.trainingMinutes * 2, 30) : 0;
 
   const stats = [
-    { label: '今日训练', value: '45', unit: '分钟', icon: Clock, gradient: 'from-amber-200 to-orange-300', emoji: '🎯' },
-    { label: '主动表达', value: '28', unit: '次数', icon: MessageSquare, gradient: 'from-rose-200 to-pink-300', emoji: '💬' },
-    { label: '绘本通关', value: '4', unit: '关卡', icon: BookOpen, gradient: 'from-emerald-200 to-teal-300', emoji: '📚' },
+    { label: '今日训练', value: dailyStats.trainingMinutes, unit: '分钟', icon: Clock, gradient: 'from-amber-200 to-orange-300', emoji: '🎯' },
+    { label: '主动表达', value: dailyStats.expressionCount, unit: '次数', icon: MessageSquare, gradient: 'from-rose-200 to-pink-300', emoji: '💬' },
+    { label: '趣味闯关', value: dailyStats.gamePassCount, unit: '关卡', icon: BookOpen, gradient: 'from-emerald-200 to-teal-300', emoji: '📚' },
   ];
 
   return (
@@ -112,10 +118,12 @@ const GrowthRecord = () => {
                       <span className="text-slate-400 text-sm font-bold">{stat.unit}</span>
                     </div>
                   </div>
-                  <div className="bg-gradient-to-r from-emerald-400 to-teal-400 text-white px-4 py-2 rounded-full shadow-md flex items-center gap-1">
-                    <TrendingUp size={14} />
-                    <span className="text-xs font-bold">+12%</span>
-                  </div>
+                  {stat.value > 0 && (
+                    <div className="bg-gradient-to-r from-emerald-400 to-teal-400 text-white px-4 py-2 rounded-full shadow-md flex items-center gap-1">
+                      <TrendingUp size={14} />
+                      <span className="text-xs font-bold">+{stat.label === '主动表达' ? chatGrowth : trainingGrowth}%</span>
+                    </div>
+                  )}
                 </div>
               </Card>
             </motion.div>

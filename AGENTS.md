@@ -156,3 +156,45 @@ const MyComponent = () => {
 - 点击播放按钮朗读当前句子
 - 点击"跟读练习"按钮进入跟读模式
 - 支持声音包选择（点击右上角喇叭图标）
+
+## 训练数据统计系统
+
+使用 React Context 实现全局训练数据统计。
+
+### 核心模块
+- `src/context/StatsContext.tsx` - 训练数据统计管理
+
+### 统计数据
+| 字段 | 说明 | 更新时机 |
+|------|------|----------|
+| trainingMinutes | 今日训练时长(分钟) | 进入训练页面时开始计时，每分钟+1 |
+| expressionCount | 主动表达次数 | AI聊天发送消息 + 绘本答题完成 |
+| gamePassCount | 趣味闯关通关次数 | 每完成一个趣味训练游戏 |
+| chatMessages | AI聊天消息数 | AI聊天发送消息 |
+| bookCompleted | 绘本完成题目数 | 绘本答题完成 |
+| trainingGames | 趣味训练完成数 | 每个趣味训练游戏完成 |
+
+### 数据重置
+- 每日0点自动重置统计数据
+- 存储在 localStorage，Key: `star_baby_stats`
+
+### 页面关联
+- AI聊天页面 (03_AIChat.tsx): 发送消息时计数，进入页面开始计时
+- 绘本闯关页面 (05_BookInteraction.tsx): 答题完成时计数，进入页面开始计时
+- 趣味训练页面 (09/10/11): 进入页面开始计时，游戏完成时计数
+- 成长记录页面 (07_GrowthRecord.tsx): 读取并显示统计数据
+
+### 使用方式
+```typescript
+import { useStats } from '../context/StatsContext';
+
+const MyComponent = () => {
+  const { 
+    dailyStats,           // 当前统计数据
+    startTraining,        // 开始训练计时
+    endTraining,          // 结束训练计时
+    incrementExpression,  // 增加主动表达次数
+    incrementGamePass,    // 增加闯关次数
+  } = useStats();
+};
+```

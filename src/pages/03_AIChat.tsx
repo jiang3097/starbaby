@@ -6,6 +6,7 @@ import MobileShell from '../components/MobileShell';
 import { cn } from '../lib/utils';
 import { speakText, startListening, preloadVoices } from '../lib/useSpeech';
 import { useUser } from '../context/UserContext';
+import { useStats } from '../context/StatsContext';
 
 interface Message {
   id: number;
@@ -17,6 +18,7 @@ interface Message {
 const AIChat = () => {
   const navigate = useNavigate();
   const { profile, avatar } = useUser();
+  const { startTraining, incrementExpression, incrementChatMessage } = useStats();
   const [messages, setMessages] = useState<Message[]>([
     { id: 1, type: 'bot', text: `你好呀！我是${profile.name}！今天心情怎么样？` },
   ]);
@@ -25,6 +27,7 @@ const AIChat = () => {
   const [isFollowing, setIsFollowing] = useState(false);
   const [currentFollowingText, setCurrentFollowingText] = useState('');
   const [userSpeakingText, setUserSpeakingText] = useState('');
+  const hasStartedTraining = useRef(false);
   
   const stopListeningFnRef = useRef<(() => void) | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -33,6 +36,18 @@ const AIChat = () => {
   useEffect(() => {
     preloadVoices();
   }, []);
+
+  // 进入页面时开始训练计时
+  useEffect(() => {
+    if (!hasStartedTraining.current) {
+      hasStartedTraining.current = true;
+      startTraining('chat');
+    }
+    
+    return () => {
+      // 组件卸载时不结束计时，由父组件控制
+    };
+  }, [startTraining]);
 
   // 滚动到底部
   useEffect(() => {
@@ -51,6 +66,10 @@ const AIChat = () => {
     // 添加用户消息
     const userMsg: Message = { id: Date.now(), type: 'user', text: cleanText };
     setMessages(prev => [...prev, userMsg]);
+
+    // 统计：增加主动表达次数和聊天消息数
+    incrementExpression('chat');
+    incrementChatMessage();
 
     // AI 响应
     setTimeout(() => {
