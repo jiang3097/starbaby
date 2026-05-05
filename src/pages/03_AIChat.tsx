@@ -18,7 +18,7 @@ const AIChat = () => {
   const navigate = useNavigate();
   const { profile, avatar } = useUser();
   const [messages, setMessages] = useState<Message[]>([
-    { id: 1, type: 'bot', text: `你好呀，${profile.name}！今天心情怎么样？` },
+    { id: 1, type: 'bot', text: `你好呀！我是${profile.name}！今天心情怎么样？` },
   ]);
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
@@ -41,12 +41,15 @@ const AIChat = () => {
     }
   }, [messages, isFollowing]);
 
-  const quickPhrases = ['我开心', '我要喝水', '我想玩球', '抱抱我'];
+  const quickPhrases = ['我开心 😊', '我要喝水 🚰', '我想玩球 🎾', '抱抱我 🤗'];
 
   // 处理发送消息
-  const handleSend = useCallback((text: string) => {
+  const handleSend = useCallback((text: String) => {
+    // 清理emoji用于处理
+    const cleanText = text.toString().replace(/[\u{1F300}-\u{1F9FF}]/gu, '').trim();
+    
     // 添加用户消息
-    const userMsg: Message = { id: Date.now(), type: 'user', text };
+    const userMsg: Message = { id: Date.now(), type: 'user', text: cleanText };
     setMessages(prev => [...prev, userMsg]);
 
     // AI 响应
@@ -54,15 +57,23 @@ const AIChat = () => {
       let reply = '听到你这么说真棒！';
       let followingText: string | undefined;
 
-      if (text === '我要喝水') {
+      if (cleanText === '我要喝水') {
         reply = '好哒，我们去拿杯子喝水吧！';
-      } else if (text === '我开心') {
+      } else if (cleanText === '我开心' || cleanText === '开心') {
         reply = '太棒了！开心的时候可以做什么呢？要不要一起唱首歌？';
-      } else if (text === '我想玩球') {
+      } else if (cleanText === '我想玩球' || cleanText === '玩球') {
         reply = '玩球真有趣！你会拍球吗？我们一起练习吧！';
-      } else if (text === '抱抱我') {
-        reply = '给你一个大大的拥抱！抱抱可以让人感觉温暖和安全哦。';
+      } else if (cleanText === '抱抱我' || cleanText === '抱抱') {
+        reply = '给你一个大大的拥抱！🤗 抱抱可以让人感觉温暖和安全哦。';
         followingText = '抱抱';
+      } else if (cleanText.includes('难过') || cleanText.includes('不开心')) {
+        reply = '没关系，我陪着你哦。要不要听个有趣的故事？📖';
+      } else if (cleanText.includes('生气')) {
+        reply = '深呼吸，慢慢来~ 🧘 我们一起平静一下好吗？';
+      } else if (cleanText.includes('谢谢')) {
+        reply = '不客气！我们是好朋友呀！💕';
+      } else if (cleanText.includes('你好') || cleanText.includes('嗨')) {
+        reply = `你好呀！${profile.name}！见到你真开心！🌟`;
       }
 
       const botMsg: Message = { 
@@ -77,7 +88,7 @@ const AIChat = () => {
       // AI 自动朗读回复
       speakText(reply);
     }, 800);
-  }, []);
+  }, [profile.name]);
 
   // 点击麦克风开始说话
   const handleMicClick = () => {
@@ -153,7 +164,7 @@ const AIChat = () => {
     const encourageMsg: Message = {
       id: Date.now(),
       type: 'bot',
-      text: '太棒了！你说得真好听，继续加油！'
+      text: '太棒了！✨ 你说得真好听，继续加油！'
     };
     setMessages(prev => [...prev, encourageMsg]);
     speakText('太棒了！你说得真好听，继续加油！');
@@ -169,30 +180,74 @@ const AIChat = () => {
   };
 
   return (
-    <MobileShell className="bg-sky-50">
+    <MobileShell className="bg-gradient-to-b from-amber-50 via-yellow-50 to-white">
+      {/* 背景装饰 */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        {/* 云朵装饰 */}
+        <motion.div
+          animate={{ x: [0, 20, 0] }}
+          transition={{ repeat: Infinity, duration: 8 }}
+          className="absolute top-20 left-8 text-4xl opacity-40"
+        >
+          ☁️
+        </motion.div>
+        <motion.div
+          animate={{ x: [0, -15, 0] }}
+          transition={{ repeat: Infinity, duration: 10 }}
+          className="absolute top-32 right-10 text-3xl opacity-30"
+        >
+          ☁️
+        </motion.div>
+        {/* 星星装饰 */}
+        {[...Array(5)].map((_, i) => (
+          <motion.div
+            key={i}
+            className="absolute text-amber-300"
+            style={{ left: `${15 + i * 18}%`, top: `${10 + (i % 3) * 8}%` }}
+            animate={{ opacity: [0.3, 0.8, 0.3], scale: [0.8, 1.1, 0.8] }}
+            transition={{ repeat: Infinity, duration: 2 + i * 0.3 }}
+          >
+            ⭐
+          </motion.div>
+        ))}
+      </div>
+
       {/* Header */}
-      <div className="px-6 pt-4 flex items-center justify-between sticky top-0 bg-sky-50 z-10 pb-2">
+      <div className="px-6 pt-4 flex items-center justify-between sticky top-0 bg-gradient-to-b from-amber-50/90 to-transparent z-10 pb-2">
         <button 
           onClick={() => navigate(-1)}
-          className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-sm text-sky-600"
+          className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-lg text-amber-500 hover:bg-amber-50 transition-colors"
         >
           <ChevronLeft size={28} />
         </button>
+        
+        {/* 形象展示 */}
         <div className="flex flex-col items-center">
-          <div className={cn(
-            "w-12 h-12 rounded-full p-0.5 shadow-md border-2 border-white bg-gradient-to-br overflow-hidden",
-            avatar.color
-          )}>
+          <motion.div
+            animate={{ y: [0, -5, 0] }}
+            transition={{ repeat: Infinity, duration: 3 }}
+            className={cn(
+              "w-16 h-16 rounded-full p-1 shadow-lg border-3 border-white bg-gradient-to-br overflow-hidden",
+              avatar.color
+            )}
+          >
             <img 
               src={avatar.image}
               alt={profile.name} 
               className="w-full h-full object-cover rounded-full"
             />
-          </div>
-          <span className="text-[10px] font-bold text-sky-500 mt-0.5">
-            {isSpeaking ? '正在朗读...' : isFollowing ? '请跟读' : isListening ? '正在听你说...' : '正在倾听...'}
+          </motion.div>
+          <span className={cn(
+            "text-xs font-bold mt-1 px-3 py-0.5 rounded-full",
+            isSpeaking ? "bg-amber-100 text-amber-600" : 
+            isFollowing ? "bg-green-100 text-green-600" : 
+            isListening ? "bg-rose-100 text-rose-500" : 
+            "bg-sky-100 text-sky-500"
+          )}>
+            {isSpeaking ? '正在朗读' : isFollowing ? '请跟读' : isListening ? '正在听...' : profile.name}
           </span>
         </div>
+        
         <div className="w-12" />
       </div>
 
@@ -203,48 +258,51 @@ const AIChat = () => {
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            className="bg-sky-50 px-6 py-4 border-b border-sky-100"
+            className="bg-gradient-to-r from-green-50 to-emerald-50 px-6 py-4 border-t border-b border-green-100"
           >
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-sky-200 flex items-center justify-center">
-                  <Volume2 size={20} className="text-sky-600" />
+                <div className="w-12 h-12 rounded-full bg-green-200 flex items-center justify-center shadow-md">
+                  <Volume2 size={24} className="text-green-600" />
                 </div>
                 <div>
-                  <p className="text-xs text-sky-600 font-medium">请跟读</p>
-                  <p className="text-lg font-bold text-sky-800">{currentFollowingText}</p>
+                  <p className="text-xs text-green-600 font-bold">✨ 请跟着我读</p>
+                  <p className="text-lg font-bold text-green-800">{currentFollowingText}</p>
                 </div>
               </div>
               <button
                 onClick={handleStopFollowing}
-                className="p-2 text-sky-400 hover:text-sky-600"
+                className="p-3 bg-white rounded-full shadow-md text-green-400 hover:text-green-600 hover:bg-green-50 transition-colors"
               >
-                <VolumeX size={24} />
+                <VolumeX size={20} />
               </button>
             </div>
             
             {/* User's speech result */}
-            <div className="bg-white rounded-xl p-4 border border-sky-200 mb-3">
-              <p className="text-xs text-slate-500 mb-1">你说的</p>
-              <p className={`text-base font-medium ${userSpeakingText ? 'text-slate-800' : 'text-slate-400'}`}>
+            <div className="bg-white rounded-2xl p-4 shadow-md border-2 border-green-100 mb-3">
+              <p className="text-xs text-slate-500 mb-1">你说的 👇</p>
+              <p className={cn(
+                "text-base font-medium",
+                userSpeakingText ? 'text-slate-800' : 'text-slate-400 italic'
+              )}>
                 {userSpeakingText || '请跟着朗读上方文字...'}
               </p>
             </div>
             
             {/* Action buttons */}
-            <div className="flex gap-2">
+            <div className="flex gap-3">
               <button
                 onClick={handleReplay}
-                className="flex-1 py-3 rounded-full border-2 border-sky-300 text-sky-600 text-sm font-bold flex items-center justify-center gap-2"
+                className="flex-1 py-3 rounded-full border-2 border-green-300 text-green-600 text-sm font-bold flex items-center justify-center gap-2 bg-white shadow-sm"
               >
-                <RefreshCw size={16} />
+                <RefreshCw size={18} />
                 再听一遍
               </button>
               <button
                 onClick={handleCompleteFollowing}
-                className="flex-1 py-3 rounded-full bg-sky-500 text-white text-sm font-bold flex items-center justify-center gap-2"
+                className="flex-1 py-3 rounded-full bg-gradient-to-r from-green-400 to-emerald-500 text-white text-sm font-bold flex items-center justify-center gap-2 shadow-lg"
               >
-                <Check size={16} />
+                <Check size={18} />
                 完成跟读
               </button>
             </div>
@@ -255,39 +313,61 @@ const AIChat = () => {
       {/* Chat Area */}
       <div 
         ref={scrollRef}
-        className="flex-1 px-6 py-4 flex flex-col gap-6 overflow-y-auto min-h-0"
+        className="flex-1 px-6 py-4 flex flex-col gap-5 overflow-y-auto min-h-0 relative"
       >
-        <div className="bg-white/60 rounded-full px-4 py-1 self-center text-[10px] font-bold text-sky-400">
-          康复目标：练习主动语言与对话
+        {/* 温馨提示 */}
+        <div className="bg-gradient-to-r from-amber-100 to-yellow-100 rounded-full px-5 py-2 self-center text-xs font-bold text-amber-600 flex items-center gap-2 shadow-sm">
+          <span>🌟</span>
+          <span>和{profile.name}聊聊天吧~</span>
         </div>
         
         {messages.map((msg) => (
           <motion.div
             key={msg.id}
-            initial={{ opacity: 0, scale: 0.9, y: 10 }}
+            initial={{ opacity: 0, scale: 0.9, y: 15 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             className={cn(
-              "flex items-end gap-2 max-w-[85%]",
+              "flex items-end gap-3 max-w-[88%]",
               msg.type === 'user' ? "self-end flex-row-reverse" : "self-start"
             )}
           >
+            {/* 头像 */}
+            {msg.type === 'bot' && (
+              <motion.div
+                animate={{ y: [0, -3, 0] }}
+                transition={{ repeat: Infinity, duration: 2 }}
+                className={cn(
+                  "w-10 h-10 rounded-full p-0.5 shadow-md border-2 border-white flex-shrink-0 bg-gradient-to-br overflow-hidden",
+                  avatar.color
+                )}
+              >
+                <img 
+                  src={avatar.image}
+                  alt={profile.name} 
+                  className="w-full h-full object-cover rounded-full"
+                />
+              </motion.div>
+            )}
+            
+            {/* 消息气泡 */}
             <div className={cn(
-              "p-4 rounded-[28px] shadow-sm relative",
+              "p-4 rounded-[24px] shadow-md relative",
               msg.type === 'user' 
-                ? "bg-sky-500 text-white rounded-br-none" 
-                : "bg-white text-slate-700 rounded-bl-none"
+                ? "bg-gradient-to-r from-sky-400 to-sky-500 text-white rounded-br-md" 
+                : "bg-white text-slate-700 rounded-bl-md border border-slate-100"
             )}>
-              <p className="text-base font-medium leading-relaxed">{msg.text}</p>
+              {/* 消息内容 */}
+              <p className="text-[15px] font-medium leading-relaxed whitespace-pre-wrap">{msg.text}</p>
               
               {/* Bot message controls */}
               {msg.type === 'bot' && (
-                <div className="mt-2 flex items-center gap-3">
+                <div className="mt-3 flex items-center gap-2">
                   <button
-                    onClick={() => handleReadAloud(msg.text!)}
+                    onClick={() => handleReadAloud(msg.text)}
                     className={cn(
-                      "flex items-center gap-1.5 text-xs px-2 py-1 rounded-full transition-all",
+                      "flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full transition-all shadow-sm",
                       isSpeaking 
-                        ? "bg-sky-100 text-sky-400" 
+                        ? "bg-amber-100 text-amber-400" 
                         : "bg-sky-50 text-sky-500 hover:bg-sky-100"
                     )}
                   >
@@ -297,58 +377,74 @@ const AIChat = () => {
                   
                   {msg.followingText && (
                     <button
-                      onClick={() => msg.followingText && handleStartFollowing(msg.followingText!)}
-                      className="flex items-center gap-1.5 text-xs px-2 py-1 rounded-full bg-sky-50 text-sky-500 hover:bg-sky-100 transition-all"
+                      onClick={() => msg.followingText && handleStartFollowing(msg.followingText)}
+                      className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full bg-green-50 text-green-500 hover:bg-green-100 transition-all shadow-sm"
                     >
                       <RefreshCw size={14} />
-                      <span>跟读</span>
+                      <span>跟读练习</span>
                     </button>
                   )}
                 </div>
               )}
             </div>
+            
+            {/* 用户头像 */}
+            {msg.type === 'user' && (
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-sky-300 to-blue-400 flex items-center justify-center text-white text-lg font-bold shadow-md flex-shrink-0">
+                我
+              </div>
+            )}
           </motion.div>
         ))}
       </div>
 
       {/* Input Area */}
-      <div className="p-6 bg-white rounded-t-[40px] shadow-2xl space-y-4">
+      <div className="p-6 bg-gradient-to-t from-white to-amber-50/50 rounded-t-[32px] shadow-[0_-4px_20px_rgba(0,0,0,0.08)] space-y-4">
         {/* Quick Phrases */}
-        <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-hide">
+        <div className="flex gap-2.5 overflow-x-auto pb-2 scrollbar-hide">
           {quickPhrases.map(phrase => (
-            <button
+            <motion.button
               key={phrase}
+              whileTap={{ scale: 0.95 }}
               onClick={() => handleSend(phrase)}
-              className="px-5 py-2.5 bg-sky-50 text-sky-600 rounded-full text-sm font-bold whitespace-nowrap border border-sky-100 active:bg-sky-100 transition-colors"
+              className="px-4 py-2.5 bg-white text-slate-600 rounded-full text-sm font-bold whitespace-nowrap border-2 border-amber-100 shadow-sm hover:border-amber-300 hover:bg-amber-50 transition-all"
             >
               {phrase}
-            </button>
+            </motion.button>
           ))}
         </div>
 
         {/* Voice Button */}
-        <div className="flex items-center justify-center py-4">
+        <div className="flex items-center justify-center py-3">
           <motion.button
             whileTap={{ scale: 0.9 }}
             onClick={handleMicClick}
             className={cn(
-              "w-24 h-24 rounded-full flex items-center justify-center transition-all duration-300 relative",
+              "w-20 h-20 rounded-full flex items-center justify-center transition-all duration-300 relative shadow-lg",
               isListening 
-                ? "bg-rose-500 shadow-[0_0_40px_rgba(244,63,94,0.4)]" 
-                : "bg-sky-500 shadow-xl shadow-sky-200"
+                ? "bg-gradient-to-r from-rose-400 to-pink-500 shadow-[0_0_30px_rgba(244,63,94,0.4)]" 
+                : "bg-gradient-to-r from-amber-400 to-orange-400 shadow-[0_8px_20px_rgba(251,146,60,0.4)]"
             )}
           >
             <AnimatePresence>
               {isListening && (
-                <motion.div
-                  initial={{ scale: 1 }}
-                  animate={{ scale: [1, 1.4, 1] }}
-                  transition={{ repeat: Infinity, duration: 1.5 }}
-                  className="absolute inset-0 rounded-full bg-rose-400/30"
-                />
+                <>
+                  <motion.div
+                    initial={{ scale: 1 }}
+                    animate={{ scale: [1, 1.5, 1] }}
+                    transition={{ repeat: Infinity, duration: 1.2 }}
+                    className="absolute inset-0 rounded-full bg-rose-300/40"
+                  />
+                  <motion.div
+                    initial={{ scale: 1 }}
+                    animate={{ scale: [1, 1.3, 1] }}
+                    transition={{ repeat: Infinity, duration: 1.2, delay: 0.2 }}
+                    className="absolute inset-0 rounded-full bg-rose-300/30"
+                  />
+                </>
               )}
             </AnimatePresence>
-            <Mic size={40} className="text-white relative z-10" />
+            <span className="text-4xl relative z-10">🎤</span>
           </motion.button>
         </div>
 
@@ -361,27 +457,27 @@ const AIChat = () => {
               exit={{ opacity: 0, y: 10 }}
               className="flex items-center justify-center gap-3 py-2"
             >
-              <div className="flex gap-1">
+              <div className="flex gap-1 items-end">
                 {[1, 2, 3, 4].map(i => (
                   <motion.div
                     key={i}
-                    animate={{ scaleY: [0.3, 1, 0.3] }}
+                    animate={{ height: [12, 28, 12], scaleY: [0.5, 1, 0.5] }}
                     transition={{ 
                       repeat: Infinity, 
-                      duration: 0.6, 
+                      duration: 0.5, 
                       delay: i * 0.1 
                     }}
-                    className="w-1.5 h-5 bg-rose-400 rounded-full"
+                    className="w-2 bg-gradient-to-t from-rose-400 to-pink-400 rounded-full"
                   />
                 ))}
               </div>
-              <span className="text-base text-rose-500 font-bold">正在听你说...</span>
+              <span className="text-base text-rose-500 font-bold">在听你说哦~</span>
             </motion.div>
           )}
         </AnimatePresence>
 
-        <p className="text-center text-slate-400 text-sm font-medium">
-          {isListening ? '请说话，说完我会帮你发送' : '点击麦克风，说出你想说的话'}
+        <p className="text-center text-amber-600 text-sm font-medium">
+          {isListening ? '请说话哦~' : '👆 点击麦克风，和我说话吧'}
         </p>
       </div>
     </MobileShell>
