@@ -11,7 +11,7 @@ import AIChatPanel from '../components/AIChatPanel';
 import { useUser } from '../context/UserContext';
 
 type BookTheme = 'emotion' | 'help' | 'daily';
-type GamePhase = 'intro' | 'reading' | 'question' | 'answering' | 'feedback' | 'complete';
+type GamePhase = 'intro' | 'reading' | 'follow-up' | 'question' | 'answering' | 'feedback' | 'complete';
 
 interface StoryPage {
   id: number;
@@ -161,6 +161,7 @@ const BookInteraction = () => {
     setUserAnswer('');
     setIsCorrect(false);
     setShowResult(false);
+    setIsAIChatOpen(false);
     if (stopListeningRef.current) {
       stopListeningRef.current();
       stopListeningRef.current = null;
@@ -173,12 +174,8 @@ const BookInteraction = () => {
     setIsPlaying(true);
     speakText(story.text, () => {
       setIsPlaying(false);
-      setTimeout(() => {
-        setPhase('question');
-        setTimeout(() => {
-          speakText(story.question);
-        }, 500);
-      }, 1000);
+      // 朗读完成后进入跟读阶段，让用户自己点击进入答题
+      setPhase('follow-up');
     });
   }, [story]);
 
@@ -433,6 +430,93 @@ const BookInteraction = () => {
               <p className="mt-2 text-sm text-amber-600 font-medium">
                 {isPlaying ? '正在朗读...' : '点击重听'}
               </p>
+            </motion.div>
+          </motion.div>
+        )}
+
+        {/* ========== 跟读阶段 - 朗读完成后等待用户 ========== */}
+        {phase === 'follow-up' && (
+          <motion.div
+            key="follow-up"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="h-full flex flex-col p-6"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <button onClick={() => { resetState(); setCurrentStory(0); }} className="w-12 h-12 bg-white rounded-full flex items-center justify-center text-slate-400 shadow-lg">
+                <Home size={22} />
+              </button>
+              <div className="flex items-center gap-2">
+                {[...Array(bookData.stories.length)].map((_, i) => (
+                  <div
+                    key={i}
+                    className={cn(
+                      "w-3 h-3 rounded-full transition-all",
+                      i === currentStory ? "bg-amber-400 scale-125" : i < currentStory ? "bg-emerald-400" : "bg-slate-200"
+                    )}
+                  />
+                ))}
+              </div>
+              <div className="w-12" />
+            </div>
+
+            {/* 图片 */}
+            <motion.div
+              layoutId={`story-image-${currentStory}`}
+              className="mx-6 mt-4 rounded-3xl overflow-hidden shadow-2xl border-4 border-white"
+            >
+              <img 
+                src={story.image} 
+                alt="故事" 
+                className="w-full aspect-video object-cover"
+              />
+            </motion.div>
+
+            {/* 文字内容 */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="flex-1 p-6 flex flex-col items-center justify-center"
+            >
+              <div className="bg-white rounded-3xl p-6 shadow-lg border-2 border-amber-100 max-w-sm text-center">
+                <p className="text-xl font-bold text-slate-700 leading-relaxed">
+                  "{story.text}"
+                </p>
+              </div>
+
+              {/* 完成提示 */}
+              <motion.div
+                initial={{ scale: 0.8 }}
+                animate={{ scale: 1 }}
+                className="mt-6 bg-gradient-to-r from-emerald-50 to-teal-50 rounded-2xl px-6 py-3 shadow-md"
+              >
+                <p className="text-emerald-600 font-bold text-lg">听完了！✨</p>
+              </motion.div>
+
+              {/* 按钮组 */}
+              <div className="mt-6 flex flex-col gap-3 w-full max-w-xs">
+                {/* 重听按钮 */}
+                <button
+                  onClick={() => speakText(story.text)}
+                  className="w-full h-12 bg-white border-2 border-amber-200 rounded-full flex items-center justify-center gap-2 text-amber-600 font-bold"
+                >
+                  <Volume2 size={20} />
+                  再听一遍
+                </button>
+                
+                {/* 开始答题按钮 */}
+                <Button
+                  onClick={() => {
+                    setPhase('question');
+                    speakText(story.question);
+                  }}
+                  className="w-full h-14 bg-gradient-to-r from-rose-400 to-pink-500 text-white font-bold text-lg rounded-full shadow-lg border-none"
+                >
+                  <Mic size={22} className="mr-2" />
+                  开始答题
+                </Button>
+              </div>
             </motion.div>
           </motion.div>
         )}

@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { MessageCircle, BookOpen, Gamepad2, Heart, Settings } from 'lucide-react';
+import { Heart, Sparkles } from 'lucide-react';
 import MobileShell from '../components/MobileShell';
 import Navigation from '../components/Navigation';
 import { Card } from '../components/ui/card';
@@ -17,10 +17,10 @@ const Home = () => {
       id: 'chat',
       title: 'AI宠物聊天',
       desc: '练习开口说话',
-      icon: MessageCircle,
-      color: 'bg-rose-100',
-      textColor: 'text-rose-600',
-      iconColor: 'bg-rose-200',
+      emoji: '💬',
+      color: 'bg-gradient-to-r from-pink-100 to-rose-100',
+      textColor: 'text-pink-600',
+      emojiBg: 'bg-pink-200',
       path: '/chat',
       goal: '训练主动语言'
     },
@@ -28,10 +28,10 @@ const Home = () => {
       id: 'books',
       title: '绘本闯关',
       desc: '理解社交场景',
-      icon: BookOpen,
-      color: 'bg-amber-100',
+      emoji: '📚',
+      color: 'bg-gradient-to-r from-amber-100 to-orange-100',
       textColor: 'text-amber-600',
-      iconColor: 'bg-amber-200',
+      emojiBg: 'bg-amber-200',
       path: '/books',
       goal: '场景认知与社交'
     },
@@ -39,10 +39,10 @@ const Home = () => {
       id: 'training',
       title: '趣味训练',
       desc: '逻辑与表达',
-      icon: Gamepad2,
-      color: 'bg-emerald-100',
+      emoji: '🎮',
+      color: 'bg-gradient-to-r from-emerald-100 to-teal-100',
       textColor: 'text-emerald-600',
-      iconColor: 'bg-emerald-200',
+      emojiBg: 'bg-emerald-200',
       path: '/training',
       goal: '逻辑思维'
     }
@@ -56,13 +56,13 @@ const Home = () => {
           {/* 设置按钮 */}
           <button 
             onClick={() => navigate('/settings')}
-            className="absolute top-0 right-0 w-10 h-10 bg-white/80 backdrop-blur rounded-full flex items-center justify-center shadow-md z-20"
+            className="absolute top-0 right-0 w-12 h-12 bg-white/90 backdrop-blur rounded-full flex items-center justify-center shadow-lg z-20 border-2 border-white"
           >
-            <Settings size={18} className="text-slate-400" />
+            <span className="text-2xl">⚙️</span>
           </button>
           
           {/* 亲密度 */}
-          <div className="absolute top-0 left-0 bg-gradient-to-r from-pink-100 to-rose-100 px-4 py-1.5 rounded-full border border-pink-200 flex items-center gap-2">
+          <div className="absolute top-0 left-0 bg-gradient-to-r from-pink-100 to-rose-100 px-4 py-1.5 rounded-full border-2 border-rose-200 flex items-center gap-2 shadow-sm">
             <Heart size={14} className="text-rose-400 fill-rose-400" />
             <span className="text-xs font-bold text-rose-600">亲密度 85</span>
           </div>
@@ -113,20 +113,21 @@ const Home = () => {
               onClick={() => navigate(item.path)}
             >
               <Card className={cn(
-                "p-5 flex items-center border-none shadow-sm cursor-pointer rounded-[32px] overflow-hidden relative group",
+                "p-5 flex items-center border-none shadow-sm cursor-pointer rounded-[28px] overflow-hidden relative",
                 item.color
               )}>
-                <div className={cn("w-16 h-16 rounded-2xl flex items-center justify-center mr-4 shadow-sm", item.iconColor)}>
-                  <item.icon className={item.textColor} size={32} />
+                <div className={cn("w-16 h-16 rounded-2xl flex items-center justify-center mr-4 shadow-sm text-3xl", item.emojiBg)}>
+                  {item.emoji}
                 </div>
                 <div className="flex-1">
                   <h3 className={cn("text-xl font-bold", item.textColor)}>{item.title}</h3>
                   <p className="text-slate-500 text-sm mt-0.5">{item.desc}</p>
-                  <div className="mt-2 inline-block px-3 py-0.5 rounded-full bg-white/60 text-[10px] font-bold text-slate-500 uppercase tracking-tight">
-                    目标: {item.goal}
+                  <div className="mt-2 inline-flex items-center gap-1 px-3 py-1 rounded-full bg-white/60 text-[10px] font-bold text-slate-500 uppercase tracking-tight">
+                    <Sparkles size={10} className="text-amber-400" />
+                    {item.goal}
                   </div>
                 </div>
-                <div className="w-10 h-10 rounded-full bg-white/40 flex items-center justify-center">
+                <div className="w-10 h-10 rounded-full bg-white/50 flex items-center justify-center">
                   <motion.div
                     animate={{ x: [0, 4, 0] }}
                     transition={{ repeat: Infinity, duration: 1.5 }}
