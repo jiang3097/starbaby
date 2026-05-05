@@ -78,9 +78,17 @@ export const UserProvider = ({ children }: UserProviderProps) => {
       if (saved) {
         const parsed = JSON.parse(saved);
         const today = new Date().toISOString().split('T')[0];
-        const lastLogin = parsed.lastLoginDate || today;
+        
+        // 迁移旧数据：确保有新字段
+        const migrated = {
+          ...defaultProfile,
+          ...parsed,
+          lastLoginDate: today,
+          todayIntimacyAdded: parsed.todayIntimacyAdded ?? 0,
+        };
         
         // 检查是否跨天
+        const lastLogin = parsed.lastLoginDate || today;
         if (lastLogin !== today) {
           // 计算间隔天数
           const lastDate = new Date(lastLogin);
@@ -88,18 +96,17 @@ export const UserProvider = ({ children }: UserProviderProps) => {
           const diffDays = Math.floor((todayDate.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24));
           
           // 扣减亲密度（每天扣5点）
-          const deducted = Math.min(diffDays * 5, parsed.intimacy);
-          parsed.intimacy = Math.max(parsed.intimacy - deducted, 0);
+          const deducted = Math.min(diffDays * 5, migrated.intimacy);
+          migrated.intimacy = Math.max(migrated.intimacy - deducted, 0);
           
           // 重置当天已增加亲密度
-          parsed.todayIntimacyAdded = 0;
-          parsed.lastLoginDate = today;
-          
-          // 保存更新后的数据
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
+          migrated.todayIntimacyAdded = 0;
+          migrated.lastLoginDate = today;
         }
         
-        return parsed;
+        // 保存更新后的数据
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(migrated));
+        return migrated;
       }
     } catch (e) {
       // ignore
