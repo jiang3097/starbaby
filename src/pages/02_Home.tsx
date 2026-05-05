@@ -142,7 +142,7 @@ const Home = () => {
           {/* 亲密度 */}
           <div className="absolute top-0 left-0 bg-gradient-to-r from-pink-100 to-rose-100 px-4 py-1.5 rounded-full border-2 border-rose-200 flex items-center gap-2 shadow-sm">
             <Heart size={14} className="text-rose-400 fill-rose-400" />
-            <span className="text-xs font-bold text-rose-600">亲密度 85</span>
+            <span className="text-xs font-bold text-rose-600">亲密度 {profile.intimacy}</span>
           </div>
           
           <div className="flex flex-col items-center justify-center py-6">
