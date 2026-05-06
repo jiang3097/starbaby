@@ -59,12 +59,18 @@ export function speakText(
   return baiduSpeakText(text, onStart, onEnd);
 }
 
-// 停止朗读
+// 停止朗读 - 停止所有音频
 export function stopSpeaking(): void {
+  // 停止百度 TTS
   stopBaiduSpeech();
+  
+  // 停止浏览器原生 TTS
+  if ('speechSynthesis' in window) {
+    window.speechSynthesis.cancel();
+  }
 }
 
-// 开始语音识别（使用浏览器原生）
+// 开始语音识别 - 自动检测说话结束
 export function startListening(
   onResult: (transcript: string) => void,
   onEnd?: () => void
@@ -78,14 +84,21 @@ export function startListening(
   }
 
   const recognition = new SpeechRecognition();
+  // 自动结束：检测到用户停止说话后自动结束
   recognition.continuous = false;
   recognition.interimResults = true;
   recognition.lang = 'zh-CN';
+  
+  // 空闲超时时间（毫秒）- 超过这个时间没说话就自动结束
+  // 不设置这个，靠 onend 事件自动检测
 
   let finalTranscript = '';
+  let interimTranscript = '';
+  let hasResult = false;
 
   recognition.onresult = (event: any) => {
-    let interimTranscript = '';
+    interimTranscript = '';
+    hasResult = true;
     for (let i = event.resultIndex; i < event.results.length; i++) {
       const transcript = event.results[i][0].transcript;
       if (event.results[i].isFinal) {
@@ -94,24 +107,43 @@ export function startListening(
         interimTranscript += transcript;
       }
     }
+    // 实时返回结果（包含临时结果）
     onResult(finalTranscript || interimTranscript);
   };
 
+  // 用户停止说话时自动触发
   recognition.onend = () => {
+    // 如果有识别到内容，返回最终结果
+    if (finalTranscript || hasResult) {
+      onResult(finalTranscript || interimTranscript);
+    }
     onEnd?.();
   };
 
   recognition.onerror = (event: any) => {
     console.error('Speech recognition error:', event.error);
-    if (event.error !== 'no-speech') {
-      // 静默处理错误
+    // no-speech 错误也视为正常结束
+    if (event.error === 'no-speech' || event.error === 'aborted') {
+      if (finalTranscript) {
+        onResult(finalTranscript);
+      }
+      onEnd?.();
+    } else {
+      onEnd?.();
     }
-    onEnd?.();
   };
 
+  // 开始识别
   recognition.start();
 
+  // 最多30秒超时保护
+  const timeout = setTimeout(() => {
+    recognition.stop();
+  }, 30000);
+
+  // 返回停止函数
   return () => {
+    clearTimeout(timeout);
     recognition.stop();
   };
 }
