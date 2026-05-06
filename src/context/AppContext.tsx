@@ -94,25 +94,7 @@ const getWeekDates = (): string[] => {
 // 初始化日数据
 const initDailyStats = (): DailyStats => {
   const today = new Date().toISOString().split('T')[0];
-  const stored = localStorage.getItem(DAILY_STORAGE_KEY);
-  if (stored) {
-    try {
-      const parsed = JSON.parse(stored);
-      if (parsed.date === today) {
-        // 确保所有值都是数字，避免旧数据格式问题
-        return {
-          date: today,
-          trainingMinutes: Number(parsed.trainingMinutes) || 0,
-          expressionCount: Number(parsed.expressionCount) || 0,
-          gamePassCount: Number(parsed.gamePassCount) || 0,
-          chatMessages: Number(parsed.chatMessages) || 0,
-          bookCompleted: Number(parsed.bookCompleted) || 0,
-          trainingGames: Number(parsed.trainingGames) || 0,
-        };
-      }
-    } catch { /* ignore */ }
-  }
-  // 返回默认0值
+  // 强制返回0值，不读取旧数据
   return {
     date: today,
     trainingMinutes: 0,
@@ -126,16 +108,7 @@ const initDailyStats = (): DailyStats => {
 
 // 初始化周数据
 const initWeeklyStats = (): WeeklyStats => {
-  const stored = localStorage.getItem(WEEKLY_STORAGE_KEY);
-  if (stored) {
-    try {
-      const parsed = JSON.parse(stored);
-      const { start, end } = getWeekRange();
-      if (parsed.weekStart === start && parsed.weekEnd === end) {
-        return parsed.data || {};
-      }
-    } catch { /* ignore */ }
-  }
+  // 强制返回空数据，不读取旧数据
   const weekData: WeeklyStats = {};
   getWeekDates().forEach(date => {
     weekData[date] = { trainingMinutes: 0, expressionCount: 0, gamePassCount: 0 };
