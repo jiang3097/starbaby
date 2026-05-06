@@ -135,8 +135,7 @@ const AIChat = () => {
           setIsListening(false);
           handleSend(text);
         },
-        (error) => {
-          console.error('Voice input error:', error);
+        () => {
           setIsListening(false);
         }
       );

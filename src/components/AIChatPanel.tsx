@@ -120,8 +120,7 @@ const AIChatPanel: React.FC<AIChatPanelProps> = ({
           setIsListening(false);
           handleSend(text);
         },
-        (error) => {
-          console.error('Voice input error:', error);
+        () => {
           setIsListening(false);
         }
       );

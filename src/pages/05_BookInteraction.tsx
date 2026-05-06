@@ -230,8 +230,7 @@ const BookInteraction = () => {
           speakText(`回答得很好。其实正确答案是：${story.answer}`);
         }
       },
-      (error) => {
-        console.error('Voice error:', error);
+      () => {
         setIsListening(false);
       }
     );

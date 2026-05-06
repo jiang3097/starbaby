@@ -1,52 +1,5 @@
-import { useState, useCallback, useRef, useEffect } from 'react';
-
-// 类型声明
-interface SpeechRecognitionResultList {
-  length: number;
-  item(index: number): SpeechRecognitionResult;
-  [index: number]: SpeechRecognitionResult;
-}
-
-interface SpeechRecognitionResult {
-  isFinal: boolean;
-  length: number;
-  item(index: number): SpeechRecognitionAlternative;
-  [index: number]: SpeechRecognitionAlternative;
-}
-
-interface SpeechRecognitionAlternative {
-  transcript: string;
-  confidence: number;
-}
-
-interface SpeechRecognitionEvent extends Event {
-  results: SpeechRecognitionResultList;
-  resultIndex: number;
-}
-
-interface SpeechRecognitionErrorEvent extends Event {
-  error: string;
-}
-
-interface ISpeechRecognition extends EventTarget {
-  continuous: boolean;
-  interimResults: boolean;
-  lang: string;
-  start: () => void;
-  stop: () => void;
-  abort: () => void;
-  onresult: ((event: SpeechRecognitionEvent) => void) | null;
-  onerror: ((event: SpeechRecognitionErrorEvent) => void) | null;
-  onend: (() => void) | null;
-  onstart: (() => void) | null;
-}
-
-declare global {
-  interface Window {
-    SpeechRecognition: new () => ISpeechRecognition;
-    webkitSpeechRecognition: new () => ISpeechRecognition;
-  }
-}
+// 语音服务 - 优化版
+// 使用浏览器原生 TTS，优化参数使其听起来更可爱
 
 // 可选的声音包
 export interface VoicePackage {
@@ -54,48 +7,51 @@ export interface VoicePackage {
   name: string;
   description: string;
   emoji: string;
-  // 声音特征关键词
-  femaleKeywords?: string[];    // 女性声音关键词
-  maleKeywords?: string[];     // 男性声音关键词
-  youngKeywords?: string[];    // 年轻声音关键词
-  elderKeywords?: string[];    // 年长声音关键词
+  rate: number;    // 语速
+  pitch: number;   // 音调
+  volume: number;  // 音量
 }
 
 export const VOICE_PACKAGES: VoicePackage[] = [
   {
     id: 'default',
-    name: '小宝贝',
-    description: '俏皮可爱的童声',
+    name: '朵朵童声',
+    description: '活泼可爱的小女孩声音',
     emoji: '👧',
-    femaleKeywords: ['female', 'woman', 'lady', '女', '女性'],
-    youngKeywords: ['young', 'child', 'kid', '童', '孩', '小', 'Ting-Ting', 'Huihui'],
+    rate: 1.15,   // 稍快，更活泼
+    pitch: 1.3,    // 较高音调，更可爱
+    volume: 1.0,
   },
   {
-    id: 'child',
-    name: '小甜心',
+    id: 'yuer',
+    name: '月儿甜声',
     description: '甜美的小女孩声音',
     emoji: '👧',
-    femaleKeywords: ['female', 'woman', 'lady', '女', '女性', 'girl'],
-    youngKeywords: ['young', 'child', 'kid', '童', '孩', '小', 'Ting-Ting', 'Huihui', 'xiaomei'],
+    rate: 1.1,
+    pitch: 1.25,
+    volume: 1.0,
   },
   {
     id: 'male',
     name: '温暖男声',
     description: '友好的男声',
     emoji: '👨',
-    maleKeywords: ['male', 'man', '男', '男性', '男声'],
+    rate: 0.95,
+    pitch: 1.0,
+    volume: 1.0,
   },
   {
     id: 'elder',
     name: '爷爷声音',
     description: '慈祥的爷爷声音',
     emoji: '👴',
-    maleKeywords: ['male', 'man', '男', '男性', '男声'],
-    elderKeywords: ['elder', 'old', 'senior', '老', 'Yunyan', 'Kangkang'],
+    rate: 0.85,
+    pitch: 0.9,
+    volume: 1.0,
   },
 ];
 
-// 当前选中的声音包 - 默认为童声（俏皮可爱的小女孩音色）
+// 当前选中的声音包 - 默认为朵朵童声
 let currentVoicePackage: VoicePackage = VOICE_PACKAGES[0];
 
 export function setVoicePackage(pkg: VoicePackage) {
@@ -110,7 +66,6 @@ export function getVoicePackage(): VoicePackage {
 function getAvailableVoices(): SpeechSynthesisVoice[] {
   if (!('speechSynthesis' in window)) return [];
   const voices = window.speechSynthesis.getVoices();
-  // 某些浏览器需要触发加载
   if (voices.length === 0) {
     window.speechSynthesis.getVoices();
   }
@@ -124,7 +79,7 @@ export function preloadVoices(): void {
 }
 
 // 选择最适合的声音
-function selectBestVoice(lang: string = 'zh-CN'): SpeechSynthesisVoice | null {
+function selectBestVoice(): SpeechSynthesisVoice | null {
   const voices = getAvailableVoices();
   if (voices.length === 0) return null;
 
@@ -137,48 +92,35 @@ function selectBestVoice(lang: string = 'zh-CN'): SpeechSynthesisVoice | null {
     candidates = voices;
   }
 
-  // 根据声音包特征匹配 - 童声优先选择年轻女性声音
-  const pkgKeywords = [
-    ...(pkg.femaleKeywords || []),
-    ...(pkg.maleKeywords || []),
-    ...(pkg.youngKeywords || []),
-    ...(pkg.elderKeywords || []),
-  ];
-
-  if (pkgKeywords.length > 0) {
-    // 1. 先尝试完全匹配关键词
-    let matched = candidates.find(v => 
-      pkgKeywords.some(kw => v.name.toLowerCase().includes(kw.toLowerCase()))
-    );
+  // 童声优先选择年轻女性/女声
+  if (pkg.id === 'default' || pkg.id === 'yuer') {
+    // 1. 优先找明确标注为女性/女声的
+    let matched = candidates.find(v => {
+      const name = v.name.toLowerCase();
+      return name.includes('female') || name.includes('woman') || name.includes('girl') || 
+             name.includes('女') || name.includes('年轻');
+    });
     if (matched) return matched;
-
-    // 2. 如果是女声包/童声包，排除男声
-    if (pkg.femaleKeywords && !pkg.maleKeywords) {
-      matched = candidates.find(v => {
-        const nameLower = v.name.toLowerCase();
-        const isMale = ['male', 'man', '男', '男性'].some(kw => nameLower.includes(kw));
-        return !isMale;
-      });
-      if (matched) return matched;
-    }
-
-    // 3. 如果是男声包，优先男性声音
-    if (pkg.maleKeywords && !pkg.femaleKeywords) {
-      matched = candidates.find(v => {
-        const nameLower = v.name.toLowerCase();
-        return ['male', 'man', '男', '男性'].some(kw => nameLower.includes(kw));
-      });
-      if (matched) return matched;
-    }
+    
+    // 2. 排除男声
+    matched = candidates.find(v => {
+      const name = v.name.toLowerCase();
+      return !name.includes('male') && !name.includes('man') && !name.includes('男');
+    });
+    if (matched) return matched;
   }
 
-  // 默认返回女性中文声音（最清晰可爱）
-  const defaultFemale = candidates.find(v => {
-    const nameLower = v.name.toLowerCase();
-    return ['female', 'woman', 'lady', '女'].some(kw => nameLower.includes(kw));
-  });
-  
-  return defaultFemale || candidates[0];
+  // 男声优先选择男性声音
+  if (pkg.id === 'male' || pkg.id === 'elder') {
+    const matched = candidates.find(v => {
+      const name = v.name.toLowerCase();
+      return name.includes('male') || name.includes('man') || name.includes('男');
+    });
+    if (matched) return matched;
+  }
+
+  // 默认返回第一个中文声音
+  return candidates[0];
 }
 
 // 朗读文本
@@ -204,19 +146,11 @@ export function speakText(
   const utterance = new SpeechSynthesisUtterance(text);
   utterance.lang = 'zh-CN';
   
-  // 根据声音包调整语速和音调
+  // 根据声音包设置参数
   const pkg = currentVoicePackage;
-  if (pkg.id === 'child' || pkg.id === 'default') {
-    // 童声：小孩子、俏皮可爱、音色亮
-    utterance.rate = 1.1;   // 稍快一点的语速，更活泼
-    utterance.pitch = 1.15; // 稍高的音调，更亮更可爱
-  } else if (pkg.id === 'elder') {
-    utterance.rate = 0.8;
-    utterance.pitch = 0.9;
-  } else {
-    utterance.rate = 0.95;
-    utterance.pitch = 1.0;
-  }
+  utterance.rate = pkg.rate;
+  utterance.pitch = pkg.pitch;
+  utterance.volume = pkg.volume;
 
   // 选择声音
   const voice = selectBestVoice();
@@ -232,8 +166,7 @@ export function speakText(
     onEnd?.();
   };
 
-  utterance.onerror = (e) => {
-    console.error('TTS error:', e);
+  utterance.onerror = () => {
     onEnd?.();
   };
 
@@ -247,67 +180,96 @@ export function speakText(
 
 // 开始语音识别
 export function startListening(
-  onResult: (text: string) => void,
-  onError?: (error: string) => void,
-  onStart?: () => void
+  onResult: (transcript: string) => void,
+  onEnd?: () => void
 ): () => void {
-  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
   
   if (!SpeechRecognition) {
-    console.warn('STT not supported');
-    onError?.('浏览器不支持语音识别');
+    console.warn('Speech recognition not supported');
+    onEnd?.();
     return () => {};
   }
 
   const recognition = new SpeechRecognition();
   recognition.continuous = false;
-  recognition.interimResults = false; // 只返回最终结果
+  recognition.interimResults = true;
   recognition.lang = 'zh-CN';
 
   let finalTranscript = '';
 
-  recognition.onstart = () => {
-    console.log('STT started');
-    onStart?.();
-    finalTranscript = '';
-  };
-
-  recognition.onresult = (event: SpeechRecognitionEvent) => {
-    finalTranscript = '';
-    for (let i = 0; i < event.results.length; i++) {
-      const result = event.results[i];
-      if (result.isFinal) {
-        finalTranscript += result[0].transcript;
+  recognition.onresult = (event: any) => {
+    let interimTranscript = '';
+    for (let i = event.resultIndex; i < event.results.length; i++) {
+      const transcript = event.results[i][0].transcript;
+      if (event.results[i].isFinal) {
+        finalTranscript += transcript;
+      } else {
+        interimTranscript += transcript;
       }
     }
+    onResult(finalTranscript || interimTranscript);
   };
 
   recognition.onend = () => {
-    console.log('STT ended, transcript:', finalTranscript);
-    if (finalTranscript.trim()) {
-      onResult(finalTranscript.trim());
-    }
+    onEnd?.();
   };
 
-  recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
-    console.error('STT error:', event.error);
-    onError?.(event.error);
+  recognition.onerror = (event: any) => {
+    console.error('Speech recognition error:', event.error);
+    if (event.error !== 'no-speech') {
+      // 静默处理错误
+    }
+    onEnd?.();
   };
 
   recognition.start();
 
   // 返回停止函数
   return () => {
-    try {
-      recognition.stop();
-    } catch (e) {
-      // ignore
-    }
+    recognition.stop();
   };
 }
 
-// 获取中文声音数量
-export function getChineseVoiceCount(): number {
-  const voices = getAvailableVoices();
-  return voices.filter(v => v.lang.includes('zh')).length;
+// 停止语音识别
+export function stopListening(): void {
+  const recognition = (window as any)._speechRecognition;
+  if (recognition) {
+    recognition.stop();
+  }
+}
+
+// 跟读模式
+export async function followRead(
+  text: string,
+  onStart?: () => void,
+  onSpeakEnd?: () => void,
+  onListenStart?: () => void,
+  onListenEnd?: (transcript: string) => void,
+  onComplete?: () => void
+): Promise<void> {
+  return new Promise((resolve) => {
+    // 先朗读一遍
+    speakText(text, onStart, () => {
+      onSpeakEnd?.();
+      
+      // 等待一下再开始录音
+      setTimeout(() => {
+        onListenStart?.();
+        
+        const stopListeningFn = startListening(
+          (transcript) => {
+            onListenEnd?.(transcript);
+            stopListeningFn();
+            onComplete?.();
+            resolve();
+          },
+          () => {
+            onComplete?.();
+            resolve();
+          }
+        );
+      }, 500);
+    });
+  });
 }

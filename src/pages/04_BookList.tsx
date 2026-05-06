@@ -6,9 +6,11 @@ import MobileShell from '../components/MobileShell';
 import { Card } from '../components/ui/card';
 import { cn } from '../lib/utils';
 import AIChatPanel from '../components/AIChatPanel';
+import { useApp } from '../context/AppContext';
 
 const BookList = () => {
   const navigate = useNavigate();
+  const { dailyStats } = useApp();
   const [isAIChatOpen, setIsAIChatOpen] = useState(false);
   const [selectedBook, setSelectedBook] = useState<string>('');
 
@@ -112,7 +114,7 @@ const BookList = () => {
               <Star size={24} className="text-white" fill="currentColor" />
             </div>
             <div>
-              <div className="text-2xl font-bold text-slate-800">12</div>
+              <div className="text-2xl font-bold text-slate-800">{dailyStats.gamePassCount}</div>
               <div className="text-xs text-amber-600 font-bold">获得星星</div>
             </div>
           </motion.div>
@@ -124,7 +126,7 @@ const BookList = () => {
               <CheckCircle2 size={24} className="text-white" />
             </div>
             <div>
-              <div className="text-2xl font-bold text-slate-800">4/10</div>
+              <div className="text-2xl font-bold text-slate-800">{dailyStats.bookCompleted}/10</div>
               <div className="text-xs text-emerald-600 font-bold">已通关</div>
             </div>
           </motion.div>

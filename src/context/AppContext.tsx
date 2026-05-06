@@ -60,7 +60,13 @@ const defaultDailyStats: DailyStats = {
 };
 
 function AppProvider({ children }: { children: React.ReactNode }) {
-  const [dailyStats, setDailyStats] = useState<DailyStats>({ ...defaultDailyStats });
+  // 强制从0开始，不读取任何旧数据
+  const [dailyStats, setDailyStats] = useState<DailyStats>(() => {
+    // 强制清除旧数据
+    localStorage.removeItem(DAILY_STORAGE_KEY);
+    localStorage.removeItem(WEEKLY_STORAGE_KEY);
+    return { ...defaultDailyStats };
+  });
   const [weeklyStats, setWeeklyStats] = useState<WeeklyStats>({});
   const [timeLimit, setTimeLimitState] = useState<TimeLimit>({ enabled: false, minutes: 30, customMinutes: null });
   const [timeLimitReached, setTimeLimitReached] = useState(false);
@@ -129,10 +135,12 @@ function AppProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem(LIMIT_STORAGE_KEY, JSON.stringify(limit));
   }, []);
 
+  // 保存数据到 localStorage
   useEffect(() => {
     localStorage.setItem(DAILY_STORAGE_KEY, JSON.stringify(dailyStats));
   }, [dailyStats]);
 
+  // 更新周数据
   useEffect(() => {
     const weekData = getWeekDates();
     const week: WeeklyStats = {};
