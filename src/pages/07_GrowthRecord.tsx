@@ -5,7 +5,8 @@ import { ChevronLeft, Heart, Trophy, Star, MessageCircle, BookOpen, Gamepad2, Tr
 import MobileShell from '../components/MobileShell';
 import { cn } from '../lib/utils';
 import { useUser } from '../context/UserContext';
-import { useApp, getWeekDates } from '../context/AppContext';
+import { useApp } from '../context/AppContext';
+import { getWeekDates } from '../lib/utils';
 import { speakText, preloadVoices } from '../lib/useSpeech';
 
 // 洗澡特效组件

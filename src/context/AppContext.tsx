@@ -1,4 +1,11 @@
-import React, { createContext, useContext, useState, useCallback, useRef, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { getWeekDates } from '../lib/utils';
+
+const AppContext = createContext<AppContextType | undefined>(undefined);
+
+const DAILY_STORAGE_KEY = 'star_baby_daily_stats';
+const WEEKLY_STORAGE_KEY = 'star_baby_weekly_stats';
+const LIMIT_STORAGE_KEY = 'star_baby_time_limit';
 
 interface DailyStats {
   date: string;
@@ -24,30 +31,25 @@ interface TimeLimit {
   customMinutes: number | null;
 }
 
-interface TrainingSession {
-  startTime: number | null;
-  type: 'chat' | 'book' | 'training' | null;
-}
-
 interface AppContextType {
   dailyStats: DailyStats;
   weeklyStats: WeeklyStats;
   timeLimit: TimeLimit;
-  isTimeLimitReached: boolean;
+  timeLimitReached: boolean;
   showTimeLimitModal: boolean;
-  setTimeLimit: (limit: TimeLimit) => void;
   setShowTimeLimitModal: (show: boolean) => void;
   resetTimeLimit: () => void;
-  startTraining: (type: 'chat' | 'book' | 'training') => void;
-  endTraining: () => void;
-  incrementExpression: (source: 'chat' | 'book') => void;
   incrementGamePass: () => void;
+  incrementExpression: (source: 'chat' | 'book') => void;
   incrementChatMessage: () => void;
   incrementBookCompleted: () => void;
   incrementTrainingGame: () => void;
+  startTraining: () => void;
+  setTimeLimit: (limit: TimeLimit) => void;
+  setTimeLimitReached: (reached: boolean) => void;
 }
 
-const defaultStats: DailyStats = {
+const defaultDailyStats: DailyStats = {
   date: new Date().toISOString().split('T')[0],
   trainingMinutes: 0,
   expressionCount: 0,
@@ -57,312 +59,127 @@ const defaultStats: DailyStats = {
   trainingGames: 0,
 };
 
-const AppContext = createContext<AppContextType | undefined>(undefined);
-
-const DAILY_STORAGE_KEY = 'star_baby_daily_stats';
-const WEEKLY_STORAGE_KEY = 'star_baby_weekly_stats';
-const LIMIT_STORAGE_KEY = 'star_baby_time_limit';
-const REACHED_STORAGE_KEY = 'star_baby_time_reached';
-
-// 获取本周一和周日日期
-const getWeekRange = (): { start: string; end: string } => {
-  const now = new Date();
-  const dayOfWeek = now.getDay() || 7;
-  const monday = new Date(now);
-  monday.setDate(now.getDate() - dayOfWeek + 1);
-  const sunday = new Date(monday);
-  sunday.setDate(monday.getDate() + 6);
-  return {
-    start: monday.toISOString().split('T')[0],
-    end: sunday.toISOString().split('T')[0]
-  };
-};
-
-// 获取本周所有日期
-const getWeekDates = (): string[] => {
-  const { start } = getWeekRange();
-  const dates: string[] = [];
-  const monday = new Date(start);
-  for (let i = 0; i < 7; i++) {
-    const date = new Date(monday);
-    date.setDate(monday.getDate() + i);
-    dates.push(date.toISOString().split('T')[0]);
-  }
-  return dates;
-};
-
-// 初始化日数据
-const initDailyStats = (): DailyStats => {
-  const today = new Date().toISOString().split('T')[0];
-  // 强制返回0值，不读取旧数据
-  return {
-    date: today,
-    trainingMinutes: 0,
-    expressionCount: 0,
-    gamePassCount: 0,
-    chatMessages: 0,
-    bookCompleted: 0,
-    trainingGames: 0,
-  };
-};
-
-// 初始化周数据
-const initWeeklyStats = (): WeeklyStats => {
-  // 强制返回空数据，不读取旧数据
-  const weekData: WeeklyStats = {};
-  getWeekDates().forEach(date => {
-    weekData[date] = { trainingMinutes: 0, expressionCount: 0, gamePassCount: 0 };
-  });
-  return weekData;
-};
-
-// 初始化限时
-const initTimeLimit = (): TimeLimit => {
-  const stored = localStorage.getItem(LIMIT_STORAGE_KEY);
-  if (stored) {
-    try {
-      return JSON.parse(stored);
-    } catch { /* ignore */ }
-  }
-  return { enabled: false, minutes: 30, customMinutes: null };
-};
-
-// 初始化是否已达限
-const initTimeReached = (): boolean => {
-  const stored = localStorage.getItem(REACHED_STORAGE_KEY);
-  if (stored) {
-    try {
-      const today = new Date().toISOString().split('T')[0];
-      const parsed = JSON.parse(stored);
-      if (parsed.date === today) {
-        return parsed.reached;
-      }
-    } catch { /* ignore */ }
-  }
-  return false;
-};
-
-export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [dailyStats, setDailyStats] = useState<DailyStats>(initDailyStats);
-  const [weeklyStats, setWeeklyStats] = useState<WeeklyStats>(initWeeklyStats);
-  const [timeLimit, setTimeLimitState] = useState<TimeLimit>(initTimeLimit);
-  const [isTimeLimitReached, setIsTimeLimitReached] = useState(initTimeReached);
+function AppProvider({ children }: { children: React.ReactNode }) {
+  const [dailyStats, setDailyStats] = useState<DailyStats>({ ...defaultDailyStats });
+  const [weeklyStats, setWeeklyStats] = useState<WeeklyStats>({});
+  const [timeLimit, setTimeLimitState] = useState<TimeLimit>({ enabled: false, minutes: 30, customMinutes: null });
+  const [timeLimitReached, setTimeLimitReached] = useState(false);
   const [showTimeLimitModal, setShowTimeLimitModal] = useState(false);
-  const [unlockTimeOffset, setUnlockTimeOffset] = useState(0); // 解锁时的时间偏移量
+  const [trainingStartTime, setTrainingStartTime] = useState<number | null>(null);
 
-  const currentSession = useRef<TrainingSession>({ startTime: null, type: null });
-  const sessionTimer = useRef<ReturnType<typeof setInterval> | null>(null);
-  const statsRef = useRef({ dailyStats, weeklyStats });
-  const hasShownLimitModal = useRef(false);
-  
-  statsRef.current = { dailyStats, weeklyStats };
-
-  // 检查是否达到限时（计时器每分钟触发）
-  useEffect(() => {
-    if (!timeLimit.enabled || hasShownLimitModal.current || isTimeLimitReached) {
-      return;
-    }
-    const limitMinutes = timeLimit.customMinutes || timeLimit.minutes;
-    // 减去解锁时的时间偏移量
-    const effectiveMinutes = dailyStats.trainingMinutes - unlockTimeOffset;
-    if (effectiveMinutes >= limitMinutes) {
-      setIsTimeLimitReached(true);
-      setShowTimeLimitModal(true);
-      hasShownLimitModal.current = true;
-    }
-  }, [dailyStats.trainingMinutes, timeLimit, isTimeLimitReached, unlockTimeOffset]);
-
-  // 设置限时
-  const setTimeLimit = useCallback((limit: TimeLimit) => {
-    setTimeLimitState(limit);
-    localStorage.setItem(LIMIT_STORAGE_KEY, JSON.stringify(limit));
-    if (!limit.enabled) {
-      setIsTimeLimitReached(false);
-      hasShownLimitModal.current = false;
-      const today = new Date().toISOString().split('T')[0];
-      localStorage.setItem(REACHED_STORAGE_KEY, JSON.stringify({ date: today, reached: false }));
-    }
-  }, []);
-
-  // 重置限时 - 解锁后继续使用
   const resetTimeLimit = useCallback(() => {
+    setTimeLimitReached(false);
     setShowTimeLimitModal(false);
-    setIsTimeLimitReached(false);
-    // 记录当前训练时长作为偏移量，解锁后重新计时
-    setUnlockTimeOffset(dailyStats.trainingMinutes);
-    // 重置标记，这样下次达到限时可以再次触发
-    hasShownLimitModal.current = false;
-  }, [dailyStats.trainingMinutes]);
-
-  // 开始训练计时
-  const startTraining = useCallback((type: 'chat' | 'book' | 'training') => {
-    if (isTimeLimitReached) return; // 已达限时不允许开始
-    
-    if (currentSession.current.startTime && currentSession.current.type === type) {
-      return;
-    }
-    
-    if (currentSession.current.startTime) {
-      if (sessionTimer.current) {
-        clearInterval(sessionTimer.current);
-        sessionTimer.current = null;
-      }
-      const elapsed = Date.now() - currentSession.current.startTime;
-      const minutes = Math.max(1, Math.ceil(elapsed / 60000));
-      const today = new Date().toISOString().split('T')[0];
-      setDailyStats(prev => ({ ...prev, trainingMinutes: prev.trainingMinutes + minutes }));
-      setWeeklyStats(prev => {
-        const newData = { ...prev };
-        if (!newData[today]) newData[today] = { trainingMinutes: 0, expressionCount: 0, gamePassCount: 0 };
-        newData[today].trainingMinutes += minutes;
-        return newData;
-      });
-    }
-    
-    currentSession.current = { startTime: Date.now(), type };
-    
-    if (sessionTimer.current) {
-      clearInterval(sessionTimer.current);
-    }
-    
-    sessionTimer.current = setInterval(() => {
-      // 暂停状态下不更新计时（但计时器继续运行，等待解锁后继续）
-      if (isTimeLimitReached) {
-        return; // 只暂停更新，不停止计时器
-      }
-      const today = new Date().toISOString().split('T')[0];
-      setDailyStats(prev => ({ ...prev, trainingMinutes: prev.trainingMinutes + 1 }));
-      setWeeklyStats(prev => {
-        const newData = { ...prev };
-        if (!newData[today]) newData[today] = { trainingMinutes: 0, expressionCount: 0, gamePassCount: 0 };
-        newData[today].trainingMinutes += 1;
-        return newData;
-      });
-    }, 60000);
-  }, [isTimeLimitReached]);
-
-  // 结束训练计时
-  const endTraining = useCallback(() => {
-    if (sessionTimer.current) {
-      clearInterval(sessionTimer.current);
-      sessionTimer.current = null;
-    }
-
-    if (currentSession.current.startTime) {
-      const elapsed = Date.now() - currentSession.current.startTime;
-      const minutes = Math.max(1, Math.ceil(elapsed / 60000));
-      const today = new Date().toISOString().split('T')[0];
-      setDailyStats(prev => ({ ...prev, trainingMinutes: prev.trainingMinutes + minutes }));
-      setWeeklyStats(prev => {
-        const newData = { ...prev };
-        if (!newData[today]) newData[today] = { trainingMinutes: 0, expressionCount: 0, gamePassCount: 0 };
-        newData[today].trainingMinutes += minutes;
-        return newData;
-      });
-    }
-    currentSession.current = { startTime: null, type: null };
+    setTrainingStartTime(null);
   }, []);
 
-  // 增加主动表达次数
-  const incrementExpression = useCallback((source: 'chat' | 'book') => {
-    if (isTimeLimitReached) return;
+  const incrementGamePass = useCallback(() => {
     const today = new Date().toISOString().split('T')[0];
     setDailyStats(prev => ({
       ...prev,
-      expressionCount: prev.expressionCount + 1,
-      chatMessages: source === 'chat' ? prev.chatMessages + 1 : prev.chatMessages,
-      bookCompleted: source === 'book' ? prev.bookCompleted + 1 : prev.bookCompleted,
+      date: today,
+      gamePassCount: prev.gamePassCount + 1,
     }));
-    setWeeklyStats(prev => {
-      const newData = { ...prev };
-      if (!newData[today]) newData[today] = { trainingMinutes: 0, expressionCount: 0, gamePassCount: 0 };
-      newData[today].expressionCount += 1;
-      return newData;
-    });
-  }, [isTimeLimitReached]);
-
-  // 增加闯关次数
-  const incrementGamePass = useCallback(() => {
-    if (isTimeLimitReached) return;
-    const today = new Date().toISOString().split('T')[0];
-    setDailyStats(prev => ({ ...prev, gamePassCount: prev.gamePassCount + 1 }));
-    setWeeklyStats(prev => {
-      const newData = { ...prev };
-      if (!newData[today]) newData[today] = { trainingMinutes: 0, expressionCount: 0, gamePassCount: 0 };
-      newData[today].gamePassCount += 1;
-      return newData;
-    });
-  }, [isTimeLimitReached]);
-
-  // 增加聊天消息数
-  const incrementChatMessage = useCallback(() => {
-    if (isTimeLimitReached) return;
-    setDailyStats(prev => ({ ...prev, chatMessages: prev.chatMessages + 1 }));
-  }, [isTimeLimitReached]);
-
-  // 增加绘本完成数
-  const incrementBookCompleted = useCallback(() => {
-    if (isTimeLimitReached) return;
-    setDailyStats(prev => ({ ...prev, bookCompleted: prev.bookCompleted + 1 }));
-  }, [isTimeLimitReached]);
-
-  // 增加趣味训练完成数
-  const incrementTrainingGame = useCallback(() => {
-    if (isTimeLimitReached) return;
-    setDailyStats(prev => ({ ...prev, trainingGames: prev.trainingGames + 1 }));
-  }, [isTimeLimitReached]);
-
-  // 组件卸载时清理
-  useEffect(() => {
-    return () => {
-      if (sessionTimer.current) {
-        clearInterval(sessionTimer.current);
-      }
-    };
   }, []);
 
-  // 保存日数据到 localStorage
+  const incrementExpression = useCallback((_source: 'chat' | 'book') => {
+    const today = new Date().toISOString().split('T')[0];
+    setDailyStats(prev => ({
+      ...prev,
+      date: today,
+      expressionCount: prev.expressionCount + 1,
+    }));
+  }, []);
+
+  const incrementChatMessage = useCallback(() => {
+    const today = new Date().toISOString().split('T')[0];
+    setDailyStats(prev => ({
+      ...prev,
+      date: today,
+      chatMessages: prev.chatMessages + 1,
+    }));
+  }, []);
+
+  const incrementBookCompleted = useCallback(() => {
+    const today = new Date().toISOString().split('T')[0];
+    setDailyStats(prev => ({
+      ...prev,
+      date: today,
+      bookCompleted: prev.bookCompleted + 1,
+    }));
+  }, []);
+
+  const incrementTrainingGame = useCallback(() => {
+    const today = new Date().toISOString().split('T')[0];
+    setDailyStats(prev => ({
+      ...prev,
+      date: today,
+      trainingGames: prev.trainingGames + 1,
+    }));
+  }, []);
+
+  const startTraining = useCallback(() => {
+    if (trainingStartTime === null) {
+      setTrainingStartTime(Date.now());
+    }
+  }, [trainingStartTime]);
+
+  const setTimeLimit = useCallback((limit: TimeLimit) => {
+    setTimeLimitState(limit);
+    localStorage.setItem(LIMIT_STORAGE_KEY, JSON.stringify(limit));
+  }, []);
+
   useEffect(() => {
     localStorage.setItem(DAILY_STORAGE_KEY, JSON.stringify(dailyStats));
   }, [dailyStats]);
 
-  // 保存周数据到 localStorage
   useEffect(() => {
-    const { start, end } = getWeekRange();
-    localStorage.setItem(WEEKLY_STORAGE_KEY, JSON.stringify({ weekStart: start, weekEnd: end, data: weeklyStats }));
-  }, [weeklyStats]);
+    const weekData = getWeekDates();
+    const week: WeeklyStats = {};
+    weekData.forEach((date: string) => {
+      if (date === dailyStats.date) {
+        week[date] = {
+          trainingMinutes: dailyStats.trainingMinutes,
+          expressionCount: dailyStats.expressionCount,
+          gamePassCount: dailyStats.gamePassCount,
+        };
+      } else {
+        week[date] = { trainingMinutes: 0, expressionCount: 0, gamePassCount: 0 };
+      }
+    });
+    setWeeklyStats(week);
+  }, [dailyStats]);
 
   return (
-    <AppContext.Provider
-      value={{
-        dailyStats,
-        weeklyStats,
-        timeLimit,
-        isTimeLimitReached,
-        showTimeLimitModal,
-        setTimeLimit,
-        setShowTimeLimitModal,
-        resetTimeLimit,
-        startTraining,
-        endTraining,
-        incrementExpression,
-        incrementGamePass,
-        incrementChatMessage,
-        incrementBookCompleted,
-        incrementTrainingGame,
-      }}
-    >
+    <AppContext.Provider value={{
+      dailyStats,
+      weeklyStats,
+      timeLimit,
+      timeLimitReached,
+      showTimeLimitModal,
+      setShowTimeLimitModal,
+      resetTimeLimit,
+      incrementGamePass,
+      incrementExpression,
+      incrementChatMessage,
+      incrementBookCompleted,
+      incrementTrainingGame,
+      startTraining,
+      setTimeLimit,
+      setTimeLimitReached,
+    }}>
       {children}
     </AppContext.Provider>
   );
-};
+}
 
-export const useApp = (): AppContextType => {
+function useApp() {
   const context = useContext(AppContext);
   if (!context) {
-    throw new Error('useApp must be used within an AppProvider');
+    throw new Error('useApp must be used within AppProvider');
   }
   return context;
-};
+}
 
+export { AppProvider, useApp };
 export { getWeekDates };

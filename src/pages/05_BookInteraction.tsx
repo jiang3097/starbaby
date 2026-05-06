@@ -163,7 +163,7 @@ const BookInteraction = () => {
     let mounted = true;
     if (!hasStartedTraining.current && bookId && mounted) {
       hasStartedTraining.current = true;
-      startTraining('book');
+      startTraining();
     }
     return () => {
       mounted = false;

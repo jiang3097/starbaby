@@ -51,7 +51,7 @@ const AIChat = () => {
     let mounted = true;
     if (!hasStartedTraining.current && mounted) {
       hasStartedTraining.current = true;
-      startTraining('chat');
+      startTraining();
     }
     return () => {
       mounted = false;

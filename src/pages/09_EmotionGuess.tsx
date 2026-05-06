@@ -175,7 +175,7 @@ const EmotionGuess = () => {
     let mounted = true;
     if (!hasStartedTraining.current && mounted) {
       hasStartedTraining.current = true;
-      startTraining('training');
+      startTraining();
     }
     return () => {
       mounted = false;

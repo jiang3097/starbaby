@@ -61,7 +61,7 @@ const PuzzleExpress = () => {
   useEffect(() => {
     if (!hasStartedTraining.current) {
       hasStartedTraining.current = true;
-      startTraining('training');
+      startTraining();
     }
   }, []);
 
