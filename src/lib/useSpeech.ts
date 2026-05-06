@@ -109,7 +109,18 @@ export function getVoicePackage(): VoicePackage {
 // 获取所有可用声音
 function getAvailableVoices(): SpeechSynthesisVoice[] {
   if (!('speechSynthesis' in window)) return [];
+  const voices = window.speechSynthesis.getVoices();
+  // 某些浏览器需要触发加载
+  if (voices.length === 0) {
+    window.speechSynthesis.getVoices();
+  }
   return window.speechSynthesis.getVoices();
+}
+
+// 预加载声音
+export function preloadVoices(): void {
+  if (!('speechSynthesis' in window)) return;
+  window.speechSynthesis.getVoices();
 }
 
 // 选择最适合的声音
@@ -126,7 +137,7 @@ function selectBestVoice(lang: string = 'zh-CN'): SpeechSynthesisVoice | null {
     candidates = voices;
   }
 
-  // 根据声音包特征匹配
+  // 根据声音包特征匹配 - 童声优先选择年轻女性声音
   const pkgKeywords = [
     ...(pkg.femaleKeywords || []),
     ...(pkg.maleKeywords || []),
@@ -135,14 +146,13 @@ function selectBestVoice(lang: string = 'zh-CN'): SpeechSynthesisVoice | null {
   ];
 
   if (pkgKeywords.length > 0) {
-    // 根据关键词优先级匹配
     // 1. 先尝试完全匹配关键词
     let matched = candidates.find(v => 
       pkgKeywords.some(kw => v.name.toLowerCase().includes(kw.toLowerCase()))
     );
     if (matched) return matched;
 
-    // 2. 如果是女声包，排除男声
+    // 2. 如果是女声包/童声包，排除男声
     if (pkg.femaleKeywords && !pkg.maleKeywords) {
       matched = candidates.find(v => {
         const nameLower = v.name.toLowerCase();
@@ -162,7 +172,7 @@ function selectBestVoice(lang: string = 'zh-CN'): SpeechSynthesisVoice | null {
     }
   }
 
-  // 默认返回第一个中文女声（通常最清晰）
+  // 默认返回女性中文声音（最清晰可爱）
   const defaultFemale = candidates.find(v => {
     const nameLower = v.name.toLowerCase();
     return ['female', 'woman', 'lady', '女'].some(kw => nameLower.includes(kw));
@@ -188,6 +198,9 @@ export function speakText(
   // 先取消之前的朗读
   synthesis.cancel();
 
+  // 确保语音列表已加载
+  preloadVoices();
+
   const utterance = new SpeechSynthesisUtterance(text);
   utterance.lang = 'zh-CN';
   
@@ -195,13 +208,13 @@ export function speakText(
   const pkg = currentVoicePackage;
   if (pkg.id === 'child' || pkg.id === 'default') {
     // 童声：小孩子、俏皮可爱、音色亮
-    utterance.rate = 1.0;   // 稍快一点的语速，更活泼
-    utterance.pitch = 1.4; // 更高的音调，更亮更可爱
+    utterance.rate = 1.1;   // 稍快一点的语速，更活泼
+    utterance.pitch = 1.15; // 稍高的音调，更亮更可爱
   } else if (pkg.id === 'elder') {
-    utterance.rate = 0.75;
+    utterance.rate = 0.8;
     utterance.pitch = 0.9;
   } else {
-    utterance.rate = 0.9;
+    utterance.rate = 0.95;
     utterance.pitch = 1.0;
   }
 
@@ -291,16 +304,6 @@ export function startListening(
       // ignore
     }
   };
-}
-
-// 预加载声音
-export function preloadVoices(): void {
-  if ('speechSynthesis' in window) {
-    window.speechSynthesis.getVoices();
-    window.speechSynthesis.onvoiceschanged = () => {
-      console.log('Voices loaded:', window.speechSynthesis.getVoices().length);
-    };
-  }
 }
 
 // 获取中文声音数量
