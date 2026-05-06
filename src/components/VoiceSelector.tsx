@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Volume2, X } from 'lucide-react';
 import { cn } from '../lib/utils';
-import { VOICE_PACKAGES, getVoicePackage, setVoicePackage, type VoicePackage } from '../lib/useSpeech';
+import { BAIDU_VOICES, getAvailableVoices, setBaiduVoice, getBaiduVoice } from '../lib/baiduVoice';
 
 interface VoiceSelectorProps {
   isOpen: boolean;
@@ -10,11 +10,16 @@ interface VoiceSelectorProps {
 }
 
 const VoiceSelector: React.FC<VoiceSelectorProps> = ({ isOpen, onClose }) => {
-  const [selected, setSelected] = useState<VoicePackage>(getVoicePackage());
+  const [selected, setSelected] = useState(getBaiduVoice());
+  const voices = getAvailableVoices();
 
-  const handleSelect = (pkg: VoicePackage) => {
-    setSelected(pkg);
-    setVoicePackage(pkg);
+  useEffect(() => {
+    setSelected(getBaiduVoice());
+  }, [isOpen]);
+
+  const handleSelect = (voiceId: number) => {
+    setSelected(voiceId);
+    setBaiduVoice(voiceId);
   };
 
   return (
@@ -61,44 +66,51 @@ const VoiceSelector: React.FC<VoiceSelectorProps> = ({ isOpen, onClose }) => {
 
             {/* Voice options */}
             <div className="p-4 space-y-3">
-              {VOICE_PACKAGES.map((pkg) => (
-                <motion.button
-                  key={pkg.id}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => handleSelect(pkg)}
-                  className={cn(
-                    "w-full p-4 rounded-2xl border-2 transition-all flex items-center gap-4",
-                    selected.id === pkg.id 
-                      ? "border-amber-400 bg-amber-50" 
-                      : "border-slate-100 bg-white hover:border-slate-200"
-                  )}
-                >
-                  <div className={cn(
-                    "w-14 h-14 rounded-full flex items-center justify-center text-2xl",
-                    selected.id === pkg.id ? "bg-amber-200" : "bg-slate-100"
-                  )}>
-                    {pkg.emoji}
-                  </div>
-                  <div className="flex-1 text-left">
-                    <p className="font-bold text-slate-800">{pkg.name}</p>
-                    <p className="text-sm text-slate-500">{pkg.description}</p>
-                  </div>
-                  {selected.id === pkg.id && (
-                    <div className="w-6 h-6 bg-amber-400 rounded-full flex items-center justify-center">
-                      <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                      </svg>
+              {voices.map((voice) => {
+                const emoji = voice.id === BAIDU_VOICES.duxiaoduo.id ? '👧' :
+                              voice.id === BAIDU_VOICES.qiqi.id ? '👧' :
+                              voice.id === BAIDU_VOICES.xiaomei.id ? '👩' :
+                              voice.id === BAIDU_VOICES.xiaojiao.id ? '👩' :
+                              '👨';
+                return (
+                  <motion.button
+                    key={voice.id}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => handleSelect(voice.id)}
+                    className={cn(
+                      "w-full p-4 rounded-2xl border-2 transition-all flex items-center gap-4",
+                      selected === voice.id 
+                        ? "border-amber-400 bg-amber-50" 
+                        : "border-slate-100 bg-white hover:border-slate-200"
+                    )}
+                  >
+                    <div className={cn(
+                      "w-14 h-14 rounded-full flex items-center justify-center text-2xl",
+                      selected === voice.id ? "bg-amber-200" : "bg-slate-100"
+                    )}>
+                      {emoji}
                     </div>
-                  )}
-                </motion.button>
-              ))}
+                    <div className="flex-1 text-left">
+                      <p className="font-bold text-slate-800">{voice.name}</p>
+                      <p className="text-sm text-slate-500">{voice.desc}</p>
+                    </div>
+                    {selected === voice.id && (
+                      <div className="w-6 h-6 bg-amber-400 rounded-full flex items-center justify-center">
+                        <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                        </svg>
+                      </div>
+                    )}
+                  </motion.button>
+                );
+              })}
             </div>
 
             {/* Confirm button */}
             <div className="p-4 pt-0">
               <button
                 onClick={onClose}
-                className="w-full py-4 bg-amber-400 hover:bg-amber-500 text-white font-bold text-lg rounded-2xl transition-colors shadow-lg shadow-amber-200"
+                className="w-full py-3 bg-gradient-to-r from-amber-400 to-orange-400 text-white font-bold rounded-2xl shadow-lg active:scale-95 transition-transform"
               >
                 确定
               </button>

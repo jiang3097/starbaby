@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
+import { baiduSpeakText, initAsr, startAsr, stopAsr, isRecognizing, BAIDU_VOICES, getAvailableVoices, setBaiduVoice } from './baiduVoice';
 
 // 类型声明
 interface SpeechRecognitionResultList {
@@ -48,201 +49,34 @@ declare global {
   }
 }
 
-// 可选的声音包
-export interface VoicePackage {
-  id: string;
-  name: string;
-  description: string;
-  emoji: string;
-  // 声音特征关键词
-  femaleKeywords?: string[];    // 女性声音关键词
-  maleKeywords?: string[];     // 男性声音关键词
-  youngKeywords?: string[];    // 年轻声音关键词
-  elderKeywords?: string[];    // 年长声音关键词
-}
-
-export const VOICE_PACKAGES: VoicePackage[] = [
-  {
-    id: 'default',
-    name: '小宝贝',
-    description: '俏皮可爱的童声',
-    emoji: '👧',
-    femaleKeywords: ['female', 'woman', 'lady', '女', '女性'],
-    youngKeywords: ['young', 'child', 'kid', '童', '孩', '小', 'Ting-Ting', 'Huihui'],
-  },
-  {
-    id: 'child',
-    name: '小甜心',
-    description: '甜美的小女孩声音',
-    emoji: '👧',
-    femaleKeywords: ['female', 'woman', 'lady', '女', '女性', 'girl'],
-    youngKeywords: ['young', 'child', 'kid', '童', '孩', '小', 'Ting-Ting', 'Huihui', 'xiaomei'],
-  },
-  {
-    id: 'male',
-    name: '温暖男声',
-    description: '友好的男声',
-    emoji: '👨',
-    maleKeywords: ['male', 'man', '男', '男性', '男声'],
-  },
-  {
-    id: 'elder',
-    name: '爷爷声音',
-    description: '慈祥的爷爷声音',
-    emoji: '👴',
-    maleKeywords: ['male', 'man', '男', '男性', '男声'],
-    elderKeywords: ['elder', 'old', 'senior', '老', 'Yunyan', 'Kangkang'],
-  },
-];
-
-// 当前选中的声音包 - 默认为童声（俏皮可爱的小女孩音色）
-let currentVoicePackage: VoicePackage = VOICE_PACKAGES[0];
-
-export function setVoicePackage(pkg: VoicePackage) {
-  currentVoicePackage = pkg;
-}
-
-export function getVoicePackage(): VoicePackage {
-  return currentVoicePackage;
-}
-
-// 获取所有可用声音
-function getAvailableVoices(): SpeechSynthesisVoice[] {
-  if (!('speechSynthesis' in window)) return [];
-  const voices = window.speechSynthesis.getVoices();
-  // 某些浏览器需要触发加载
-  if (voices.length === 0) {
-    window.speechSynthesis.getVoices();
-  }
-  return window.speechSynthesis.getVoices();
-}
+// 导出百度语音接口
+export { BAIDU_VOICES, getAvailableVoices, setBaiduVoice };
 
 // 预加载声音
 export function preloadVoices(): void {
-  if (!('speechSynthesis' in window)) return;
-  window.speechSynthesis.getVoices();
+  if ('speechSynthesis' in window) {
+    window.speechSynthesis.getVoices();
+  }
 }
 
-// 选择最适合的声音
-function selectBestVoice(lang: string = 'zh-CN'): SpeechSynthesisVoice | null {
-  const voices = getAvailableVoices();
-  if (voices.length === 0) return null;
-
-  const pkg = currentVoicePackage;
-  
-  // 优先选择中文声音
-  let candidates = voices.filter(v => v.lang.includes('zh') || v.lang.includes('CN'));
-  
-  if (candidates.length === 0) {
-    candidates = voices;
-  }
-
-  // 根据声音包特征匹配 - 童声优先选择年轻女性声音
-  const pkgKeywords = [
-    ...(pkg.femaleKeywords || []),
-    ...(pkg.maleKeywords || []),
-    ...(pkg.youngKeywords || []),
-    ...(pkg.elderKeywords || []),
-  ];
-
-  if (pkgKeywords.length > 0) {
-    // 1. 先尝试完全匹配关键词
-    let matched = candidates.find(v => 
-      pkgKeywords.some(kw => v.name.toLowerCase().includes(kw.toLowerCase()))
-    );
-    if (matched) return matched;
-
-    // 2. 如果是女声包/童声包，排除男声
-    if (pkg.femaleKeywords && !pkg.maleKeywords) {
-      matched = candidates.find(v => {
-        const nameLower = v.name.toLowerCase();
-        const isMale = ['male', 'man', '男', '男性'].some(kw => nameLower.includes(kw));
-        return !isMale;
-      });
-      if (matched) return matched;
-    }
-
-    // 3. 如果是男声包，优先男性声音
-    if (pkg.maleKeywords && !pkg.femaleKeywords) {
-      matched = candidates.find(v => {
-        const nameLower = v.name.toLowerCase();
-        return ['male', 'man', '男', '男性'].some(kw => nameLower.includes(kw));
-      });
-      if (matched) return matched;
-    }
-  }
-
-  // 默认返回女性中文声音（最清晰可爱）
-  const defaultFemale = candidates.find(v => {
-    const nameLower = v.name.toLowerCase();
-    return ['female', 'woman', 'lady', '女'].some(kw => nameLower.includes(kw));
-  });
-  
-  return defaultFemale || candidates[0];
-}
-
-// 朗读文本
+// 朗读文本 - 使用百度TTS
 export function speakText(
   text: string, 
   onStart?: () => void, 
   onEnd?: () => void
 ): () => void {
-  if (!('speechSynthesis' in window)) {
-    console.warn('TTS not supported');
-    onEnd?.();
-    return () => {};
-  }
-
-  const synthesis = window.speechSynthesis;
+  // 使用百度语音
+  baiduSpeakText(text, onStart, onEnd);
   
-  // 先取消之前的朗读
-  synthesis.cancel();
-
-  // 确保语音列表已加载
-  preloadVoices();
-
-  const utterance = new SpeechSynthesisUtterance(text);
-  utterance.lang = 'zh-CN';
-  
-  // 根据声音包调整语速和音调
-  const pkg = currentVoicePackage;
-  if (pkg.id === 'child' || pkg.id === 'default') {
-    // 童声：小孩子、俏皮可爱、音色亮
-    utterance.rate = 1.1;   // 稍快一点的语速，更活泼
-    utterance.pitch = 1.15; // 稍高的音调，更亮更可爱
-  } else if (pkg.id === 'elder') {
-    utterance.rate = 0.8;
-    utterance.pitch = 0.9;
-  } else {
-    utterance.rate = 0.95;
-    utterance.pitch = 1.0;
-  }
-
-  // 选择声音
-  const voice = selectBestVoice();
-  if (voice) {
-    utterance.voice = voice;
-  }
-
-  utterance.onstart = () => {
-    onStart?.();
-  };
-
-  utterance.onend = () => {
-    onEnd?.();
-  };
-
-  utterance.onerror = (e) => {
-    console.error('TTS error:', e);
-    onEnd?.();
-  };
-
-  synthesis.speak(utterance);
-
   // 返回停止函数
   return () => {
-    synthesis.cancel();
+    window.speechSynthesis?.cancel();
   };
+}
+
+// 停止朗读
+export function stopSpeaking(): void {
+  window.speechSynthesis?.cancel();
 }
 
 // 开始语音识别
@@ -306,8 +140,9 @@ export function startListening(
   };
 }
 
-// 获取中文声音数量
+// 获取浏览器原生中文声音数量（用于兼容性检测）
 export function getChineseVoiceCount(): number {
-  const voices = getAvailableVoices();
-  return voices.filter(v => v.lang.includes('zh')).length;
+  if (!('speechSynthesis' in window)) return 0;
+  const voices = window.speechSynthesis.getVoices();
+  return voices.filter((v: any) => v.lang.includes('zh')).length;
 }
