@@ -5,8 +5,11 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$PROJECT_DIR"
 
+# Set CI mode to avoid TTY issues
+export CI=true
+
 echo "Installing dependencies..."
-pnpm install --prefer-frozen-lockfile --prefer-offline --loglevel debug --reporter=append-only
+pnpm install --prefer-frozen-lockfile --prefer-offline
 
 echo "Building frontend with Vite..."
 pnpm vite build
