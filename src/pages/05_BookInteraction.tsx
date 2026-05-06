@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, Volume2, Mic, Check, ArrowRight, Trophy, RefreshCw, Sparkles, Star, Home } from 'lucide-react';
+import { ChevronLeft, Volume2, Mic, Check, ArrowRight, Trophy, RefreshCw, Sparkles, Star, Home, Square } from 'lucide-react';
 import MobileShell from '../components/MobileShell';
 import { Button } from '../components/ui/button';
 import { cn } from '../lib/utils';
-import { speakText, startListening, preloadVoices } from '../lib/useSpeech';
+import { speakText, startListening, preloadVoices, stopSpeaking } from '../lib/useSpeech';
 import VoiceSelector from '../components/VoiceSelector';
 import AIChatPanel from '../components/AIChatPanel';
 import { useUser } from '../context/UserContext';
@@ -540,13 +540,33 @@ const BookInteraction = () => {
 
               {/* 按钮组 */}
               <div className="mt-6 flex flex-col gap-3 w-full max-w-xs">
-                {/* 重听按钮 */}
+                {/* 重听/停止按钮 */}
                 <button
-                  onClick={() => speakText(story.text)}
-                  className="w-full h-12 bg-white border-2 border-amber-200 rounded-full flex items-center justify-center gap-2 text-amber-600 font-bold"
+                  onClick={() => {
+                    if (isPlaying) {
+                      stopSpeaking();
+                    } else {
+                      speakText(story.text);
+                    }
+                  }}
+                  className={cn(
+                    "w-full h-12 border-2 rounded-full flex items-center justify-center gap-2 font-bold transition-all",
+                    isPlaying 
+                      ? "bg-rose-100 border-rose-300 text-rose-500" 
+                      : "bg-white border-amber-200 text-amber-600"
+                  )}
                 >
-                  <Volume2 size={20} />
-                  再听一遍
+                  {isPlaying ? (
+                    <>
+                      <Square size={20} />
+                      停止播放
+                    </>
+                  ) : (
+                    <>
+                      <Volume2 size={20} />
+                      再听一遍
+                    </>
+                  )}
                 </button>
                 
                 {/* 开始答题按钮 */}

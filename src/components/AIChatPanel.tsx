@@ -1,8 +1,8 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Mic, Volume2, Send, Sparkles, RefreshCw, Check, VolumeX } from 'lucide-react';
+import { X, Mic, Volume2, Send, Sparkles, RefreshCw, Check, VolumeX, Square } from 'lucide-react';
 import { cn } from '../lib/utils';
-import { speakText, startListening, preloadVoices } from '../lib/useSpeech';
+import { speakText, startListening, preloadVoices, stopSpeaking } from '../lib/useSpeech';
 
 interface Message {
   id: number;
@@ -307,16 +307,32 @@ const AIChatPanel: React.FC<AIChatPanelProps> = ({
                     {msg.type === 'bot' && (
                       <div className="mt-2 flex items-center gap-3">
                         <button
-                          onClick={() => handleReadAloud(msg.text!)}
+                          onClick={() => {
+                            if (isSpeaking) {
+                              stopSpeaking();
+                              setIsSpeaking(false);
+                            } else {
+                              handleReadAloud(msg.text!);
+                            }
+                          }}
                           className={cn(
                             "flex items-center gap-1.5 text-xs px-2 py-1 rounded-full transition-all",
                             isSpeaking 
-                              ? "bg-amber-100 text-amber-400" 
+                              ? "bg-rose-100 text-rose-500" 
                               : "bg-amber-50 text-amber-500 hover:bg-amber-100"
                           )}
                         >
-                          <Volume2 size={14} className={isSpeaking ? 'animate-pulse' : ''} />
-                          <span>朗读</span>
+                          {isSpeaking ? (
+                            <>
+                              <Square size={14} />
+                              <span>停止</span>
+                            </>
+                          ) : (
+                            <>
+                              <Volume2 size={14} />
+                              <span>朗读</span>
+                            </>
+                          )}
                         </button>
                         
                         {msg.followingText && (

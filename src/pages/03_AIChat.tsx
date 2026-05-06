@@ -1,10 +1,10 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, Mic, Volume2, Send } from 'lucide-react';
+import { ChevronLeft, Mic, Volume2, Send, Square } from 'lucide-react';
 import MobileShell from '../components/MobileShell';
 import { cn } from '../lib/utils';
-import { speakText, startListening, preloadVoices } from '../lib/useSpeech';
+import { speakText, startListening, preloadVoices, stopSpeaking } from '../lib/useSpeech';
 import { useUser } from '../context/UserContext';
 import { useApp } from '../context/AppContext';
 import VoiceSelector from '../components/VoiceSelector';
@@ -219,10 +219,21 @@ const AIChat = () => {
         </div>
         
         <button 
-          onClick={() => setIsVoiceSelectorOpen(true)}
-          className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-lg text-purple-500 hover:bg-purple-50 transition-colors"
+          onClick={() => {
+            if (isSpeaking) {
+              stopSpeaking();
+            } else {
+              setIsVoiceSelectorOpen(true);
+            }
+          }}
+          className={cn(
+            "w-12 h-12 rounded-full flex items-center justify-center shadow-lg transition-colors",
+            isSpeaking 
+              ? "bg-rose-400 text-white hover:bg-rose-500 animate-pulse" 
+              : "bg-white text-purple-500 hover:bg-purple-50"
+          )}
         >
-          <Volume2 size={24} />
+          {isSpeaking ? <Square size={20} /> : <Volume2 size={24} />}
         </button>
       </div>
 
@@ -295,16 +306,32 @@ const AIChat = () => {
               {msg.type === 'bot' && (
                 <div className="mt-3 flex items-center gap-2">
                   <button
-                    onClick={() => handleReadAloud(msg.text)}
+                    onClick={() => {
+                      if (isSpeaking) {
+                        stopSpeaking();
+                        setIsSpeaking(false);
+                      } else {
+                        handleReadAloud(msg.text);
+                      }
+                    }}
                     className={cn(
                       "flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full transition-all shadow-sm",
                       isSpeaking 
-                        ? "bg-amber-100 text-amber-400" 
+                        ? "bg-rose-100 text-rose-500" 
                         : "bg-sky-50 text-sky-500 hover:bg-sky-100"
                     )}
                   >
-                    <Volume2 size={14} className={isSpeaking ? 'animate-pulse' : ''} />
-                    <span>朗读</span>
+                    {isSpeaking ? (
+                      <>
+                        <Square size={14} />
+                        <span>停止</span>
+                      </>
+                    ) : (
+                      <>
+                        <Volume2 size={14} />
+                        <span>朗读</span>
+                      </>
+                    )}
                   </button>
                 </div>
               )}
