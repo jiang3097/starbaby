@@ -99,11 +99,29 @@ const initDailyStats = (): DailyStats => {
     try {
       const parsed = JSON.parse(stored);
       if (parsed.date === today) {
-        return parsed;
+        // 确保所有值都是数字，避免旧数据格式问题
+        return {
+          date: today,
+          trainingMinutes: Number(parsed.trainingMinutes) || 0,
+          expressionCount: Number(parsed.expressionCount) || 0,
+          gamePassCount: Number(parsed.gamePassCount) || 0,
+          chatMessages: Number(parsed.chatMessages) || 0,
+          bookCompleted: Number(parsed.bookCompleted) || 0,
+          trainingGames: Number(parsed.trainingGames) || 0,
+        };
       }
     } catch { /* ignore */ }
   }
-  return { ...defaultStats, date: today };
+  // 返回默认0值
+  return {
+    date: today,
+    trainingMinutes: 0,
+    expressionCount: 0,
+    gamePassCount: 0,
+    chatMessages: 0,
+    bookCompleted: 0,
+    trainingGames: 0,
+  };
 };
 
 // 初始化周数据
