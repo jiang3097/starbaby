@@ -14,13 +14,16 @@ const BookList = () => {
   const [isAIChatOpen, setIsAIChatOpen] = useState(false);
   const [selectedBook, setSelectedBook] = useState<string>('');
 
+  // 计算已通关的绘本数量（每本绘本3道题）
+  const booksCompleted = Math.floor(dailyStats.bookCompleted / 3);
+
   const books = [
     {
       id: 1,
       title: '情绪表达',
       desc: '认识开心、难过和生气',
-      status: 'completed',
-      stars: 3,
+      status: booksCompleted >= 1 ? 'completed' : 'active',
+      stars: dailyStats.bookCompleted >= 3 ? 3 : (dailyStats.bookCompleted >= 2 ? 2 : dailyStats.bookCompleted >= 1 ? 1 : 0),
       color: 'bg-rose-50',
       borderColor: 'border-rose-100',
       iconColor: 'text-rose-500',
@@ -31,8 +34,8 @@ const BookList = () => {
       id: 2,
       title: '日常沟通',
       desc: '学会表达你的基本需求',
-      status: 'active',
-      stars: 1,
+      status: booksCompleted >= 2 ? 'completed' : (booksCompleted >= 1 ? 'active' : 'locked'),
+      stars: dailyStats.bookCompleted >= 6 ? 3 : (dailyStats.bookCompleted >= 5 ? 2 : dailyStats.bookCompleted >= 4 ? 1 : 0),
       color: 'bg-emerald-50',
       borderColor: 'border-emerald-100',
       iconColor: 'text-emerald-500',
@@ -43,12 +46,12 @@ const BookList = () => {
       id: 3,
       title: '求助场景',
       desc: '遇到困难时如何开口',
-      status: 'locked',
-      stars: 0,
+      status: booksCompleted >= 3 ? 'completed' : (booksCompleted >= 2 ? 'active' : 'locked'),
+      stars: dailyStats.bookCompleted >= 9 ? 3 : (dailyStats.bookCompleted >= 8 ? 2 : dailyStats.bookCompleted >= 7 ? 1 : 0),
       color: 'bg-slate-50',
       borderColor: 'border-slate-100',
       iconColor: 'text-slate-400',
-      gradient: 'from-slate-200 to-gray-200',
+      gradient: booksCompleted >= 2 ? 'from-blue-200 to-indigo-200' : 'from-slate-200 to-gray-200',
       image: 'https://modao.cc/agent-py/media/generated_images/2026-05-02/7e38337d73b549ada55dfddf80cc62a9.jpg#desc=Boy%20looking%20for%20help%2C%20park%20scene%2C%20kind%20stranger'
     }
   ];
@@ -126,7 +129,7 @@ const BookList = () => {
               <CheckCircle2 size={24} className="text-white" />
             </div>
             <div>
-              <div className="text-2xl font-bold text-slate-800">{dailyStats.bookCompleted}/10</div>
+              <div className="text-2xl font-bold text-slate-800">{booksCompleted}/3</div>
               <div className="text-xs text-emerald-600 font-bold">已通关</div>
             </div>
           </motion.div>
