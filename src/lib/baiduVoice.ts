@@ -4,13 +4,16 @@
 const BAIDU_TTS_URL = 'https://tsn.baidu.com/text2audio';
 const BAIDU_TOKEN_URL = 'https://aip.baidubce.com/oauth/2.0/token';
 
-// 百度语音凭证
+// 百度语音凭证（简化格式）
 const BAIDU_API_KEY = 'bce-v3/ALTAK-djSJGpAd4B4D0HZ4GcLYi/5d9e61a57403ab3230f2dc7c7d88041c043fd392';
 const BAIDU_SECRET_KEY = '615243Abc';
 
 // 缓存 access_token
 let accessToken: string | null = null;
 let tokenExpireTime: number = 0;
+
+// 是否使用百度 TTS
+let useBaiduTTS = true;
 
 // 声音选项配置 - 使用百度音色
 export interface BaiduVoiceOption {
@@ -77,7 +80,8 @@ async function getAccessToken(): Promise<string | null> {
     });
 
     if (!response.ok) {
-      console.error('Failed to get Baidu access token');
+      console.error('Failed to get Baidu access token, status:', response.status);
+      useBaiduTTS = false;
       return null;
     }
 
@@ -85,15 +89,17 @@ async function getAccessToken(): Promise<string | null> {
     
     if (data.access_token) {
       accessToken = data.access_token;
-      // 提前5分钟过期
       tokenExpireTime = Date.now() + (data.expires_in - 300) * 1000;
+      useBaiduTTS = true;
       return accessToken;
     }
     
     console.error('No access_token in response:', data);
+    useBaiduTTS = false;
     return null;
   } catch (error) {
     console.error('Error getting Baidu access token:', error);
+    useBaiduTTS = false;
     return null;
   }
 }
@@ -105,6 +111,33 @@ export function stopBaiduSpeech(): void {
     currentAudio.currentTime = 0;
     currentAudio = null;
   }
+}
+
+// 浏览器原生 TTS 回退
+function nativeTTS(text: string, onStart?: () => void, onEnd?: () => void): () => void {
+  if (!('speechSynthesis' in window)) {
+    onEnd?.();
+    return () => {};
+  }
+
+  const synthesis = window.speechSynthesis;
+  synthesis.cancel();
+
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.lang = 'zh-CN';
+  
+  const voice = getBaiduVoice();
+  // 调整参数使其更可爱
+  utterance.rate = voice.rate * 0.9;
+  utterance.pitch = voice.pitch;
+  utterance.volume = 1.0;
+
+  utterance.onstart = () => onStart?.();
+  utterance.onend = () => onEnd?.();
+  utterance.onerror = () => onEnd?.();
+
+  synthesis.speak(utterance);
+  return () => synthesis.cancel();
 }
 
 // 百度 TTS 朗读
@@ -126,12 +159,20 @@ export function baiduSpeakText(
     currentAudio = null;
   };
 
+  // 如果不使用百度 TTS，回退到原生
+  if (!useBaiduTTS) {
+    console.log('Using native TTS fallback');
+    return nativeTTS(text, onStart, onEnd);
+  }
+
   // 异步获取 token 并播放
   (async () => {
     const token = await getAccessToken();
+    
+    // 如果没有 token，回退到原生
     if (!token) {
-      console.error('No access token available');
-      onEnd?.();
+      console.log('No Baidu token, using native TTS');
+      nativeTTS(text, onStart, onEnd);
       return;
     }
 
@@ -141,10 +182,10 @@ export function baiduSpeakText(
     const params = new URLSearchParams({
       tex: text,
       per: voice.per.toString(),
-      spd: Math.round(voice.rate * 5 + 5).toString(), // 百度语速 0-15，转换为 5-10
-      pit: Math.round(voice.pitch * 50).toString(),  // 百度音调 0-75，转换为 50-75
-      vol: '5',  // 音量
-      aue: '3',  // 格式 mp3
+      spd: Math.round(voice.rate * 5 + 5).toString(),
+      pit: Math.round(voice.pitch * 50).toString(),
+      vol: '5',
+      aue: '3',
       lan: 'zh',
       ctp: '1',
       cuid: `star_baby_${Date.now()}`,
@@ -153,27 +194,37 @@ export function baiduSpeakText(
 
     const audioUrl = `${BAIDU_TTS_URL}?${params.toString()}`;
 
-    audioElement = new Audio(audioUrl);
-    currentAudio = audioElement;
+    try {
+      audioElement = new Audio(audioUrl);
+      currentAudio = audioElement;
 
-    audioElement.oncanplaythrough = () => {
-      onStart?.();
-      audioElement?.play().catch(err => {
-        console.error('Audio play error:', err);
+      audioElement.oncanplaythrough = () => {
+        console.log('Audio ready, playing...');
+        onStart?.();
+        audioElement?.play().catch(err => {
+          console.error('Audio play error:', err);
+          // 回退到原生 TTS
+          nativeTTS(text, onStart, onEnd);
+        });
+      };
+
+      audioElement.onended = () => {
+        console.log('Audio ended');
+        currentAudio = null;
         onEnd?.();
-      });
-    };
+      };
 
-    audioElement.onended = () => {
-      currentAudio = null;
-      onEnd?.();
-    };
-
-    audioElement.onerror = (e) => {
-      console.error('Audio error:', e);
-      currentAudio = null;
-      onEnd?.();
-    };
+      audioElement.onerror = (e) => {
+        console.error('Audio error:', e);
+        currentAudio = null;
+        // 回退到原生 TTS
+        nativeTTS(text, onStart, onEnd);
+      };
+    } catch (err) {
+      console.error('Error creating audio:', err);
+      // 回退到原生 TTS
+      nativeTTS(text, onStart, onEnd);
+    }
   })();
 
   return stop;
