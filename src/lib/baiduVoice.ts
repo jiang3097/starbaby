@@ -113,7 +113,7 @@ export function stopBaiduSpeech(): void {
   }
 }
 
-// 浏览器原生 TTS - 优化参数
+// 浏览器原生 TTS - 清晰自然
 function nativeTTS(text: string, onStart?: () => void, onEnd?: () => void): () => void {
   if (!('speechSynthesis' in window)) {
     console.warn('TTS not supported');
@@ -135,81 +135,69 @@ function nativeTTS(text: string, onStart?: () => void, onEnd?: () => void): () =
           voices = synthesis.getVoices();
           resolve(voices);
         };
-        // 超时处理
         setTimeout(() => resolve(synthesis.getVoices()), 1000);
       }
     });
   };
 
-  const voice = getBaiduVoice();
-  
-  // 根据音色设置参数
-  let rate = 1.2;  // 稍快，更活泼
-  let pitch = 1.4;  // 更高音调，更可爱
-  let selectedVoice: SpeechSynthesisVoice | null = null;
-
-  if (voice.id === 'duoduo') {
-    // 童声：最快、最高
-    rate = 1.3;
-    pitch = 1.5;
-  } else if (voice.id === 'xiaojiao') {
-    rate = 1.2;
-    pitch = 1.4;
-  } else if (voice.id === 'xiaoyu') {
-    // 男声：正常语速
-    rate = 1.0;
-    pitch = 1.0;
-  }
-
   const speak = () => {
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = 'zh-CN';
-    utterance.rate = rate;
-    utterance.pitch = pitch;
+    
+    // 根据音色设置参数 - 清晰自然
+    const voice = getBaiduVoice();
+    
+    if (voice.id === 'duoduo') {
+      // 童声：清晰活泼
+      utterance.rate = 1.1;
+      utterance.pitch = 1.25;
+    } else if (voice.id === 'xiaojiao') {
+      // 甜美女声：清晰柔和
+      utterance.rate = 1.05;
+      utterance.pitch = 1.15;
+    } else if (voice.id === 'xiaoyu') {
+      // 男声：清晰稳重
+      utterance.rate = 0.95;
+      utterance.pitch = 1.0;
+    } else {
+      // 默认：清晰自然
+      utterance.rate = 1.0;
+      utterance.pitch = 1.1;
+    }
+    
     utterance.volume = 1.0;
 
-    // 尝试找到最好的中文女声
+    // 尝试找到最好的中文声音
     const voices = synthesis.getVoices();
     const chineseVoices = voices.filter(v => 
       v.lang.includes('zh') || v.lang.includes('CN')
     );
     
-    // 优先选择年轻女性声音
-    selectedVoice = chineseVoices.find(v => {
+    // 优先选择清晰的中文声音
+    let selectedVoice = chineseVoices.find(v => {
       const name = v.name.toLowerCase();
-      return !name.includes('male') && !name.includes('man') && !name.includes('男') &&
-             (name.includes('female') || name.includes('woman') || name.includes('女') ||
-              name.includes('girl') || name.includes('young'));
-    }) || chineseVoices[0];
+      // 排除一些可能不清晰的
+      return !name.includes('robot') && !name.includes('zephyr');
+    });
+
+    if (!selectedVoice && chineseVoices.length > 0) {
+      selectedVoice = chineseVoices[0];
+    }
 
     if (selectedVoice) {
       utterance.voice = selectedVoice;
     }
 
-    utterance.onstart = () => {
-      console.log('Native TTS started');
-      onStart?.();
-    };
-    utterance.onend = () => {
-      console.log('Native TTS ended');
-      onEnd?.();
-    };
-    utterance.onerror = (e) => {
-      console.error('Native TTS error:', e);
-      onEnd?.();
-    };
+    utterance.onstart = () => onStart?.();
+    utterance.onend = () => onEnd?.();
+    utterance.onerror = () => onEnd?.();
 
     synthesis.speak(utterance);
   };
 
-  // 异步加载语音后开始
-  loadVoices().then(() => {
-    speak();
-  });
+  loadVoices().then(() => speak());
 
-  return () => {
-    synthesis.cancel();
-  };
+  return () => synthesis.cancel();
 }
 
 // 百度 TTS 朗读
