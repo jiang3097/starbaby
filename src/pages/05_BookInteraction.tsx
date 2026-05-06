@@ -134,8 +134,9 @@ const BookInteraction = () => {
   const { bookId } = useParams<{ bookId: string }>();
   const navigate = useNavigate();
   const { profile, avatar } = useUser();
-  const { startTraining, incrementExpression, incrementBookCompleted, incrementGamePass } = useApp();
+  const { startTraining, incrementExpression, incrementBookCompleted, incrementGamePass, dailyStats } = useApp();
   const hasStartedTraining = useRef(false);
+  const hasGivenStarRef = useRef<Set<number>>(new Set()); // 防止重复奖励
   
   const [currentStory, setCurrentStory] = useState(0);
   const [phase, setPhase] = useState<GamePhase>('intro');
@@ -144,7 +145,7 @@ const BookInteraction = () => {
   const [userAnswer, setUserAnswer] = useState('');
   const [isCorrect, setIsCorrect] = useState(false);
   const [showResult, setShowResult] = useState(false);
-  const [score, setScore] = useState(0);
+  const [earnedStars, setEarnedStars] = useState(0); // 本次获得星星数
   const [isVoiceSelectorOpen, setIsVoiceSelectorOpen] = useState(false);
   const [isAIChatOpen, setIsAIChatOpen] = useState(false);
   
@@ -220,8 +221,10 @@ const BookInteraction = () => {
         incrementBookCompleted();
         
         if (correct) {
-          setScore(prev => prev + 1);
-          speakText("太棒了！回答正确！");
+          // 每答对一题就获得一个星星并累计通关次数
+          setEarnedStars(prev => prev + 1);
+          incrementGamePass(); // 实时更新通关次数
+          speakText("太棒了！回答正确！获得一颗星星！");
         } else {
           speakText(`回答得很好。其实正确答案是：${story.answer}`);
         }
@@ -258,7 +261,7 @@ const BookInteraction = () => {
   const handleBack = () => {
     resetState();
     setCurrentStory(0);
-    setScore(0);
+    setEarnedStars(0);
     navigate('/books');
   };
 
@@ -305,6 +308,17 @@ const BookInteraction = () => {
               >
                 <ChevronLeft size={28} />
               </button>
+              
+              {/* 星星和通关次数显示 */}
+              <div className="flex flex-col items-center gap-1">
+                <div className="flex items-center gap-1 bg-gradient-to-r from-amber-100 to-yellow-100 px-3 py-1.5 rounded-full shadow-md">
+                  <span className="text-lg">⭐</span>
+                  <span className="font-bold text-amber-600">{dailyStats.gamePassCount}</span>
+                  <span className="text-xs text-amber-500">颗星星</span>
+                </div>
+                <span className="text-[10px] text-slate-400">本次获得: {earnedStars} ⭐</span>
+              </div>
+              
               <div className={cn(
                 "px-4 py-1.5 rounded-full text-sm font-bold bg-gradient-to-r",
                 bookData.gradient,
@@ -312,6 +326,7 @@ const BookInteraction = () => {
               )}>
                 {bookData.title}
               </div>
+              
               <div className="flex gap-2">
                 <button 
                   onClick={() => setIsVoiceSelectorOpen(true)}
@@ -399,6 +414,15 @@ const BookInteraction = () => {
               >
                 <Home size={22} />
               </button>
+              {/* 星星和通关次数显示 */}
+              <div className="flex flex-col items-center gap-1">
+                <div className="flex items-center gap-1 bg-gradient-to-r from-amber-100 to-yellow-100 px-3 py-1.5 rounded-full shadow-md">
+                  <span className="text-lg">⭐</span>
+                  <span className="font-bold text-amber-600">{dailyStats.gamePassCount}</span>
+                  <span className="text-xs text-amber-500">颗星星</span>
+                </div>
+                <span className="text-[10px] text-slate-400">本次获得: {earnedStars} ⭐</span>
+              </div>
               <div className={cn(
                 "px-4 py-1.5 rounded-full text-sm font-bold",
                 bookData.color,
@@ -406,7 +430,6 @@ const BookInteraction = () => {
               )}>
                 第{currentStory + 1}页
               </div>
-              <div className="w-12" />
             </div>
 
             {/* 图片 */}
@@ -761,9 +784,9 @@ const BookInteraction = () => {
 
             <h1 className="text-4xl font-bold text-slate-800 mb-2">真棒！</h1>
             <p className="text-lg text-slate-500 mb-4">{bookData.successText}</p>
-            <p className="text-sm text-amber-500 mb-2">本次得分：{score}/{bookData.stories.length}</p>
+            <p className="text-sm text-amber-500 mb-2">本次得分：{earnedStars}/{bookData.stories.length}</p>
             <p className="text-2xl text-amber-500 font-bold mb-12">
-              获得 {score} 颗星星 ⭐
+              获得 {earnedStars} 颗星星 ⭐
             </p>
 
             <div className="space-y-4 w-full max-w-sm">
@@ -771,7 +794,7 @@ const BookInteraction = () => {
                 onClick={() => {
                   resetState();
                   setCurrentStory(0);
-                  setScore(0);
+                  setEarnedStars(0);
                 }}
                 className="w-full h-16 bg-gradient-to-r from-amber-400 to-orange-400 text-white font-bold text-xl rounded-full border-none shadow-xl"
               >
