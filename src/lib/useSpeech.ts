@@ -64,10 +64,19 @@ export interface VoicePackage {
 export const VOICE_PACKAGES: VoicePackage[] = [
   {
     id: 'default',
-    name: '标准女声',
-    description: '清晰温柔的女声',
-    emoji: '👩',
-    femaleKeywords: ['female', 'woman', 'lady', '女', '女性', '女声'],
+    name: '小宝贝',
+    description: '俏皮可爱的童声',
+    emoji: '👧',
+    femaleKeywords: ['female', 'woman', 'lady', '女', '女性'],
+    youngKeywords: ['young', 'child', 'kid', '童', '孩', '小', 'Ting-Ting', 'Huihui'],
+  },
+  {
+    id: 'child',
+    name: '小甜心',
+    description: '甜美的小女孩声音',
+    emoji: '👧',
+    femaleKeywords: ['female', 'woman', 'lady', '女', '女性', 'girl'],
+    youngKeywords: ['young', 'child', 'kid', '童', '孩', '小', 'Ting-Ting', 'Huihui', 'xiaomei'],
   },
   {
     id: 'male',
@@ -75,14 +84,6 @@ export const VOICE_PACKAGES: VoicePackage[] = [
     description: '友好的男声',
     emoji: '👨',
     maleKeywords: ['male', 'man', '男', '男性', '男声'],
-  },
-  {
-    id: 'child',
-    name: '童声',
-    description: '可爱的儿童声音',
-    emoji: '👧',
-    femaleKeywords: ['female', 'woman', 'lady', '女', '女性'],
-    youngKeywords: ['young', 'child', 'kid', '童', '孩', '小', 'Ting-Ting', 'Huihui'],
   },
   {
     id: 'elder',
@@ -94,7 +95,7 @@ export const VOICE_PACKAGES: VoicePackage[] = [
   },
 ];
 
-// 当前选中的声音包
+// 当前选中的声音包 - 默认为童声（俏皮可爱的小女孩音色）
 let currentVoicePackage: VoicePackage = VOICE_PACKAGES[0];
 
 export function setVoicePackage(pkg: VoicePackage) {
@@ -192,9 +193,10 @@ export function speakText(
   
   // 根据声音包调整语速和音调
   const pkg = currentVoicePackage;
-  if (pkg.id === 'child') {
-    utterance.rate = 0.85;
-    utterance.pitch = 1.2;
+  if (pkg.id === 'child' || pkg.id === 'default') {
+    // 童声：小孩子、俏皮可爱、音色亮
+    utterance.rate = 1.0;   // 稍快一点的语速，更活泼
+    utterance.pitch = 1.4; // 更高的音调，更亮更可爱
   } else if (pkg.id === 'elder') {
     utterance.rate = 0.75;
     utterance.pitch = 0.9;
