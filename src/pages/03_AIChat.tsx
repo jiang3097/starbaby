@@ -7,6 +7,7 @@ import { cn } from '../lib/utils';
 import { speakText, startListening, preloadVoices } from '../lib/useSpeech';
 import { useUser } from '../context/UserContext';
 import { useApp } from '../context/AppContext';
+import VoiceSelector from '../components/VoiceSelector';
 
 interface Message {
   id: number;
@@ -25,6 +26,7 @@ const AIChat = () => {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [showIntimacyTip, setShowIntimacyTip] = useState(false);
   const [currentIntimacy, setCurrentIntimacy] = useState(profile.intimacy);
+  const [isVoiceSelectorOpen, setIsVoiceSelectorOpen] = useState(false);
   const hasStartedTraining = useRef(false);
   const prevIntimacyRef = useRef(profile.intimacy);
   
@@ -216,7 +218,12 @@ const AIChat = () => {
           </span>
         </div>
         
-        <div className="w-12" />
+        <button 
+          onClick={() => setIsVoiceSelectorOpen(true)}
+          className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-lg text-purple-500 hover:bg-purple-50 transition-colors"
+        >
+          <Volume2 size={24} />
+        </button>
       </div>
 
       {/* 亲密度增加提示 */}
@@ -395,6 +402,9 @@ const AIChat = () => {
           {isListening ? '请说话哦~' : '👆 点击麦克风，和我说话吧'}
         </p>
       </div>
+
+      {/* 声音选择器 */}
+      <VoiceSelector isOpen={isVoiceSelectorOpen} onClose={() => setIsVoiceSelectorOpen(false)} />
     </MobileShell>
   );
 };

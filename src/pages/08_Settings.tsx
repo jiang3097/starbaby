@@ -1,15 +1,17 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Shield, ChevronRight, Info, User, Sparkles, ChevronLeft, Clock, Check, X } from 'lucide-react';
+import { Shield, ChevronRight, Info, User, Sparkles, ChevronLeft, Clock, Check, X, Volume2 } from 'lucide-react';
 import MobileShell from '../components/MobileShell';
 import Navigation from '../components/Navigation';
 import { Card } from '../components/ui/card';
 import { cn } from '../lib/utils';
 import { useUser } from '../context/UserContext';
 import { useApp } from '../context/AppContext';
+import VoiceSelector from '../components/VoiceSelector';
+import { VOICE_PACKAGES, getVoicePackage, setVoicePackage, type VoicePackage } from '../lib/useSpeech';
 
-type ParentView = 'settings' | 'timeLimit' | 'aboutProject' | 'changePassword';
+type ParentView = 'settings' | 'timeLimit' | 'aboutProject' | 'changePassword' | 'voiceSettings';
 type ParentViewState = 'enterPin' | 'main';
 
 const Settings = () => {
@@ -24,6 +26,7 @@ const Settings = () => {
   const [selectedMinutes, setSelectedMinutes] = useState(timeLimit.minutes);
   const [customMinutes, setCustomMinutes] = useState('');
   const [showCustomInput, setShowCustomInput] = useState(false);
+  const [isVoiceSelectorOpen, setIsVoiceSelectorOpen] = useState(false);
   
   // 修改密码状态
   const [currentPin, setCurrentPin] = useState('');
@@ -35,6 +38,14 @@ const Settings = () => {
 
   // 关于项目内容
   const settingsItems = [
+    { 
+      label: '声音设置', 
+      color: 'text-amber-500', 
+      bg: 'bg-amber-50',
+      gradient: 'from-amber-100 to-orange-100',
+      emoji: '🔊',
+      onClick: () => setIsVoiceSelectorOpen(true)
+    },
     { 
       label: '关于项目', 
       color: 'text-slate-400', 
@@ -341,7 +352,7 @@ const Settings = () => {
                   transition={{ delay: index * 0.1 }}
                 >
                   <Card 
-                  onClick={() => setParentView('aboutProject')}
+                  onClick={() => item.onClick ? item.onClick() : setParentView('aboutProject')}
                   className="p-5 flex items-center justify-between border-none shadow-md rounded-[24px] group cursor-pointer active:scale-[0.98] transition-all overflow-hidden relative"
                 >
                     <div className={cn(
@@ -781,6 +792,9 @@ const Settings = () => {
           </div>
         </>
       )}
+
+      {/* 声音选择器 */}
+      <VoiceSelector isOpen={isVoiceSelectorOpen} onClose={() => setIsVoiceSelectorOpen(false)} />
     </MobileShell>
   );
 };
