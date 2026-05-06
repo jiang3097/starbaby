@@ -177,6 +177,7 @@ const BookInteraction = () => {
     setUserAnswer('');
     setIsCorrect(false);
     setShowResult(false);
+    setEarnedStars(0); // 重置星星
     setIsAIChatOpen(false);
     if (stopListeningRef.current) {
       stopListeningRef.current();
