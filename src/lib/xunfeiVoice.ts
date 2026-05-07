@@ -1,8 +1,8 @@
 // 讯飞语音 TTS 服务
-// 通过本地 WebSocket 代理调用讯飞 API
+// 通过本地代理调用讯飞 API
 
 // ============== 配置 ==============
-const TTS_PROXY_URL = 'ws://localhost:8088';
+const TTS_PROXY_URL = 'http://localhost:8088';
 
 // ============== 声音选项 ==============
 export interface XunfeiVoiceOption {
@@ -21,7 +21,6 @@ export const XUNFEI_VOICES: XunfeiVoiceOption[] = [
 ];
 
 let currentVoiceId: string = 'aishabxuu';
-let currentAudioContext: AudioContext | null = null;
 
 export function setXunfeiVoice(voiceId: string): void {
   const voice = XUNFEI_VOICES.find(v => v.id === voiceId);
@@ -50,61 +49,13 @@ export function speakText(
 ): () => void {
   console.log('[TTS] 开始朗读:', text);
   
-  let audioContext: AudioContext | null = null;
-  let ws: WebSocket | null = null;
-  let audioBuffer: number[] = [];
+  let audio: HTMLAudioElement | null = null;
   let isDone = false;
 
   const cleanup = () => {
-    if (ws) {
-      ws.close();
-      ws = null;
-    }
-    if (audioContext) {
-      audioContext.close();
-      audioContext = null;
-    }
-    currentAudioContext = null;
-  };
-
-  const playAudio = () => {
-    if (!audioContext || audioBuffer.length === 0 || isDone) return;
-    
-    try {
-      // 转换为 Int16Array
-      const samples = new Int16Array(audioBuffer.length / 2);
-      for (let i = 0; i < samples.length; i++) {
-        const low = audioBuffer[i * 2];
-        const high = audioBuffer[i * 2 + 1];
-        samples[i] = (high << 8) | low;
-      }
-      
-      // 创建 AudioBuffer
-      const buffer = audioContext.createBuffer(1, samples.length, 16000);
-      const floatData = new Float32Array(samples.length);
-      for (let i = 0; i < samples.length; i++) {
-        floatData[i] = samples[i] / 32768;
-      }
-      buffer.copyToChannel(floatData, 0);
-      
-      const source = audioContext.createBufferSource();
-      source.buffer = buffer;
-      source.connect(audioContext.destination);
-      
-      console.log('[TTS] 播放中，时长:', buffer.duration, '秒');
-      onStart?.();
-      
-      source.onended = () => {
-        cleanup();
-        isDone = true;
-        onEnd?.();
-      };
-      
-      source.start();
-    } catch (e) {
-      console.error('[TTS] 播放失败:', e);
-      cleanup();
-      fallbackNative();
+    if (audio) {
+      audio.pause();
+      audio = null;
     }
   };
 
@@ -115,69 +66,61 @@ export function speakText(
     nativeTTS(text, onStart, onEnd);
   };
 
-  // 连接 WebSocket 代理
-  const connect = () => {
+  // 调用 HTTP 接口
+  const fetchAudio = async () => {
     try {
-      audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-      currentAudioContext = audioContext;
-
       const voice = getXunfeiVoice();
-      console.log('[TTS] 连接代理, voice:', voice.vcn);
+      console.log('[TTS] 发送请求, voice:', voice.vcn);
       
-      ws = new WebSocket(TTS_PROXY_URL);
+      const response = await fetch(`${TTS_PROXY_URL}/tts`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text, vcn: voice.vcn })
+      });
       
-      ws.onopen = () => {
-        console.log('[TTS] WebSocket 已连接');
-        ws?.send(JSON.stringify({
-          type: 'request',
-          id: Date.now(),
-          text: text,
-          vcn: voice.vcn
-        }));
-      };
-      
-      ws.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data);
-          
-          if (data.type === 'complete') {
-            console.log('[TTS] 收到音频数据');
-            
-            // 解码 base64 音频
-            const binary = atob(data.audio);
-            for (let i = 0; i < binary.length; i++) {
-              audioBuffer.push(binary.charCodeAt(i));
-            }
-            
-            console.log('[TTS] 音频大小:', audioBuffer.length, '字节');
-            playAudio();
-          } else if (data.type === 'error') {
-            console.error('[TTS] 代理错误:', data.error);
-            fallbackNative();
-          }
-        } catch (e) {
-          console.error('[TTS] 解析失败:', e);
-        }
-      };
-      
-      ws.onerror = (e) => {
-        console.error('[TTS] WebSocket 错误');
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({ error: '未知错误' }));
+        console.error('[TTS] 请求失败:', error);
         fallbackNative();
-      };
+        return;
+      }
       
-      ws.onclose = () => {
-        console.log('[TTS] WebSocket 关闭');
-        if (audioBuffer.length === 0 && !isDone) {
+      const result = await response.json();
+      console.log('[TTS] 收到音频, 大小:', result.audio?.length || 0);
+      
+      if (result.audio) {
+        // 播放 base64 音频
+        const audioUrl = `data:audio/mp3;base64,${result.audio}`;
+        audio = new Audio(audioUrl);
+        
+        audio.onplay = () => {
+          console.log('[TTS] 播放中');
+          onStart?.();
+        };
+        
+        audio.onended = () => {
+          cleanup();
+          isDone = true;
+          onEnd?.();
+        };
+        
+        audio.onerror = (e) => {
+          console.error('[TTS] 音频播放失败:', e);
+          cleanup();
           fallbackNative();
-        }
-      };
-    } catch (e) {
-      console.error('[TTS] 连接失败:', e);
+        };
+        
+        audio.play();
+      } else {
+        fallbackNative();
+      }
+    } catch (e: any) {
+      console.error('[TTS] 请求异常:', e.message);
       fallbackNative();
     }
   };
 
-  connect();
+  fetchAudio();
   
   return cleanup;
 }
@@ -218,10 +161,6 @@ export function nativeTTS(
 
 // ============== 停止 ==============
 export function stopSpeaking(): void {
-  if (currentAudioContext) {
-    currentAudioContext.close();
-    currentAudioContext = null;
-  }
   if ('speechSynthesis' in window) {
     window.speechSynthesis.cancel();
   }
