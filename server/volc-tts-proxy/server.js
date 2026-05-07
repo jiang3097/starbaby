@@ -21,13 +21,14 @@ app.use(async (ctx, next) => {
 // 火山引擎配置
 const VOLC_CONFIG = {
   APP_ID: '1368516150',
-  ACCESS_TOKEN: 'vkMSggBglPENCr3VMfMmECdwUBEac_Wy',
+  API_KEY: 'vkMSggBgIPENCr3VMfMmECdwUBEac_Wy',
+  RESOURCE_ID: 'seed-tts-2.0',
   TTS_URL: 'https://openspeech.bytedance.com/api/v1/tts'
 };
 
 // TTS 路由
 router.post('/tts', async (ctx) => {
-  const { text, voice = 'BV703', speed = 1.0, volume = 1.0, pitch = 1.0 } = ctx.request.body;
+  const { text, voice = 'zh_female_xiaohe_uranus_bigtts', speed = 1.0 } = ctx.request.body;
 
   if (!text) {
     ctx.status = 400;
@@ -42,14 +43,14 @@ router.post('/tts', async (ctx) => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer;${VOLC_CONFIG.ACCESS_TOKEN}`,
-        'Resource-Id': 'volc.megatts.2_0',
+        'Authorization': `Bearer ${VOLC_CONFIG.API_KEY}`,
+        'Resource-Id': VOLC_CONFIG.RESOURCE_ID,
       },
       body: JSON.stringify({
         app: {
           appid: VOLC_CONFIG.APP_ID,
-          token: VOLC_CONFIG.ACCESS_TOKEN,
-          cluster: 'volc_megatts_cloud',
+          token: VOLC_CONFIG.API_KEY,
+          cluster: 'volc_tts_online',
         },
         user: {
           uid: 'anonymous',
@@ -58,8 +59,8 @@ router.post('/tts', async (ctx) => {
           voice,
           encoding: 'mp3',
           speed_ratio: speed,
-          volume_ratio: volume,
-          pitch_ratio: pitch,
+          volume_ratio: 1.0,
+          pitch_ratio: 1.0,
           rate: 24000,
         },
         request: {
@@ -73,7 +74,7 @@ router.post('/tts', async (ctx) => {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.log(`[火山TTS代理] 火山引擎返回错误: ${response.status} - ${errorText}`);
+      console.log(`[火山TTS代理] 火山引擎返回错误: ${response.status} - ${errorText.substring(0, 200)}`);
       ctx.status = response.status;
       ctx.body = { error: `火山引擎错误: ${response.status}`, details: errorText };
       return;
@@ -98,12 +99,26 @@ router.get('/health', (ctx) => {
   ctx.body = { status: 'ok', service: 'volc-tts-proxy' };
 });
 
-app.use(cors());
-app.use(router.routes());
-app.use(router.allowedMethods());
+// 列出可用音色
+router.get('/voices', (ctx) => {
+  ctx.body = {
+    voices: [
+      { id: 'zh_female_xiaohe_uranus_bigtts', name: '小何（女声）', scene: '通用' },
+      { id: 'zh_male_m191_uranus_bigtts', name: '云舟（男声）', scene: '通用' },
+      { id: 'zh_male_taocheng_uranus_bigtts', name: '小天（男声）', scene: '通用' },
+      { id: 'vivi_2_0', name: 'Vivi 2.0（女声）', scene: '通用' },
+    ]
+  };
+});
 
-const PORT = 8089;
+// 启用 CORS
+app.use(cors());
+
+// 添加路由
+app.use(router.routes()).use(router.allowedMethods());
+
+const PORT = process.env.PORT || 8089;
 app.listen(PORT, () => {
-  console.log(`[火山TTS代理] 服务运行在 http://localhost:${PORT}`);
-  console.log(`[火山TTS代理] 使用声音: BV703 (俏皮女声)`);
+  console.log(`火山引擎 TTS 代理服务运行在 http://localhost:${PORT}`);
+  console.log(`Resource-Id: ${VOLC_CONFIG.RESOURCE_ID}`);
 });
