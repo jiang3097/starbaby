@@ -36,7 +36,8 @@ const VoiceSelector: React.FC<VoiceSelectorProps> = ({ isOpen, onClose }) => {
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.9, opacity: 0, y: 50 }}
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-            className="fixed top-[50%] left-1/2 -translate-x-1/2 -translate-y-[45%] w-[90%] max-w-sm bg-white rounded-3xl shadow-2xl z-[201] overflow-hidden max-h-[80vh] flex flex-col"
+            className="fixed inset-0 m-auto w-[90%] max-w-sm max-h-[80vh] bg-white rounded-3xl shadow-2xl z-[201] overflow-hidden flex flex-col"
+            style={{ top: '50%', transform: 'translateY(-50%)' }}
           >
             {/* Header */}
             <div className="px-6 py-4 bg-gradient-to-r from-amber-50 to-orange-50 border-b border-amber-100">
@@ -60,7 +61,7 @@ const VoiceSelector: React.FC<VoiceSelectorProps> = ({ isOpen, onClose }) => {
             </div>
 
             {/* Voice options */}
-            <div className="p-4 space-y-3">
+            <div className="p-4 space-y-3 overflow-y-auto flex-1">
               {VOICE_PACKAGES.map((pkg) => (
                 <motion.button
                   key={pkg.id}
