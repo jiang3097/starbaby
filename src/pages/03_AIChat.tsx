@@ -401,7 +401,7 @@ const AIChat = () => {
             "mt-2 text-xs font-medium transition-all duration-300",
             isListening ? "text-rose-500" : "text-amber-600/70"
           )}>
-            {isListening ? "说完自动发送~" : "点击说话，自动发送"}
+            {isListening ? "松手自动发送，无需点击结束" : "说话后自动发送，无需点击结束"}
           </p>
         </div>
 
