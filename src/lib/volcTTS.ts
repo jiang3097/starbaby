@@ -6,10 +6,11 @@
 
 // 火山引擎 TTS API 配置
 const VOLC_TTS_CONFIG = {
-  URL: 'https://openspeech.bytedance.com/api/v2/tts',
-  // 注意：需要替换为你自己的火山引擎 Access Token
-  // 获取方式：https://console.volcengine.com/iam/keymanage/
-  ACCESS_TOKEN: '', // 留空则使用浏览器原生 TTS
+  URL: 'https://openspeech.bytedance.com/api/v1/tts',
+  // 需要替换为你自己的火山引擎凭证
+  // 获取方式：https://console.volcengine.com/ 搜索"语音技术" -> 应用管理 -> 查看 AppID 和 Access Token
+  ACCESS_TOKEN: '', // Access Token（必填）
+  APP_ID: '',       // App ID（必填）
 };
 
 // 音色列表
@@ -39,7 +40,7 @@ export const getVolcVoice = (): IVolcVoice => currentVoice;
 
 // 检查火山引擎是否可用
 export const isVolcEnabled = () => {
-  return !!VOLC_TTS_CONFIG.ACCESS_TOKEN;
+  return !!VOLC_TTS_CONFIG.ACCESS_TOKEN && !!VOLC_TTS_CONFIG.APP_ID;
 };
 
 /**
@@ -98,7 +99,7 @@ export const volcSpeak = (
     },
     body: JSON.stringify({
       app: {
-        appid: ' volc_tts_demo', // 可替换为你的 appid
+        appid: VOLC_TTS_CONFIG.APP_ID || ' volc_tts_demo',
         token: VOLC_TTS_CONFIG.ACCESS_TOKEN,
         cluster: 'volcengine_tts',
       },
