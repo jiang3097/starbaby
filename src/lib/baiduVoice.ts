@@ -4,9 +4,9 @@
 const BAIDU_TTS_URL = 'https://tsn.baidu.com/text2audio';
 const BAIDU_TOKEN_URL = 'https://aip.baidubce.com/oauth/2.0/token';
 
-// 百度语音凭证（简化格式）
-const BAIDU_API_KEY = 'bce-v3/ALTAK-djSJGpAd4B4D0HZ4GcLYi/5d9e61a57403ab3230f2dc7c7d88041c043fd392';
-const BAIDU_SECRET_KEY = '615243Abc';
+// 百度语音凭证
+const BAIDU_API_KEY = 'wLKn9mbXwp1fUyAVv0RufrtE';
+const BAIDU_SECRET_KEY = 'iREZXzORXxH0Ee8cz7x55RtUoyNpOZ1T';
 
 // 缓存 access_token
 let accessToken: string | null = null;
