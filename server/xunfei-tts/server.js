@@ -31,16 +31,16 @@ function createAuth() {
   const now = new Date();
   const dateStr = now.toUTCString();
   
-  // 签名字符串
+  // 签名字符串（用 sha256）
   const signatureOrigin = `host: tts-api.xfyun.cn\ndate: ${dateStr}\nGET /v2/tts HTTP/1.1`;
   
-  // HMAC-SHA1
-  const hmac = crypto.createHmac('sha1', XF_API_SECRET);
+  // HMAC-SHA256
+  const hmac = crypto.createHmac('sha256', XF_API_SECRET);
   hmac.update(signatureOrigin);
   const signature = hmac.digest('base64');
   
-  // 构造 authorization
-  const authOrigin = `api_key="${XF_API_KEY}", algorithm="hmac-sha1", headers="host date request-line", signature="${signature}"`;
+  // 构造 authorization（algorithm 用 hmac-sha256）
+  const authOrigin = `api_key="${XF_API_KEY}", algorithm="hmac-sha256", headers="host date request-line", signature="${signature}"`;
   const authorization = Buffer.from(authOrigin).toString('base64');
   
   return { authorization, date: dateStr };
@@ -80,13 +80,12 @@ wss.on('connection', (ws) => {
           const request = {
             common: { app_id: XF_APPID },
             business: {
-              aue: 'raw',
-              auf: 'audio/L16;rate=16000',
+              aue: 'lame',
               vcn: vcn,
               speed: 50,
               volume: 50,
               pitch: 50,
-              tte: 'UTF8'
+              sample_rate: 16000
             },
             data: {
               status: 2,
