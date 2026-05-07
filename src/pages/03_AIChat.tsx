@@ -364,7 +364,7 @@ const AIChat = () => {
         </div>
 
         {/* Voice Button */}
-        <div className="flex items-center justify-center py-3">
+        <div className="flex flex-col items-center justify-center py-3">
           <motion.button
             whileTap={{ scale: 0.9 }}
             onClick={handleMicClick}
@@ -395,6 +395,14 @@ const AIChat = () => {
             </AnimatePresence>
             <span className="text-4xl relative z-10">🎤</span>
           </motion.button>
+          
+          {/* 提示文字 */}
+          <p className={cn(
+            "mt-2 text-xs font-medium transition-all duration-300",
+            isListening ? "text-rose-500" : "text-amber-600/70"
+          )}>
+            {isListening ? "说完自动发送~" : "点击说话，自动发送"}
+          </p>
         </div>
 
         {/* Listening indicator */}
