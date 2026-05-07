@@ -22,14 +22,14 @@ export interface IVolcVoice {
 }
 
 export const VOLC_VOICES: IVolcVoice[] = [
+  { id: 'BV703', name: '俏皮女声', lang: 'zh', desc: '清脆活泼，适合儿童' },
   { id: 'BV700', name: '清新女声', lang: 'zh', desc: '清新自然的女生声音' },
   { id: 'BV701', name: '醇厚男声', lang: 'zh', desc: '低沉有磁性的男声' },
   { id: 'BV702', name: '亲切男声', lang: 'zh', desc: '温和亲切的男声' },
-  { id: 'BV703', name: '俏皮女声', lang: 'zh', desc: '活泼俏皮的女声' },
 ];
 
 // 缓存当前选择的音色
-let currentVoice = VOLC_VOICES[0];
+let currentVoice = VOLC_VOICES[2]; // 默认 BV703 俏皮女声
 
 export const setVolcVoice = (voiceId: string) => {
   const voice = VOLC_VOICES.find(v => v.id === voiceId);
