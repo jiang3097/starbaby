@@ -9,8 +9,8 @@ const VOLC_TTS_CONFIG = {
   URL: 'https://openspeech.bytedance.com/api/v1/tts',
   // 需要替换为你自己的火山引擎凭证
   // 获取方式：https://console.volcengine.com/ 搜索"语音技术" -> 应用管理 -> 查看 AppID 和 Access Token
-  ACCESS_TOKEN: '', // Access Token（必填）
-  APP_ID: '',       // App ID（必填）
+  ACCESS_TOKEN: 'vkMSggBglPENCr3VMfMmECdwUBEac_Wy', // Access Token
+  APP_ID: '1368516150',       // App ID
 };
 
 // 音色列表
