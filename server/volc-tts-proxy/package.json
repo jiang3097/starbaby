@@ -1,0 +1,14 @@
+{
+  "name": "volc-tts-proxy",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "koa": "^2.15.0",
+    "koa-cors": "^0.0.16",
+    "koa-router": "^12.0.1",
+    "node-fetch": "^3.3.2"
+  }
+}
