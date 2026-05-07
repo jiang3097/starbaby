@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, Mic, Volume2, Send, Square } from 'lucide-react';
 import MobileShell from '../components/MobileShell';
 import { cn } from '../lib/utils';
-import { speakText, startListening, preloadVoices, stopSpeaking } from '../lib/useSpeech';
+import { speakText, startListening, stopListening, preloadVoices, stopSpeaking } from '../lib/useSpeech';
 import { useUser } from '../context/UserContext';
 import { useApp } from '../context/AppContext';
 import VoiceSelector from '../components/VoiceSelector';
@@ -30,7 +30,6 @@ const AIChat = () => {
   const hasStartedTraining = useRef(false);
   const prevIntimacyRef = useRef(profile.intimacy);
   
-  const stopListeningFnRef = useRef<(() => void) | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // 监听亲密度变化
@@ -122,16 +121,13 @@ const AIChat = () => {
   const handleMicClick = () => {
     if (isListening) {
       // 停止录音
-      if (stopListeningFnRef.current) {
-        stopListeningFnRef.current();
-        stopListeningFnRef.current = null;
-      }
+      stopListening();
       setIsListening(false);
     } else {
       // 开始录音
       setIsListening(true);
 
-      stopListeningFnRef.current = startListening(
+      startListening(
         (text) => {
           // 识别成功，发送消息
           setIsListening(false);

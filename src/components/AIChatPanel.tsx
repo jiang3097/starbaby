@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Mic, Volume2, Send, Sparkles, RefreshCw, Check, VolumeX, Square } from 'lucide-react';
 import { cn } from '../lib/utils';
-import { speakText, startListening, preloadVoices, stopSpeaking } from '../lib/useSpeech';
+import { speakText, startListening, stopListening, preloadVoices, stopSpeaking } from '../lib/useSpeech';
 
 interface Message {
   id: number;
@@ -28,10 +28,10 @@ const AIChatPanel: React.FC<AIChatPanelProps> = ({
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isFollowing, setIsFollowing] = useState(false);
+  const [isFollowingListening, setIsFollowingListening] = useState(false);
   const [currentFollowingText, setCurrentFollowingText] = useState('');
   const [userSpeakingText, setUserSpeakingText] = useState('');
   
-  const stopListeningFnRef = useRef<(() => void) | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const [inputText, setInputText] = useState('');
@@ -106,16 +106,13 @@ const AIChatPanel: React.FC<AIChatPanelProps> = ({
   // 点击麦克风
   const handleMicClick = () => {
     if (isListening) {
-      if (stopListeningFnRef.current) {
-        stopListeningFnRef.current();
-        stopListeningFnRef.current = null;
-      }
+      stopListening();
       setIsListening(false);
     } else {
       setIsListening(true);
       setUserSpeakingText('');
 
-      stopListeningFnRef.current = startListening(
+      startListening(
         (text) => {
           setIsListening(false);
           handleSend(text);
@@ -144,7 +141,8 @@ const AIChatPanel: React.FC<AIChatPanelProps> = ({
     // AI 先读一遍
     speakText(text, () => {
       // 读完后开始监听用户跟读
-      stopListeningFnRef.current = startListening(
+      setIsFollowingListening(true);
+      startListening(
         (spokenText) => {
           setUserSpeakingText(spokenText);
         },
@@ -155,11 +153,9 @@ const AIChatPanel: React.FC<AIChatPanelProps> = ({
 
   // 停止跟读
   const handleStopFollowing = () => {
-    if (stopListeningFnRef.current) {
-      stopListeningFnRef.current();
-      stopListeningFnRef.current = null;
-    }
+    stopListening();
     setIsFollowing(false);
+    setIsFollowingListening(false);
     setCurrentFollowingText('');
     setUserSpeakingText('');
   };
@@ -178,10 +174,7 @@ const AIChatPanel: React.FC<AIChatPanelProps> = ({
 
   // 再听一遍
   const handleReplay = () => {
-    if (stopListeningFnRef.current) {
-      stopListeningFnRef.current();
-      stopListeningFnRef.current = null;
-    }
+    stopListening();
     handleStartFollowing(currentFollowingText);
   };
 

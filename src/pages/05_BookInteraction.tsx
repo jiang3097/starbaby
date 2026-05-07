@@ -5,7 +5,7 @@ import { ChevronLeft, Volume2, Mic, Check, ArrowRight, Trophy, RefreshCw, Sparkl
 import MobileShell from '../components/MobileShell';
 import { Button } from '../components/ui/button';
 import { cn } from '../lib/utils';
-import { speakText, startListening, preloadVoices, stopSpeaking } from '../lib/useSpeech';
+import { speakText, startListening, stopListening, preloadVoices, stopSpeaking } from '../lib/useSpeech';
 import VoiceSelector from '../components/VoiceSelector';
 import AIChatPanel from '../components/AIChatPanel';
 import { useUser } from '../context/UserContext';
@@ -149,8 +149,6 @@ const BookInteraction = () => {
   const [isVoiceSelectorOpen, setIsVoiceSelectorOpen] = useState(false);
   const [isAIChatOpen, setIsAIChatOpen] = useState(false);
   
-  const stopListeningRef = useRef<(() => void) | null>(null);
-
   const bookData = BOOKS_DATA[Number(bookId) || 1];
   const story = bookData?.stories[currentStory];
 
@@ -179,10 +177,7 @@ const BookInteraction = () => {
     setShowResult(false);
     setEarnedStars(0); // 重置星星
     setIsAIChatOpen(false);
-    if (stopListeningRef.current) {
-      stopListeningRef.current();
-      stopListeningRef.current = null;
-    }
+    stopListening();
   }, []);
 
   // 开始阅读
@@ -202,7 +197,7 @@ const BookInteraction = () => {
     setIsListening(true);
     setUserAnswer('');
 
-    stopListeningRef.current = startListening(
+    startListening(
       (text) => {
         setUserAnswer(text);
         setIsListening(false);
@@ -237,11 +232,8 @@ const BookInteraction = () => {
   }, [story, incrementExpression, incrementBookCompleted]);
 
   // 停止录音
-  const stopListening = useCallback(() => {
-    if (stopListeningRef.current) {
-      stopListeningRef.current();
-      stopListeningRef.current = null;
-    }
+  const stopCurrentListening = useCallback(() => {
+    stopListening();
     setIsListening(false);
   }, []);
   
