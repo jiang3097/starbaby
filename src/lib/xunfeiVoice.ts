@@ -3,18 +3,17 @@
 
 import CryptoJS from 'crypto-js';
 
-// 讯飞凭证
+// ============== 配置 ==============
 const XF_APPID = '8fe5843b';
 const XF_API_SECRET = 'YjIwNjg1Y2U2ODRiNDFiZmEyYjgzZTUy';
 const XF_API_KEY = 'f0d034b0c856de0d831b8b246ae8cc29';
-
 const XF_TTS_URL = 'wss://tts-api.xfyun.cn/v2/tts';
 
-// 声音选项配置
+// ============== 声音选项 ==============
 export interface XunfeiVoiceOption {
   id: string;
   name: string;
-  vcn: string;  // 讯飞音色参数
+  vcn: string;
   description: string;
 }
 
@@ -48,38 +47,54 @@ export function initXunfeiVoice(): void {
   }
 }
 
-// 生成讯飞鉴权
-function generateAuth(): { authorization: string; date: string } {
-  const ts = Math.floor(Date.now() / 1000);
-  const dateStr = new Date(ts * 1000).toUTCString();
+// ============== 讯飞鉴权 ==============
+function createAuthStr(): string {
+  const now = new Date();
+  // RFC 7231 格式: Sun, 05 May 2024 00:00:00 GMT
+  const date = now.toUTCString().replace(/\.\d{3}/, '');
   
-  const signatureOrigin = `host: tts-api.xfyun.cn\ndate: ${dateStr}\nGET /v2/tts HTTP/1.1`;
-  const hmac = CryptoJS.HmacSHA1(signatureOrigin, XF_API_SECRET);
-  const signature = CryptoJS.enc.Base64.stringify(hmac);
+  const signatureOrigin = `host: tts-api.xfyun.cn\ndate: ${date}\nGET /v2/tts HTTP/1.1`;
   
-  const authorizationOrigin = `api_key="${XF_API_KEY}", algorithm="hmac-sha1", headers="host date request-line", signature="${signature}"`;
-  const authorization = btoa(authorizationOrigin);
+  // HMAC-SHA1
+  const hash = CryptoJS.HmacSHA1(signatureOrigin, XF_API_SECRET);
+  const signature = hash.toString(CryptoJS.enc.Base64);
   
-  return { authorization, date: dateStr };
+  // 构造 authorization (不再次 base64)
+  const authOrigin = `api_key="${XF_API_KEY}", algorithm="hmac-sha1", headers="host date request-line", signature="${signature}"`;
+  
+  return authOrigin;
 }
 
-// 讯飞 TTS 朗读
-export function xunfeiSpeakText(
+function getQueryString(): string {
+  const now = new Date();
+  const date = now.toUTCString().replace(/\.\d{3}/, '');
+  const auth = createAuthStr();
+  
+  const params = new URLSearchParams({
+    authorization: btoa(auth),
+    date: date,
+    host: 'tts-api.xfyun.cn'
+  });
+  
+  return params.toString();
+}
+
+// ============== 核心 TTS 函数 ==============
+export function speakText(
   text: string,
   onStart?: () => void,
   onEnd?: () => void
 ): () => void {
-  console.log('讯飞 TTS 朗读:', text.substring(0, 30));
-
+  console.log('[讯飞TTS] 开始朗读:', text);
+  
   let audioContext: AudioContext | null = null;
   let source: AudioBufferSourceNode | null = null;
   let ws: WebSocket | null = null;
-  let audioChunks: Uint8Array[] = [];
-  let playing = false;
-  let audioPlayed = false;
+  let audioBuffer: Int16Array | null = null;
+  let isPlaying = false;
+  let isDone = false;
 
-  const stop = () => {
-    playing = false;
+  const cleanup = () => {
     if (ws) {
       ws.close();
       ws = null;
@@ -93,191 +108,194 @@ export function xunfeiSpeakText(
       audioContext = null;
     }
     currentAudioContext = null;
-  };
-
-  // 创建 WebSocket 连接
-  const connect = () => {
-    try {
-      audioContext = new AudioContext();
-      currentAudioContext = audioContext;
-      audioChunks = [];
-      audioPlayed = false;
-
-      const { authorization, date } = generateAuth();
-      const voice = getXunfeiVoice();
-      
-      const url = `${XF_TTS_URL}?authorization=${encodeURIComponent(authorization)}&date=${encodeURIComponent(date)}&host=tts-api.xfyun.cn`;
-      console.log('讯飞 WebSocket 连接:', url.substring(0, 100));
-
-      ws = new WebSocket(url);
-
-      ws.onopen = () => {
-        console.log('讯飞 WebSocket 已连接');
-        
-        const request = {
-          common: {
-            app_id: XF_APPID,
-          },
-          business: {
-            aue: 'raw',
-            auf: 'audio/L16;rate=16000',
-            vcn: voice.vcn,
-            speed: 50,
-            volume: 50,
-            pitch: 50,
-            tte: 'UTF8',
-          },
-          data: {
-            status: 2,
-            text: btoa(encodeURIComponent(text)),
-          },
-        };
-
-        ws?.send(JSON.stringify(request));
-      };
-
-      ws.onmessage = (event) => {
-        try {
-          if (typeof event.data === 'string') {
-            const data = JSON.parse(event.data);
-            console.log('讯飞响应:', data.code, data.message);
-            
-            if (data.code !== 0) {
-              console.error('讯飞 TTS 错误:', data.code, data.message);
-              stop();
-              // 回退到原生 TTS
-              nativeSpeakText(text, onStart, onEnd);
-              return;
-            }
-
-            if (data.data && data.data.audio) {
-              const audioData = Uint8Array.from(atob(data.data.audio), c => c.charCodeAt(0));
-              audioChunks.push(audioData);
-            }
-
-            if (data.data && data.data.status === 2 && !audioPlayed) {
-              console.log('讯飞 TTS 合成完成');
-              playAudio();
-            }
-          }
-        } catch (e) {
-          // 二进制数据
-        }
-      };
-
-      ws.onerror = (error) => {
-        console.error('讯飞 WebSocket 错误:', error);
-        stop();
-        // 回退到原生 TTS
-        nativeSpeakText(text, onStart, onEnd);
-      };
-
-      ws.onclose = () => {
-        console.log('讯飞 WebSocket 已关闭');
-        if (audioChunks.length > 0 && !audioPlayed) {
-          playAudio();
-        }
-      };
-    } catch (e) {
-      console.error('讯飞连接失败:', e);
-      // 回退到原生 TTS
-      nativeSpeakText(text, onStart, onEnd);
-    }
+    isPlaying = false;
   };
 
   const playAudio = () => {
-    if (!audioContext || audioChunks.length === 0 || playing || audioPlayed) return;
+    if (!audioContext || !audioBuffer || isPlaying || isDone) return;
     
-    playing = true;
-    audioPlayed = true;
+    isPlaying = true;
+    isDone = true;
     
-    // 合并所有音频块
-    const totalLength = audioChunks.reduce((acc, chunk) => acc + chunk.length, 0);
-    const mergedArray = new Uint8Array(totalLength);
-    let offset = 0;
-    for (const chunk of audioChunks) {
-      mergedArray.set(chunk, offset);
-      offset += chunk.length;
-    }
-
-    console.log('播放音频，数据大小:', mergedArray.length);
-
-    // 解码音频
-    audioContext.decodeAudioData(mergedArray.buffer, (buffer) => {
-      const bufferSource = audioContext!.createBufferSource();
-      bufferSource.buffer = buffer;
-      bufferSource.connect(audioContext!.destination);
-      source = bufferSource;
+    try {
+      // 创建 AudioBuffer (16kHz, 16bit, mono)
+      const buffer = audioContext.createBuffer(1, audioBuffer.length, 16000);
+      // Int16Array 转 Float32Array
+      const floatData = new Float32Array(audioBuffer.length);
+      for (let i = 0; i < audioBuffer.length; i++) {
+        floatData[i] = audioBuffer[i] / 32768;
+      }
+      buffer.copyToChannel(floatData, 0);
+      
+      const node = audioContext.createBufferSource();
+      node.buffer = buffer;
+      node.connect(audioContext.destination);
+      source = node;
       
       onStart?.();
       
-      bufferSource.onended = () => {
-        playing = false;
-        stop();
+      node.onended = () => {
+        cleanup();
         onEnd?.();
       };
       
-      bufferSource.start();
-    }, (error) => {
-      console.error('音频解码错误:', error);
-      playing = false;
-      stop();
-      onEnd?.();
-    });
+      node.start();
+      console.log('[讯飞TTS] 播放中...');
+    } catch (e) {
+      console.error('[讯飞TTS] 播放失败:', e);
+      cleanup();
+      fallbackNative();
+    }
   };
 
-  connect();
+  const fallbackNative = () => {
+    console.log('[讯飞TTS] 回退到原生 TTS');
+    nativeTTS(text, onStart, onEnd);
+  };
 
-  return stop;
-}
+  const connect = () => {
+    const queryString = getQueryString();
+    const url = `${XF_TTS_URL}?${queryString}`;
+    
+    console.log('[讯飞TTS] 连接中...');
+    
+    try {
+      ws = new WebSocket(url);
+    } catch (e) {
+      console.error('[讯飞TTS] WebSocket 创建失败:', e);
+      fallbackNative();
+      return;
+    }
 
-// 浏览器原生 TTS
-export function nativeSpeakText(
-  text: string,
-  onStart?: () => void,
-  onEnd?: () => void
-): () => void {
-  if (!('speechSynthesis' in window)) {
-    console.log('浏览器不支持语音合成');
-    onEnd?.();
+    ws.onopen = () => {
+      console.log('[讯飞TTS] 连接成功');
+      
+      const voice = getXunfeiVoice();
+      const request = {
+        common: { app_id: XF_APPID },
+        business: {
+          aue: 'raw',
+          auf: 'audio/L16;rate=16000',
+          vcn: voice.vcn,
+          speed: 50,
+          volume: 50,
+          pitch: 50,
+          tte: 'UTF8'
+        },
+        data: {
+          status: 2,
+          text: btoa(unescape(encodeURIComponent(text)))
+        }
+      };
+      
+      ws?.send(JSON.stringify(request));
+    };
+
+    ws.onmessage = (event) => {
+      if (isDone) return;
+      
+      if (typeof event.data === 'string') {
+        try {
+          const resp = JSON.parse(event.data);
+          console.log('[讯飞TTS] 响应:', resp.code, resp.message || '');
+          
+          if (resp.code !== 0) {
+            console.error('[讯飞TTS] 服务错误:', resp.code, resp.message);
+            cleanup();
+            fallbackNative();
+            return;
+          }
+          
+          if (resp.data?.audio) {
+            // 解码 base64 音频
+            const binary = atob(resp.data.audio);
+            const bytes = new Uint8Array(binary.length);
+            for (let i = 0; i < binary.length; i++) {
+              bytes[i] = binary.charCodeAt(i);
+            }
+            
+            // 转换为 Int16Array (L16 格式)
+            const samples = new Int16Array(bytes.length / 2);
+            for (let i = 0; i < samples.length; i++) {
+              samples[i] = (bytes[i * 2 + 1] << 8) | bytes[i * 2];
+            }
+            
+            audioBuffer = samples;
+            console.log('[讯飞TTS] 收到音频:', samples.length, '样本');
+          }
+          
+          if (resp.data?.status === 2) {
+            console.log('[讯飞TTS] 合成完成');
+            playAudio();
+          }
+        } catch (e) {
+          console.error('[讯飞TTS] 解析失败:', e);
+        }
+      }
+    };
+
+    ws.onerror = (e) => {
+      console.error('[讯飞TTS] WebSocket 错误:', e);
+      cleanup();
+      fallbackNative();
+    };
+
+    ws.onclose = (e) => {
+      console.log('[讯飞TTS] 连接关闭:', e.code);
+      if (audioBuffer && !isPlaying) {
+        playAudio();
+      } else if (!isDone) {
+        fallbackNative();
+      }
+    };
+  };
+
+  try {
+    audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    currentAudioContext = audioContext;
+  } catch (e) {
+    console.error('[讯飞TTS] AudioContext 创建失败:', e);
+    fallbackNative();
     return () => {};
   }
 
-  const synthesis = window.speechSynthesis;
-  synthesis.cancel();
-
-  const utterance = new SpeechSynthesisUtterance(text);
-  utterance.lang = 'zh-CN';
-  utterance.rate = 1.0;
-  utterance.pitch = 1.1;
-  utterance.volume = 1.0;
-
-  // 尝试选择中文语音
-  const voices = synthesis.getVoices();
-  const zhVoice = voices.find(v => v.lang.includes('zh') || v.lang.includes('CN'));
-  if (zhVoice) {
-    utterance.voice = zhVoice;
-  }
-
-  utterance.onstart = () => onStart?.();
-  utterance.onend = () => onEnd?.();
-  utterance.onerror = () => onEnd?.();
-
-  synthesis.speak(utterance);
-  return () => synthesis.cancel();
+  connect();
+  return cleanup;
 }
 
-// 主函数 - 优先使用讯飞，失败回退到原生
-export function speakText(
+// ============== 原生 TTS ==============
+export function nativeTTS(
   text: string,
   onStart?: () => void,
   onEnd?: () => void
-): () => void {
-  console.log('使用讯飞 TTS');
-  return xunfeiSpeakText(text, onStart, onEnd);
+): void {
+  if (!('speechSynthesis' in window)) {
+    console.log('[原生TTS] 不支持');
+    onEnd?.();
+    return;
+  }
+
+  const synth = window.speechSynthesis;
+  synth.cancel();
+
+  const utter = new SpeechSynthesisUtterance(text);
+  utter.lang = 'zh-CN';
+  utter.rate = 1.0;
+  utter.pitch = 1.1;
+
+  // 选择中文语音
+  const voices = synth.getVoices();
+  const zhVoice = voices.find(v => v.lang.includes('zh'));
+  if (zhVoice) utter.voice = zhVoice;
+
+  utter.onstart = () => onStart?.();
+  utter.onend = () => onEnd?.();
+  utter.onerror = () => onEnd?.();
+
+  synth.speak(utter);
 }
 
-// 停止朗读
+// ============== 停止 ==============
 export function stopSpeaking(): void {
   if (currentAudioContext) {
     currentAudioContext.close();

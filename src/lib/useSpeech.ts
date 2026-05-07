@@ -3,9 +3,8 @@
 
 import { 
   speakText, 
-  stopSpeaking,
-  xunfeiSpeakText,
-  nativeSpeakText,
+  stopSpeaking, 
+  nativeTTS,
   XUNFEI_VOICES, 
   setXunfeiVoice, 
   getXunfeiVoice,
@@ -139,7 +138,6 @@ export function startListening(
 
   recognition.onend = () => {
     console.log('语音识别结束');
-    // 如果没有手动停止，自动重新开始
     if (recognition) {
       try {
         recognition.start();
