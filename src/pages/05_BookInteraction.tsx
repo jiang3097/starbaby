@@ -198,7 +198,7 @@ const BookInteraction = () => {
     setUserAnswer('');
 
     startListening(
-      (text) => {
+      (text: string) => {
         setUserAnswer(text);
         setIsListening(false);
         

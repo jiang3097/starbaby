@@ -128,7 +128,7 @@ const AIChat = () => {
       setIsListening(true);
 
       startListening(
-        (text) => {
+        (text: string) => {
           // 识别成功，发送消息
           setIsListening(false);
           handleSend(text);

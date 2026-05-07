@@ -1,25 +1,31 @@
-// 语音服务 - 使用讯飞 TTS
+// 语音服务 - 使用火山引擎 TTS + 浏览器原生 TTS 回退
 // 支持多种音色选择
 
 import { 
-  speakText, 
-  stopSpeaking, 
-  nativeTTS,
-  XUNFEI_VOICES, 
-  setXunfeiVoice, 
-  getXunfeiVoice,
-  initXunfeiVoice,
-  type XunfeiVoiceOption 
-} from './xunfeiVoice';
+  volcSpeak, 
+  stopVolcAudio,
+  VOLC_VOICES,
+  setVolcVoice,
+  getVolcVoice,
+  isVolcEnabled,
+  type IVolcVoice 
+} from './volcTTS';
 
-// 导出讯飞声音选项供 VoiceSelector 使用
-export const VOICE_PACKAGES = XUNFEI_VOICES.map(v => ({
+import {
+  startListening as recStartListening,
+  stopListening as recStopListening,
+  isListening as recIsListening,
+  preloadVoices as loadVoices,
+} from './useRecognition';
+
+// 导出火山引擎声音选项供 VoiceSelector 使用
+export const VOICE_PACKAGES = VOLC_VOICES.map((v: IVolcVoice) => ({
   id: v.id,
   name: v.name,
-  description: v.description,
-  emoji: v.id.includes('baby') ? '👶' : 
-          v.id.includes('jiuxu') ? '👴' : 
-          v.id.includes('xiaoyan') || v.id.includes('xiaolu') || v.id.includes('xiaojing') ? '👩' : '👧',
+  description: v.desc,
+  emoji: v.id === 'BV700' ? '👩' : 
+          v.id === 'BV701' ? '👨' :
+          v.id === 'BV702' ? '👨' : '👧',
   rate: 1.0,
   pitch: 1.0,
   volume: 1.0,
@@ -36,130 +42,39 @@ export interface VoicePackage {
 }
 
 export function setVoicePackage(pkg: VoicePackage): void {
-  setXunfeiVoice(pkg.id);
+  setVolcVoice(pkg.id);
 }
 
 export function getVoicePackage(): VoicePackage {
-  const voice = getXunfeiVoice();
+  const voice = getVolcVoice();
   return VOICE_PACKAGES.find(v => v.id === voice.id) || VOICE_PACKAGES[0];
 }
 
-// 初始化
-initXunfeiVoice();
-
-// 预加载
-export function preloadVoices(): void {
-  // 讯飞 TTS 不需要预加载
-}
-
-// 朗读文本
-export function speak(text: string, onStart?: () => void, onEnd?: () => void): () => void {
-  return speakText(text, onStart, onEnd);
-}
+// 语音朗读（兼容旧接口：支持 text + onEnd 或只传 text）
+export const speakText = (text: string, onEnd?: (() => void) | undefined): void => {
+  if (typeof text === 'string') {
+    volcSpeak(text, onEnd as (() => void) | undefined);
+  }
+};
 
 // 停止朗读
-export function stopSpeech(): void {
-  stopSpeaking();
-}
+export const stopSpeaking = stopVolcAudio;
 
-// 重新导出
-export { speakText, stopSpeaking };
+// 语音识别
+export const startListening = recStartListening;
+export const stopListening = recStopListening;
 
-// 语音识别功能
-export interface SpeechRecognitionResult {
-  transcript: string;
-  confidence: number;
-  isFinal: boolean;
-}
+// 预加载语音
+export const preloadVoices = loadVoices;
 
-let recognition: any = null;
-let currentOnInterim: ((transcript: string) => void) | undefined;
-let currentOnFinal: ((transcript: string) => void) | undefined;
-let currentOnError: ((error: string) => void) | undefined;
+// 初始化（无特殊初始化需求）
+export const initVoice = (): void => {
+  console.log('[语音] 火山引擎 TTS 初始化完成');
+  console.log('[语音] 火山引擎启用状态:', isVolcEnabled() ? '已启用' : '未启用（使用原生 TTS）');
+};
 
-export function startListening(
-  onInterim?: (transcript: string) => void,
-  onFinal?: (transcript: string) => void,
-  onError?: (error: string) => void
-): void {
-  const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-  
-  if (!SpeechRecognition) {
-    console.error('浏览器不支持语音识别');
-    onError?.('浏览器不支持语音识别');
-    return;
-  }
+export const nativeTTS = (text: string, onEnd?: () => void): void => {
+  volcSpeak(text, onEnd);
+};
 
-  currentOnInterim = onInterim;
-  currentOnFinal = onFinal;
-  currentOnError = onError;
-
-  if (recognition) {
-    recognition.stop();
-  }
-
-  recognition = new SpeechRecognition();
-  recognition.lang = 'zh-CN';
-  recognition.continuous = true;
-  recognition.interimResults = true;
-  recognition.maxAlternatives = 1;
-
-  recognition.onstart = () => {
-    console.log('语音识别开始');
-  };
-
-  recognition.onresult = (event: any) => {
-    let finalTranscript = '';
-    let interimTranscript = '';
-
-    for (let i = event.resultIndex; i < event.results.length; i++) {
-      const transcript = event.results[i][0].transcript;
-      if (event.results[i].isFinal) {
-        finalTranscript += transcript;
-      } else {
-        interimTranscript += transcript;
-      }
-    }
-
-    if (interimTranscript) {
-      currentOnInterim?.(interimTranscript);
-    }
-    if (finalTranscript) {
-      currentOnFinal?.(finalTranscript);
-    }
-  };
-
-  recognition.onerror = (event: any) => {
-    console.error('语音识别错误:', event.error);
-    if (event.error !== 'no-speech' && event.error !== 'aborted') {
-      currentOnError?.(event.error);
-    }
-  };
-
-  recognition.onend = () => {
-    console.log('语音识别结束');
-    if (recognition) {
-      try {
-        recognition.start();
-      } catch (e) {
-        // 忽略
-      }
-    }
-  };
-
-  try {
-    recognition.start();
-  } catch (e) {
-    console.error('启动语音识别失败:', e);
-  }
-}
-
-export function stopListening(): void {
-  if (recognition) {
-    recognition.stop();
-    recognition = null;
-  }
-  currentOnInterim = undefined;
-  currentOnFinal = undefined;
-  currentOnError = undefined;
-}
+export type { IVolcVoice };

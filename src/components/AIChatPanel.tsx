@@ -113,7 +113,7 @@ const AIChatPanel: React.FC<AIChatPanelProps> = ({
       setUserSpeakingText('');
 
       startListening(
-        (text) => {
+        (text: string) => {
           setIsListening(false);
           handleSend(text);
         },
@@ -143,7 +143,7 @@ const AIChatPanel: React.FC<AIChatPanelProps> = ({
       // 读完后开始监听用户跟读
       setIsFollowingListening(true);
       startListening(
-        (spokenText) => {
+        (spokenText: string) => {
           setUserSpeakingText(spokenText);
         },
         () => {}
