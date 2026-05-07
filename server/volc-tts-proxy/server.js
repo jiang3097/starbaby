@@ -22,7 +22,7 @@ app.use(async (ctx, next) => {
 const VOLC_CONFIG = {
   APP_ID: '1368516150',
   API_KEY: 'f73866f0-d7e0-442c-8fc0-f7c763f93934',
-  RESOURCE_ID: 'seed-tts-2.0',
+  RESOURCE_ID: 'volc.tts.sync.level11',
   TTS_URL: 'https://openspeech.bytedance.com/api/v1/tts'
 };
 
