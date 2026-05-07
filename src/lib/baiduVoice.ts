@@ -12,9 +12,6 @@ const BAIDU_SECRET_KEY = 'iREZXzORXxH0Ee8cz7x55RtUoyNpOZ1T';
 let accessToken: string | null = null;
 let tokenExpireTime: number = 0;
 
-// 是否使用百度 TTS
-let useBaiduTTS = true;
-
 // 声音选项配置 - 使用百度音色
 export interface BaiduVoiceOption {
   id: string;
@@ -26,11 +23,11 @@ export interface BaiduVoiceOption {
 }
 
 export const BAIDU_VOICES: BaiduVoiceOption[] = [
-  { id: 'duoduo', name: '朵朵童声', per: 5003, description: '活泼可爱的小女孩声音', rate: 1.1, pitch: 1.2 },
-  { id: 'xiaojiao', name: '小娇甜声', per: 3, description: '甜美的年轻女声', rate: 1.0, pitch: 1.15 },
-  { id: 'xiaoyan', name: '小燕女声', per: 5, description: '知性的女性声音', rate: 1.0, pitch: 1.0 },
-  { id: 'xiaoyu', name: '小宇男声', per: 1, description: '温暖的男声', rate: 0.95, pitch: 1.0 },
-  { id: 'ruhin', name: '如涵女声', per: 111, description: '知性的女性声音', rate: 1.0, pitch: 1.0 },
+  { id: 'duoduo', name: '朵朵童声', per: 5003, description: '活泼可爱的小女孩声音', rate: 5, pitch: 5 },
+  { id: 'xiaojiao', name: '小娇甜声', per: 3, description: '甜美的年轻女声', rate: 5, pitch: 5 },
+  { id: 'xiaoyan', name: '小燕女声', per: 5, description: '知性的女性声音', rate: 5, pitch: 5 },
+  { id: 'xiaoyu', name: '小宇男声', per: 1, description: '温暖的男声', rate: 5, pitch: 5 },
+  { id: 'ruhin', name: '如涵女声', per: 111, description: '知性的女性声音', rate: 5, pitch: 5 },
 ];
 
 // 当前选中的声音
@@ -68,6 +65,8 @@ async function getAccessToken(): Promise<string | null> {
     return accessToken;
   }
 
+  console.log('正在获取百度 access token...');
+
   try {
     const params = new URLSearchParams({
       grant_type: 'client_credentials',
@@ -79,44 +78,53 @@ async function getAccessToken(): Promise<string | null> {
       method: 'POST',
     });
 
+    console.log('Token 响应状态:', response.status);
+
     if (!response.ok) {
-      console.error('Failed to get Baidu access token, status:', response.status);
-      useBaiduTTS = false;
+      console.error('获取 Token 失败, 状态:', response.status);
+      const text = await response.text();
+      console.error('响应内容:', text);
       return null;
     }
 
     const data = await response.json();
+    console.log('Token 响应数据:', data);
     
     if (data.access_token) {
       accessToken = data.access_token;
       tokenExpireTime = Date.now() + (data.expires_in - 300) * 1000;
-      useBaiduTTS = true;
+      console.log('获取 Token 成功!');
       return accessToken;
     }
     
-    console.error('No access_token in response:', data);
-    useBaiduTTS = false;
+    console.error('响应中没有 access_token:', data);
     return null;
   } catch (error) {
-    console.error('Error getting Baidu access token:', error);
-    useBaiduTTS = false;
+    console.error('获取 Token 出错:', error);
     return null;
   }
 }
 
 // 停止当前播放
 export function stopBaiduSpeech(): void {
+  console.log('停止百度语音播放');
   if (currentAudio) {
     currentAudio.pause();
     currentAudio.currentTime = 0;
     currentAudio = null;
   }
+  // 同时停止浏览器 TTS
+  if ('speechSynthesis' in window) {
+    window.speechSynthesis.cancel();
+  }
 }
 
-// 浏览器原生 TTS - 清晰自然
+// 浏览器原生 TTS
 function nativeTTS(text: string, onStart?: () => void, onEnd?: () => void): () => void {
+  console.log('使用浏览器原生 TTS');
+
   if (!('speechSynthesis' in window)) {
-    console.warn('TTS not supported');
+    console.warn('浏览器不支持 TTS');
     onEnd?.();
     return () => {};
   }
@@ -124,79 +132,28 @@ function nativeTTS(text: string, onStart?: () => void, onEnd?: () => void): () =
   const synthesis = window.speechSynthesis;
   synthesis.cancel();
 
-  // 加载语音
-  const loadVoices = () => {
-    return new Promise<SpeechSynthesisVoice[]>((resolve) => {
-      let voices = synthesis.getVoices();
-      if (voices.length > 0) {
-        resolve(voices);
-      } else {
-        synthesis.onvoiceschanged = () => {
-          voices = synthesis.getVoices();
-          resolve(voices);
-        };
-        setTimeout(() => resolve(synthesis.getVoices()), 1000);
-      }
-    });
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.lang = 'zh-CN';
+  
+  const voice = getBaiduVoice();
+  utterance.rate = 1.0;
+  utterance.pitch = 1.1;
+  utterance.volume = 1.0;
+
+  utterance.onstart = () => {
+    console.log('原生 TTS 开始');
+    onStart?.();
+  };
+  utterance.onend = () => {
+    console.log('原生 TTS 结束');
+    onEnd?.();
+  };
+  utterance.onerror = (e) => {
+    console.error('原生 TTS 错误:', e);
+    onEnd?.();
   };
 
-  const speak = () => {
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = 'zh-CN';
-    
-    // 根据音色设置参数 - 清晰自然
-    const voice = getBaiduVoice();
-    
-    if (voice.id === 'duoduo') {
-      // 童声：清晰活泼
-      utterance.rate = 1.1;
-      utterance.pitch = 1.25;
-    } else if (voice.id === 'xiaojiao') {
-      // 甜美女声：清晰柔和
-      utterance.rate = 1.05;
-      utterance.pitch = 1.15;
-    } else if (voice.id === 'xiaoyu') {
-      // 男声：清晰稳重
-      utterance.rate = 0.95;
-      utterance.pitch = 1.0;
-    } else {
-      // 默认：清晰自然
-      utterance.rate = 1.0;
-      utterance.pitch = 1.1;
-    }
-    
-    utterance.volume = 1.0;
-
-    // 尝试找到最好的中文声音
-    const voices = synthesis.getVoices();
-    const chineseVoices = voices.filter(v => 
-      v.lang.includes('zh') || v.lang.includes('CN')
-    );
-    
-    // 优先选择清晰的中文声音
-    let selectedVoice = chineseVoices.find(v => {
-      const name = v.name.toLowerCase();
-      // 排除一些可能不清晰的
-      return !name.includes('robot') && !name.includes('zephyr');
-    });
-
-    if (!selectedVoice && chineseVoices.length > 0) {
-      selectedVoice = chineseVoices[0];
-    }
-
-    if (selectedVoice) {
-      utterance.voice = selectedVoice;
-    }
-
-    utterance.onstart = () => onStart?.();
-    utterance.onend = () => onEnd?.();
-    utterance.onerror = () => onEnd?.();
-
-    synthesis.speak(utterance);
-  };
-
-  loadVoices().then(() => speak());
-
+  synthesis.speak(utterance);
   return () => synthesis.cancel();
 }
 
@@ -206,46 +163,46 @@ export function baiduSpeakText(
   onStart?: () => void,
   onEnd?: () => void
 ): () => void {
+  console.log('百度 TTS 朗读:', text.substring(0, 50));
+
   // 停止之前的朗读
   stopBaiduSpeech();
 
   let audioElement: HTMLAudioElement | null = null;
 
   const stop = () => {
+    console.log('停止百度 TTS');
     if (audioElement) {
       audioElement.pause();
       audioElement = null;
     }
     currentAudio = null;
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+    }
   };
-
-  // 如果不使用百度 TTS，回退到原生
-  if (!useBaiduTTS) {
-    console.log('Using native TTS fallback');
-    return nativeTTS(text, onStart, onEnd);
-  }
 
   // 异步获取 token 并播放
   (async () => {
     const token = await getAccessToken();
     
-    // 如果没有 token，回退到原生
     if (!token) {
-      console.log('No Baidu token, using native TTS');
+      console.log('没有 Token，使用原生 TTS');
       nativeTTS(text, onStart, onEnd);
       return;
     }
 
     const voice = getBaiduVoice();
+    console.log('使用音色:', voice.name, 'per:', voice.per);
     
     // 构建请求参数
     const params = new URLSearchParams({
       tex: text,
       per: voice.per.toString(),
-      spd: Math.round(voice.rate * 5 + 5).toString(),
-      pit: Math.round(voice.pitch * 50).toString(),
-      vol: '5',
-      aue: '3',
+      spd: voice.rate.toString(),  // 语速 0-15，默认5
+      pit: voice.pitch.toString(),  // 音调 0-15，默认5
+      vol: '5',  // 音量 0-15
+      aue: '3',  // 格式 mp3
       lan: 'zh',
       ctp: '1',
       cuid: `star_baby_${Date.now()}`,
@@ -253,36 +210,37 @@ export function baiduSpeakText(
     });
 
     const audioUrl = `${BAIDU_TTS_URL}?${params.toString()}`;
+    console.log('百度 TTS URL:', audioUrl.substring(0, 100) + '...');
 
     try {
       audioElement = new Audio(audioUrl);
       currentAudio = audioElement;
 
       audioElement.oncanplaythrough = () => {
-        console.log('Audio ready, playing...');
+        console.log('音频准备就绪，开始播放');
         onStart?.();
-        audioElement?.play().catch(err => {
-          console.error('Audio play error:', err);
-          // 回退到原生 TTS
+        audioElement?.play().then(() => {
+          console.log('音频播放中');
+        }).catch(err => {
+          console.error('音频播放失败:', err);
           nativeTTS(text, onStart, onEnd);
         });
       };
 
       audioElement.onended = () => {
-        console.log('Audio ended');
+        console.log('音频播放结束');
         currentAudio = null;
         onEnd?.();
       };
 
       audioElement.onerror = (e) => {
-        console.error('Audio error:', e);
+        console.error('音频加载错误:', e);
         currentAudio = null;
-        // 回退到原生 TTS
+        console.log('回退到原生 TTS');
         nativeTTS(text, onStart, onEnd);
       };
     } catch (err) {
-      console.error('Error creating audio:', err);
-      // 回退到原生 TTS
+      console.error('创建音频元素失败:', err);
       nativeTTS(text, onStart, onEnd);
     }
   })();

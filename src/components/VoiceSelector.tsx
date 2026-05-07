@@ -32,11 +32,11 @@ const VoiceSelector: React.FC<VoiceSelectorProps> = ({ isOpen, onClose }) => {
           
           {/* Panel */}
           <motion.div
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.9, opacity: 0 }}
+            initial={{ scale: 0.9, opacity: 0, y: 50 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            exit={{ scale: 0.9, opacity: 0, y: 50 }}
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-            className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90%] max-w-sm bg-white rounded-3xl shadow-2xl z-[201] overflow-hidden"
+            className="fixed top-[50%] left-1/2 -translate-x-1/2 -translate-y-[45%] w-[90%] max-w-sm bg-white rounded-3xl shadow-2xl z-[201] overflow-hidden max-h-[80vh] flex flex-col"
           >
             {/* Header */}
             <div className="px-6 py-4 bg-gradient-to-r from-amber-50 to-orange-50 border-b border-amber-100">
