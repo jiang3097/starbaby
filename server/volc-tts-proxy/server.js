@@ -21,7 +21,7 @@ app.use(async (ctx, next) => {
 // 火山引擎配置
 const VOLC_CONFIG = {
   APP_ID: '1368516150',
-  API_KEY: 'vkMSggBgIPENCr3VMfMmECdwUBEac_Wy',
+  API_KEY: 'f73866f0-d7e0-442c-8fc0-f7c763f93934',
   RESOURCE_ID: 'seed-tts-2.0',
   TTS_URL: 'https://openspeech.bytedance.com/api/v1/tts'
 };
@@ -43,8 +43,8 @@ router.post('/tts', async (ctx) => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${VOLC_CONFIG.API_KEY}`,
-        'Resource-Id': VOLC_CONFIG.RESOURCE_ID,
+        'X-Api-Key': VOLC_CONFIG.API_KEY,
+        'X-Api-Resource-Id': VOLC_CONFIG.RESOURCE_ID,
       },
       body: JSON.stringify({
         app: {
