@@ -1,7 +1,7 @@
 // 百度语音 TTS 服务
 // 使用百度智能云语音合成 API
 
-const BAIDU_TTS_URL = 'https://tsn.baidu.com/text2audio';
+const BAIDU_TTS_URL = 'http://tsn.baidu.com/text2audio';
 const BAIDU_TOKEN_URL = 'https://aip.baidubce.com/oauth/2.0/token';
 
 // 百度语音凭证
@@ -23,11 +23,15 @@ export interface BaiduVoiceOption {
 }
 
 export const BAIDU_VOICES: BaiduVoiceOption[] = [
+  // 精品音库音色
   { id: 'duoduo', name: '朵朵童声', per: 5003, description: '活泼可爱的小女孩声音', rate: 5, pitch: 5 },
-  { id: 'xiaojiao', name: '小娇甜声', per: 3, description: '甜美的年轻女声', rate: 5, pitch: 5 },
-  { id: 'xiaoyan', name: '小燕女声', per: 5, description: '知性的女性声音', rate: 5, pitch: 5 },
-  { id: 'xiaoyu', name: '小宇男声', per: 1, description: '温暖的男声', rate: 5, pitch: 5 },
+  { id: 'xiaofeng', name: '小峰男声', per: 5004, description: '温暖的男声', rate: 5, pitch: 5 },
+  { id: 'xiaomi', name: '小秘女声', per: 106, description: '甜美的女声', rate: 5, pitch: 5 },
+  { id: 'xiaotong', name: '小童童声', per: 110, description: '可爱的小朋友声音', rate: 5, pitch: 5 },
   { id: 'ruhin', name: '如涵女声', per: 111, description: '知性的女性声音', rate: 5, pitch: 5 },
+  // 基础音库音色
+  { id: 'xiaoyu', name: '度小宇男声', per: 1, description: '标准的男声', rate: 5, pitch: 5 },
+  { id: 'xiaojiao', name: '度小娇女声', per: 3, description: '甜美的女声', rate: 5, pitch: 5 },
 ];
 
 // 当前选中的声音
