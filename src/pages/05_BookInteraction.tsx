@@ -20,6 +20,7 @@ interface StoryPage {
   image: string;
   question: string;
   answer: string;
+  displayAnswer?: string;
 }
 
 // 绘本数据
@@ -46,21 +47,24 @@ const BOOKS_DATA: Record<number, {
         text: "早上好，妈妈。今天天气真好啊！",
         image: "https://images.unsplash.com/photo-1476703993599-0035a21b17a9?w=600&h=400&fit=crop",
         question: "故事里的小朋友早上和妈妈说了什么？",
-        answer: "早上好 妈妈"
+        answer: "早上好 妈妈",
+        displayAnswer: "早上好，妈妈"
       },
       {
         id: 2,
         text: "谢谢阿姨送我礼物，阿姨你真好！",
         image: "https://images.unsplash.com/photo-1516627145497-ae6968895b74?w=600&h=400&fit=crop",
         question: "故事里的小朋友收到礼物后说了什么？",
-        answer: "谢谢 阿姨"
+        answer: "谢谢 阿姨",
+        displayAnswer: "谢谢阿姨送我礼物"
       },
       {
         id: 3,
         text: "对不起，我不小心弄坏了你的书。",
         image: "https://images.unsplash.com/photo-1457369804613-52c61a468e7d?w=600&h=400&fit=crop",
         question: "故事里的小朋友做了什么？",
-        answer: "对不起 道歉"
+        answer: "对不起 道歉",
+        displayAnswer: "对不起，我不小心弄坏了你的书"
       }
     ]
   },
@@ -78,21 +82,24 @@ const BOOKS_DATA: Record<number, {
         text: "妈妈，我够不到水杯，你能帮我拿一下吗？",
         image: "https://images.unsplash.com/photo-1554151228-14d9def656e4?w=600&h=400&fit=crop",
         question: "故事里的小朋友是怎么请求帮助的？",
-        answer: "帮 拿 水杯"
+        answer: "帮 拿 水杯",
+        displayAnswer: "妈妈，我够不到水杯，你能帮我拿一下吗"
       },
       {
         id: 2,
         text: "老师，这道题我不会做，您可以教教我吗？",
         image: "https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=600&h=400&fit=crop",
         question: "故事里的小朋友是怎么向老师请求帮助的？",
-        answer: "老师 不会 教"
+        answer: "老师 不会 教",
+        displayAnswer: "老师，这道题我不会做，您可以教教我吗"
       },
       {
         id: 3,
         text: "叔叔，我和妈妈走散了，您能帮我找妈妈吗？",
         image: "https://images.unsplash.com/photo-1447069387593-a5de0862485e?w=600&h=400&fit=crop",
         question: "故事里的小朋友遇到什么困难了？",
-        answer: "妈妈 走散 找"
+        answer: "妈妈 走散 找",
+        displayAnswer: "我和妈妈走散了，您能帮我找妈妈吗"
       }
     ]
   },
@@ -110,21 +117,24 @@ const BOOKS_DATA: Record<number, {
         text: "今天妈妈带我去公园玩，我非常开心。",
         image: "https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?w=600&h=400&fit=crop",
         question: "故事里的小朋友为什么很开心？",
-        answer: "开心 公园 妈妈"
+        answer: "开心 公园 妈妈",
+        displayAnswer: "因为妈妈带我去公园玩"
       },
       {
         id: 2,
         text: "我的气球飞走了，我有点难过。",
         image: "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?w=600&h=400&fit=crop",
         question: "故事里的小朋友为什么难过？",
-        answer: "难过 气球"
+        answer: "难过 气球",
+        displayAnswer: "因为气球飞走了"
       },
       {
         id: 3,
         text: "弟弟抢走了我的玩具，我很生气。",
         image: "https://images.unsplash.com/photo-1476703993599-0035a21b17a9?w=600&h=400&fit=crop",
         question: "故事里的小朋友为什么生气？",
-        answer: "生气 弟弟 玩具"
+        answer: "生气 弟弟 玩具",
+        displayAnswer: "因为弟弟抢走了我的玩具"
       }
     ]
   }
@@ -231,8 +241,8 @@ const BookInteraction = () => {
             incrementGamePass(); // 实时更新通关次数
             speakText("太棒了！回答正确！获得一颗星星！");
           } else {
-            console.log('答错了，正确答案是:', story.answer);
-            speakText(`就快要答对了哦，正确答案是：${story.answer}`);
+            console.log('答错了，正确答案是:', story.displayAnswer || story.answer);
+            speakText(`就快要答对了哦，正确答案是：${story.displayAnswer || story.answer}`);
           }
         }
       },
@@ -747,7 +757,7 @@ const BookInteraction = () => {
             {!isCorrect && (
               <div className="bg-white rounded-2xl p-4 shadow-md border border-amber-200 mb-4">
                 <p className="text-sm text-slate-500">正确答案：</p>
-                <p className="text-base font-bold text-amber-700">{story.answer}</p>
+                <p className="text-base font-bold text-amber-700">{story.displayAnswer || story.answer}</p>
               </div>
             )}
             
