@@ -15,8 +15,9 @@ import {
   startListening as recStartListening,
   stopListening as recStopListening,
   isListening as recIsListening,
-  preloadVoices as loadVoices,
 } from './useRecognition';
+
+// 预加载语音（用于 TTS）
 
 // 导出火山引擎声音选项供 VoiceSelector 使用
 export const VOICE_PACKAGES = VOLC_VOICES.map((v: IVolcVoice) => ({
@@ -64,8 +65,13 @@ export const stopSpeaking = stopVolcAudio;
 export const startListening = recStartListening;
 export const stopListening = recStopListening;
 
-// 预加载语音
-export const preloadVoices = loadVoices;
+// 预加载语音（用于 TTS）
+export const preloadVoices = (): void => {
+  // 预加载浏览器语音列表（用于原生 TTS 回退）
+  if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+    window.speechSynthesis.getVoices();
+  }
+};
 
 // 初始化（无特殊初始化需求）
 export const initVoice = (): void => {

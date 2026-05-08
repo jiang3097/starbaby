@@ -197,38 +197,40 @@ const BookInteraction = () => {
     setIsListening(true);
     setUserAnswer('');
 
-    startListening(
-      (text: string) => {
-        setUserAnswer(text);
-        setIsListening(false);
-        
-        const answerLower = text.toLowerCase();
-        const correctLower = story.answer.toLowerCase();
-        const keywords = correctLower.split(/[,，、]/).filter(k => k.trim().length > 2);
-        const matchedCount = keywords.filter(k => answerLower.includes(k.trim())).length;
-        const correct = matchedCount >= Math.ceil(keywords.length * 0.6);
-        
-        setIsCorrect(correct);
-        setShowResult(true);
-        setPhase('feedback');
-        
-        // 统计：增加主动表达次数和绘本完成数
-        incrementExpression('book');
-        incrementBookCompleted();
-        
-        if (correct) {
-          // 每答对一题就获得一个星星并累计通关次数
-          setEarnedStars(prev => prev + 1);
-          incrementGamePass(); // 实时更新通关次数
-          speakText("太棒了！回答正确！获得一颗星星！");
-        } else {
-          speakText(`回答得很好。其实正确答案是：${story.answer}`);
+    startListening({
+      onTranscript: (text: string, isFinal: boolean) => {
+        if (isFinal) {
+          setUserAnswer(text);
+          setIsListening(false);
+          
+          const answerLower = text.toLowerCase();
+          const correctLower = story.answer.toLowerCase();
+          const keywords = correctLower.split(/[,，、]/).filter(k => k.trim().length > 2);
+          const matchedCount = keywords.filter(k => answerLower.includes(k.trim())).length;
+          const correct = matchedCount >= Math.ceil(keywords.length * 0.6);
+          
+          setIsCorrect(correct);
+          setShowResult(true);
+          setPhase('feedback');
+          
+          // 统计：增加主动表达次数和绘本完成数
+          incrementExpression('book');
+          incrementBookCompleted();
+          
+          if (correct) {
+            // 每答对一题就获得一个星星并累计通关次数
+            setEarnedStars(prev => prev + 1);
+            incrementGamePass(); // 实时更新通关次数
+            speakText("太棒了！回答正确！获得一颗星星！");
+          } else {
+            speakText(`回答得很好。其实正确答案是：${story.answer}`);
+          }
         }
       },
-      () => {
+      onEnd: () => {
         setIsListening(false);
       }
-    );
+    });
   }, [story, incrementExpression, incrementBookCompleted]);
 
   // 停止录音
@@ -688,7 +690,7 @@ const BookInteraction = () => {
               {/* 控制按钮 */}
               <div className="flex gap-4 w-full max-w-sm">
                 <Button
-                  onClick={stopListening}
+                  onClick={() => stopListening()}
                   variant="secondary"
                   className="flex-1 h-14 bg-slate-100 text-slate-600 font-bold rounded-full border-none"
                 >

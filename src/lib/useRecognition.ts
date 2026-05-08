@@ -1,106 +1,189 @@
-/**
- * 语音识别模块
- * 使用浏览器 Web Speech API
- */
+// 语音识别模块 - 使用原生 Web Speech API
 
-import { useCallback, useRef, useState } from 'react';
-
-// 语音识别类型
-type RecognitionCallback = (text: string) => void;
-type ErrorCallback = (error: string) => void;
-
-// 全局变量
+// 扩展 Window 接口
 declare global {
   interface Window {
     _recognition: SpeechRecognition | null;
-    _recordingCallback: RecognitionCallback | null;
-    _recordingError: ErrorCallback | null;
   }
 }
 
-// 创建语音识别实例
-const createRecognition = (): SpeechRecognition | null => {
-  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SpeechRecognition) {
-    console.log('[语音识别] 浏览器不支持语音识别');
+interface VoiceRecognitionCallbacks {
+  onTranscript?: (text: string, isFinal: boolean) => void;
+  onEnd?: () => void;
+  onError?: (error: string) => void;
+  onStart?: () => void;
+}
+
+// 内部状态
+let _recognition: SpeechRecognition | null = null;
+let _callbacks: VoiceRecognitionCallbacks = {};
+let _silenceTimer: ReturnType<typeof setTimeout> | null = null;
+let _isListening = false;
+
+// 初始化识别器
+function initRecognition(): SpeechRecognition | null {
+  const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognitionAPI) {
+    console.warn('[语音识别] 浏览器不支持 Web Speech API');
     return null;
   }
 
-  const recognition = new SpeechRecognition();
-  recognition.continuous = false;
-  recognition.interimResults = true;
-  recognition.lang = 'zh-CN';
+  if (_recognition) {
+    return _recognition;
+  }
 
-  recognition.onstart = () => {
-    console.log('[语音识别] 开始识别');
+  _recognition = new SpeechRecognitionAPI();
+  _recognition.continuous = true;
+  _recognition.interimResults = true;
+  _recognition.lang = 'zh-CN';
+  _recognition.maxAlternatives = 3;
+
+  _recognition.onstart = () => {
+    console.log('[语音识别] 开始监听');
+    _isListening = true;
+    _callbacks.onStart?.();
   };
 
-  recognition.onresult = (event: SpeechRecognitionEvent) => {
-    const result = event.results[0];
-    if (result.isFinal) {
-      const text = result[0].transcript.trim();
-      console.log('[语音识别] 识别结果:', text);
-      window._recordingCallback?.(text);
+  _recognition.onresult = (event) => {
+    // 清除静音计时器
+    if (_silenceTimer) {
+      clearTimeout(_silenceTimer);
+    }
+
+    let finalTranscript = '';
+    let interimTranscript = '';
+
+    const results = event.results;
+    for (let i = event.resultIndex; i < results.length; i++) {
+      const transcript = event.results[i][0].transcript;
+      if (event.results[i].isFinal) {
+        finalTranscript += transcript;
+      } else {
+        interimTranscript += transcript;
+      }
+    }
+
+    // 如果有临时结果，传递给回调
+    if (interimTranscript) {
+      console.log('[语音识别] 临时:', interimTranscript);
+      _callbacks.onTranscript?.(interimTranscript, false);
+    }
+
+    // 如果有最终结果，传递给回调
+    if (finalTranscript) {
+      console.log('[语音识别] 最终:', finalTranscript);
+      _callbacks.onTranscript?.(finalTranscript, true);
+      // 最终结果后重启识别（continuous 模式可能自动停止）
+      restartRecognition();
+    }
+
+    // 重置静音计时器
+    _silenceTimer = setTimeout(() => {
+      if (_isListening && finalTranscript) {
+        console.log('[语音识别] 静音超时，停止识别');
+        stopListening();
+      }
+    }, 3000);
+  };
+
+  _recognition.onerror = (event) => {
+    console.error('[语音识别] 错误:', event.error);
+    _isListening = false;
+    if (event.error !== 'no-speech' && event.error !== 'aborted') {
+      _callbacks.onError?.(event.error);
     }
   };
 
-  recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
-    console.error('[语音识别] 错误:', event.error);
-    window._recordingError?.(event.error);
+  _recognition.onend = () => {
+    console.log('[语音识别] 结束');
+    _isListening = false;
+    if (_silenceTimer) {
+      clearTimeout(_silenceTimer);
+      _silenceTimer = null;
+    }
+    _callbacks.onEnd?.();
   };
 
-  recognition.onend = () => {
-    console.log('[语音识别] 识别结束');
-    window._recognition = null;
-  };
+  window._recognition = _recognition;
+  return _recognition;
+}
 
-  return recognition;
-};
-
-// 开始录音
-export const startListening = (
-  onResult: RecognitionCallback,
-  onError?: ErrorCallback
-): void => {
-  // 停止之前的录音
-  if (window._recognition) {
-    window._recognition.stop();
+// 重启识别
+function restartRecognition() {
+  if (_recognition && _isListening) {
+    try {
+      _recognition.stop();
+      setTimeout(() => {
+        if (_isListening) {
+          _recognition?.start();
+        }
+      }, 100);
+    } catch (e) {
+      // 忽略错误
+    }
   }
+}
 
-  const recognition = createRecognition();
+// 开始监听
+export function startListening(
+  callbacks: VoiceRecognitionCallbacks = {}
+): boolean {
+  const { onTranscript, onEnd, onError, onStart } = callbacks;
+  _callbacks = { onTranscript, onEnd, onError, onStart };
+
+  const recognition = initRecognition();
   if (!recognition) {
     onError?.('浏览器不支持语音识别');
-    return;
+    return false;
   }
 
-  window._recognition = recognition;
-  window._recordingCallback = onResult;
-  window._recordingError = onError || (() => {});
+  if (_isListening) {
+    console.log('[语音识别] 已在监听中');
+    return true;
+  }
 
   try {
     recognition.start();
-  } catch (e) {
-    console.error('[语音识别] 启动失败:', e);
-    onError?.('启动语音识别失败');
+    return true;
+  } catch (error) {
+    console.error('[语音识别] 启动失败:', error);
+    // 如果已经在运行，先停止再启动
+    try {
+      recognition.stop();
+      setTimeout(() => {
+        recognition.start();
+      }, 100);
+      return true;
+    } catch (e) {
+      onError?.('启动语音识别失败');
+      return false;
+    }
   }
-};
+}
 
-// 停止录音
-export const stopListening = (): void => {
-  if (window._recognition) {
-    window._recognition.stop();
-    window._recognition = null;
+// 停止监听
+export function stopListening(onEnd?: () => void): void {
+  if (_silenceTimer) {
+    clearTimeout(_silenceTimer);
+    _silenceTimer = null;
   }
-};
 
-// 是否正在录音
-export const isListening = (): boolean => {
-  return window._recognition !== null;
-};
-
-// 预加载语音
-export const preloadVoices = (): void => {
-  if ('speechSynthesis' in window) {
-    window.speechSynthesis.getVoices();
+  if (_recognition) {
+    try {
+      _recognition.stop();
+    } catch (e) {
+      // 忽略错误
+    }
   }
-};
+  _isListening = false;
+  console.log('[语音识别] 已停止');
+  onEnd?.();
+}
+
+// 检查是否正在监听
+export function isListening(): boolean {
+  return _isListening;
+}
+
+// 导出类型
+export type { VoiceRecognitionCallbacks };

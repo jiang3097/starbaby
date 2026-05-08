@@ -31,6 +31,7 @@ const AIChatPanel: React.FC<AIChatPanelProps> = ({
   const [isFollowingListening, setIsFollowingListening] = useState(false);
   const [currentFollowingText, setCurrentFollowingText] = useState('');
   const [userSpeakingText, setUserSpeakingText] = useState('');
+  const [interimText, setInterimText] = useState(''); // 实时转写文本
   
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -112,15 +113,21 @@ const AIChatPanel: React.FC<AIChatPanelProps> = ({
       setIsListening(true);
       setUserSpeakingText('');
 
-      startListening(
-        (text: string) => {
-          setIsListening(false);
-          handleSend(text);
+      startListening({
+        onTranscript: (text: string, isFinal: boolean) => {
+          if (isFinal) {
+            setIsListening(false);
+            setInterimText('');
+            handleSend(text);
+          } else {
+            setInterimText(text);
+          }
         },
-        () => {
+        onEnd: () => {
           setIsListening(false);
+          setInterimText('');
         }
-      );
+      });
     }
   };
 
@@ -142,12 +149,14 @@ const AIChatPanel: React.FC<AIChatPanelProps> = ({
     speakText(text, () => {
       // 读完后开始监听用户跟读
       setIsFollowingListening(true);
-      startListening(
-        (spokenText: string) => {
-          setUserSpeakingText(spokenText);
+      startListening({
+        onTranscript: (spokenText: string, isFinal: boolean) => {
+          if (isFinal) {
+            setUserSpeakingText(spokenText);
+          }
         },
-        () => {}
-      );
+        onEnd: () => {}
+      });
     });
   };
 
@@ -368,8 +377,8 @@ const AIChatPanel: React.FC<AIChatPanelProps> = ({
                   className={cn(
                     "w-14 h-14 rounded-full flex items-center justify-center transition-all flex-shrink-0",
                     isListening 
-                      ? "bg-rose-500 shadow-lg shadow-rose-200" 
-                      : "bg-amber-400 shadow-md shadow-amber-200"
+                      ? "bg-rose-500 shadow-lg shadow-rose-300 ring-4 ring-rose-200" 
+                      : "bg-amber-400 shadow-md shadow-amber-200 hover:bg-amber-500"
                   )}
                 >
                   <AnimatePresence>
@@ -378,11 +387,18 @@ const AIChatPanel: React.FC<AIChatPanelProps> = ({
                         initial={{ scale: 0.8, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
                         exit={{ scale: 0.8, opacity: 0 }}
-                        className="absolute inset-0 rounded-full bg-rose-400 animate-ping"
+                        className="absolute inset-0 rounded-full bg-rose-400 animate-pulse"
                       />
                     )}
                   </AnimatePresence>
-                  <Mic size={24} className="text-white relative z-10" />
+                  <Mic size={24} className={cn("relative z-10", isListening ? "text-white" : "text-white")} />
+                  {isListening && (
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="absolute -top-1 -right-1 w-4 h-4 bg-green-400 rounded-full border-2 border-white"
+                    />
+                  )}
                 </motion.button>
 
                 {/* Text Input */}

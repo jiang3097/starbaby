@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, Mic, Volume2, Send, Square } from 'lucide-react';
 import MobileShell from '../components/MobileShell';
 import { cn } from '../lib/utils';
-import { speakText, startListening, stopListening, preloadVoices, stopSpeaking } from '../lib/useSpeech';
+import { speakText, preloadVoices, stopSpeaking, startListening, stopListening } from '../lib/useSpeech';
 import { useUser } from '../context/UserContext';
 import { useApp } from '../context/AppContext';
 import VoiceSelector from '../components/VoiceSelector';
@@ -27,6 +27,7 @@ const AIChat = () => {
   const [showIntimacyTip, setShowIntimacyTip] = useState(false);
   const [currentIntimacy, setCurrentIntimacy] = useState(profile.intimacy);
   const [isVoiceSelectorOpen, setIsVoiceSelectorOpen] = useState(false);
+  const [tempTranscript, setTempTranscript] = useState('');
   const hasStartedTraining = useRef(false);
   const prevIntimacyRef = useRef(profile.intimacy);
   
@@ -269,17 +270,25 @@ const AIChat = () => {
     } else {
       // 开始录音
       setIsListening(true);
+      setTempTranscript('');
 
-      startListening(
-        (text: string) => {
-          // 识别成功，发送消息
-          setIsListening(false);
-          handleSend(text);
+      startListening({
+        onTranscript: (text: string, isFinal: boolean) => {
+          if (isFinal) {
+            setIsListening(false);
+            setTempTranscript('');
+            if (text.trim()) {
+              handleSend(text.trim());
+            }
+          } else {
+            setTempTranscript(text);
+          }
         },
-        () => {
+        onEnd: () => {
           setIsListening(false);
+          setTempTranscript('');
         }
-      );
+      });
     }
   };
 
