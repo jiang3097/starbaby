@@ -6,6 +6,13 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: 5000,
-    host: '0.0.0.0'
-  }
+    host: '0.0.0.0',
+    proxy: {
+      '/v1/chat/completions': {
+        target: 'https://api.coze.cn',
+        changeOrigin: true,
+        rewrite: (path) => path,
+      },
+    },
+  },
 })

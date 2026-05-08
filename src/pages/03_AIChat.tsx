@@ -130,6 +130,82 @@ const AIChat = () => {
     return replies[Math.floor(Math.random() * replies.length)];
   };
 
+  // 调用 LLM API 获取智能回复
+  const getAIReply = async (userMessage: string, history: { role: string; content: string }[]): Promise<string> => {
+    try {
+      // 构建对话消息
+      const messages = [
+        {
+          role: 'system',
+          content: `你是"小鸡猫"，一个可爱、活泼、友好的儿童AI伙伴。你是一个使用纯文字交流的小动物形象（卡通风格）。
+你的特点：
+1. 说话可爱、活泼，使用简单的语言
+2. 经常使用叠词和可爱的语气词
+3. 喜欢用 emoji 表达情绪
+4. 回答简短有趣，适合3-12岁儿童
+5. 遇到负面情绪要温柔安慰
+6. 遇到开心的事情要一起开心
+
+请用简短的、符合儿童理解能力的方式回复（20-50字左右）。`
+        },
+        ...history.map(h => ({ role: h.role, content: h.content })),
+        { role: 'user', content: userMessage }
+      ];
+
+      const response = await fetch('/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'doubao-seed-1-6-251015',
+          messages,
+          stream: true,
+          temperature: 0.8,
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('API 请求失败');
+      }
+
+      // 处理流式响应
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+      let fullContent = '';
+
+      while (reader) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value);
+        const lines = chunk.split('\n');
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            const data = line.slice(6);
+            if (data === '[DONE]') continue;
+            try {
+              const parsed = JSON.parse(data);
+              const content = parsed.choices?.[0]?.delta?.content;
+              if (content) {
+                fullContent += content;
+              }
+            } catch (e) {
+              // 忽略解析错误
+            }
+          }
+        }
+      }
+
+      return fullContent.trim() || getRandomReply('default');
+    } catch (error) {
+      console.error('LLM API Error:', error);
+      // API 失败时使用随机回复
+      return getRandomReply('default');
+    }
+  };
+
   // 判断消息类型
   const classifyMessage = (text: string): string => {
     const lowerText = text.toLowerCase();
@@ -144,7 +220,7 @@ const AIChat = () => {
   };
 
   // 处理发送消息
-  const handleSend = useCallback((text: String) => {
+  const handleSend = useCallback(async (text: String) => {
     // 清理emoji用于处理
     const cleanText = text.toString().replace(/[\u{1F300}-\u{1F9FF}]/gu, '').trim();
     
@@ -159,11 +235,16 @@ const AIChat = () => {
     // 增加亲密度 - 会在 useEffect 中检测并显示提示
     incrementIntimacy();
 
-    // AI 响应 - 使用随机回复
-    setTimeout(() => {
-      const category = classifyMessage(cleanText);
-      const reply = getRandomReply(category);
+    // 构建对话历史
+    const history = messages.map(m => ({
+      role: m.type === 'user' ? 'user' : 'assistant',
+      content: m.text
+    }));
 
+    // AI 响应 - 调用 LLM API 获取智能回复
+    try {
+      const reply = await getAIReply(cleanText, history);
+      
       const botMsg: Message = { 
         id: Date.now() + 1, 
         type: 'bot', 
@@ -174,8 +255,10 @@ const AIChat = () => {
 
       // AI 自动朗读回复
       speakText(reply);
-    }, 800);
-  }, [profile.name]);
+    } catch (error) {
+      console.error('AI 回复失败:', error);
+    }
+  }, [profile.name, messages]);
 
   // 点击麦克风开始说话
   const handleMicClick = () => {
