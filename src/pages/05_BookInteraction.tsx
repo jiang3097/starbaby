@@ -117,7 +117,7 @@ const BOOKS_DATA: Record<number, {
         text: "今天妈妈带我去公园玩，我非常开心。",
         image: "https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?w=600&h=400&fit=crop",
         question: "故事里的小朋友为什么很开心？",
-        answer: "开心 公园 妈妈",
+        answer: "妈妈 带 去 公园 玩",
         displayAnswer: "因为妈妈带我去公园玩"
       },
       {
@@ -125,7 +125,7 @@ const BOOKS_DATA: Record<number, {
         text: "我的气球飞走了，我有点难过。",
         image: "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?w=600&h=400&fit=crop",
         question: "故事里的小朋友为什么难过？",
-        answer: "难过 气球",
+        answer: "气球 飞走 飞了",
         displayAnswer: "因为气球飞走了"
       },
       {
@@ -133,7 +133,7 @@ const BOOKS_DATA: Record<number, {
         text: "弟弟抢走了我的玩具，我很生气。",
         image: "https://images.unsplash.com/photo-1476703993599-0035a21b17a9?w=600&h=400&fit=crop",
         question: "故事里的小朋友为什么生气？",
-        answer: "生气 弟弟 玩具",
+        answer: "弟弟 抢走 玩具",
         displayAnswer: "因为弟弟抢走了我的玩具"
       }
     ]
