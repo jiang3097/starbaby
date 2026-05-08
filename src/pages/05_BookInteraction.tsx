@@ -232,7 +232,7 @@ const BookInteraction = () => {
             speakText("太棒了！回答正确！获得一颗星星！");
           } else {
             console.log('答错了，正确答案是:', story.answer);
-            speakText(`回答得很好。其实正确答案是：${story.answer}`);
+            speakText(`再想想看，正确答案是：${story.answer}`);
           }
         }
       },
