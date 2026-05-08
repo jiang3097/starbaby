@@ -1,8 +1,9 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Mic, Volume2, Send, Sparkles, RefreshCw, Check, VolumeX, Square } from 'lucide-react';
+import { X, Mic, Volume2, Send, Sparkles, RefreshCw, Check, VolumeX, Square, Loader2 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { speakText, startListening, stopListening, preloadVoices, stopSpeaking } from '../lib/useSpeech';
+import { getAIReply } from '../lib/cozeChat';
 
 interface Message {
   id: number;
@@ -18,6 +19,9 @@ interface AIChatPanelProps {
   context?: string;
 }
 
+// Coze Bot 会话上下文
+const sessionHistory: { role: 'user' | 'assistant'; content: string }[] = [];
+
 const AIChatPanel: React.FC<AIChatPanelProps> = ({ 
   isOpen, 
   onClose, 
@@ -32,6 +36,7 @@ const AIChatPanel: React.FC<AIChatPanelProps> = ({
   const [currentFollowingText, setCurrentFollowingText] = useState('');
   const [userSpeakingText, setUserSpeakingText] = useState('');
   const [interimText, setInterimText] = useState(''); // 实时转写文本
+  const [isLoading, setIsLoading] = useState(false); // AI回复加载中
   
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -68,40 +73,43 @@ const AIChatPanel: React.FC<AIChatPanelProps> = ({
 
   const quickPhrases = ["准备好了！", "他在写作业", "我不知道", "真开心"];
 
-  // 处理发送消息
-  const handleSend = useCallback((text: string) => {
+  // 处理发送消息 - 使用 Coze Bot
+  const handleSend = useCallback(async (text: string) => {
     const userMsg: Message = { id: Date.now(), type: 'user', text };
     setMessages(prev => [...prev, userMsg]);
     setInputText('');
+    setIsLoading(true);
 
-    // AI 响应
-    setTimeout(() => {
-      let reply = '你观察得真仔细！说得太棒了。';
-      let followingText: string | undefined;
+    // 添加到会话历史
+    sessionHistory.push({ role: 'user', content: text });
 
-      if (text.includes("准备好了")) {
-        reply = '太棒了！那我们开始吧。你看，图片里的小动物在做什么呢？';
-      } else if (text.includes("他在写作业")) {
-        reply = '哇，星宝真聪明！他是在认真写作业哦。如果你是他，写完作业你会对自己说什么呢？';
-      } else if (text.includes("不知道") || text.includes("不清楚")) {
-        reply = '没关系哦，我们可以慢慢看。你看小猫的手里拿着什么？是不是一个红色的苹果呀？';
-      } else if (text.includes("苹果")) {
-        reply = '太棒了！你说得对。你能试着跟我读一遍吗？苹果——';
-        followingText = '苹果';
-      }
+    // AI 响应 - 使用 Coze Bot
+    try {
+      const reply = await getAIReply(text, sessionHistory);
+      
+      // 添加到会话历史
+      sessionHistory.push({ role: 'assistant', content: reply });
 
       const botMsg: Message = { 
         id: Date.now() + 1, 
         type: 'bot', 
-        text: reply,
-        followingText
+        text: reply
       };
       
       setMessages(prev => [...prev, botMsg]);
+      setIsLoading(false);
 
       // AI 自动朗读
       speakText(reply);
-    }, 800);
+    } catch (error) {
+      setIsLoading(false);
+      const errorMsg: Message = { 
+        id: Date.now() + 1, 
+        type: 'bot', 
+        text: '抱歉，星宝遇到了一点小问题，稍等一下哦～' 
+      };
+      setMessages(prev => [...prev, errorMsg]);
+    }
   }, []);
 
   // 点击麦克风
