@@ -131,8 +131,15 @@ const AIChat = () => {
     return replies[Math.floor(Math.random() * replies.length)];
   };
 
-  // 调用 LLM API 获取智能回复
+  // 调用 Coze API 获取智能回复
   const getAIReply = async (userMessage: string, history: { role: string; content: string }[]): Promise<string> => {
+    const apiKey = import.meta.env.VITE_COZE_API_KEY;
+    
+    if (!apiKey || apiKey === 'your_coze_api_key_here') {
+      console.warn('未配置 Coze API Key，使用随机回复');
+      return getRandomReply(classifyMessage(userMessage));
+    }
+
     try {
       // 构建对话消息
       const messages = [
@@ -146,8 +153,9 @@ const AIChat = () => {
 4. 回答简短有趣，适合3-12岁儿童
 5. 遇到负面情绪要温柔安慰
 6. 遇到开心的事情要一起开心
+7. 每次回复控制在30字以内，要简短有趣
 
-请用简短的、符合儿童理解能力的方式回复（20-50字左右）。`
+请用简短的、符合儿童理解能力的方式回复。`
         },
         ...history.map(h => ({ role: h.role, content: h.content })),
         { role: 'user', content: userMessage }
@@ -157,53 +165,31 @@ const AIChat = () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`,
         },
         body: JSON.stringify({
-          model: 'doubao-seed-1-6-251015',
+          model: 'doubao-pro-32k',
           messages,
-          stream: true,
+          stream: false,
+          max_tokens: 200,
           temperature: 0.8,
         })
       });
 
       if (!response.ok) {
-        throw new Error('API 请求失败');
+        const errorText = await response.text();
+        console.error('Coze API Error:', response.status, errorText);
+        throw new Error(`API 请求失败: ${response.status}`);
       }
 
-      // 处理流式响应
-      const reader = response.body?.getReader();
-      const decoder = new TextDecoder();
-      let fullContent = '';
-
-      while (reader) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        const chunk = decoder.decode(value);
-        const lines = chunk.split('\n');
-
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            const data = line.slice(6);
-            if (data === '[DONE]') continue;
-            try {
-              const parsed = JSON.parse(data);
-              const content = parsed.choices?.[0]?.delta?.content;
-              if (content) {
-                fullContent += content;
-              }
-            } catch (e) {
-              // 忽略解析错误
-            }
-          }
-        }
-      }
-
-      return fullContent.trim() || getRandomReply('default');
+      const data = await response.json();
+      const content = data.choices?.[0]?.message?.content;
+      
+      return content?.trim() || getRandomReply(classifyMessage(userMessage));
     } catch (error) {
       console.error('LLM API Error:', error);
-      // API 失败时使用随机回复
-      return getRandomReply('default');
+      // API 失败时使用基于分类的回复
+      return getRandomReply(classifyMessage(userMessage));
     }
   };
 
