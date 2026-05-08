@@ -68,6 +68,81 @@ const AIChat = () => {
 
   const quickPhrases = ['我开心 😊', '我要喝水 🚰', '我想玩球 🎾'];
 
+  // 随机回复库
+  const randomReplies: Record<string, string[]> = {
+    'water': [
+      '好渴啊！一起去倒杯水吧~',
+      '喝水很重要！我们一起去拿杯子吧~',
+      '记得多喝水哦，水是生命之源~',
+      '我也有点渴了呢，我们一起喝水吧！',
+    ],
+    'happy': [
+      '太棒了！开心的时候感觉整个世界都在笑呢~',
+      '哇！开心的时候就应该大笑出来！哈哈哈哈哈！',
+      '我也好开心！开心是会传染的哦~',
+      '快乐的时候要分享！想不想和我玩个游戏？',
+    ],
+    'ball': [
+      '玩球最开心了！你喜欢什么球？足球、篮球还是网球？',
+      '我们来玩抛接球吧！准备好了吗？',
+      '拍球可以练习手眼协调哦，一起来试试！',
+      '玩球可以锻炼身体！你是怎么玩球的呀？',
+    ],
+    'sad': [
+      '没关系，难过的时候可以哭一哭，没人会笑你的~',
+      '我在这里陪着你哦，要不要听个温暖的故事？',
+      '抱抱你~难过的事情会慢慢过去的~',
+      '每个人都有难过的时候，我也很心疼你哦~',
+    ],
+    'angry': [
+      '深呼吸~1...2...3...感觉好一点了吗？',
+      '生气的时候可以数数，或者拍拍枕头发泄一下~',
+      '深呼吸，慢慢来，我陪着你平静下来~',
+      '生气是正常的，但我们要学会控制它哦~',
+    ],
+    'thanks': [
+      '不客气！我们是好朋友，好朋友就是互相帮助的呀~',
+      '谢谢你！帮助别人自己也会有好心情哦~',
+      '不用谢！我很开心能帮到你~',
+      '你太客气了！能帮到你我也觉得很开心呢！',
+    ],
+    'hello': [
+      `你好呀！${profile.name}！见到你真开心！🌟`,
+      `哈喽！${profile.name}！今天过得怎么样？`,
+      `你好你好！我是你的小鸡猫朋友！🎉`,
+      `嗨~${profile.name}！我们又见面啦~`,
+    ],
+    'default': [
+      '嗯嗯，我听懂了！你继续说~',
+      '原来是这样啊！然后呢？',
+      '你说的话真有意思！',
+      '我在认真听哦，继续说吧~',
+      '哦~我明白了！这很有趣呢~',
+      '真的吗？太棒了！',
+      '这样啊~你懂得真多！',
+      '嗯！我记住了！你真是个有趣的小朋友~',
+    ],
+  };
+
+  // 随机选择回复
+  const getRandomReply = (category: string): string => {
+    const replies = randomReplies[category] || randomReplies['default'];
+    return replies[Math.floor(Math.random() * replies.length)];
+  };
+
+  // 判断消息类型
+  const classifyMessage = (text: string): string => {
+    const lowerText = text.toLowerCase();
+    if (lowerText.includes('水') || lowerText.includes('渴')) return 'water';
+    if (lowerText.includes('开心') || lowerText.includes('高兴') || lowerText.includes('快乐')) return 'happy';
+    if (lowerText.includes('球') || lowerText.includes('玩')) return 'ball';
+    if (lowerText.includes('难过') || lowerText.includes('伤心') || lowerText.includes('不开心')) return 'sad';
+    if (lowerText.includes('生气') || lowerText.includes('愤怒')) return 'angry';
+    if (lowerText.includes('谢')) return 'thanks';
+    if (lowerText.includes('你好') || lowerText.includes('嗨') || lowerText.includes('hi') || lowerText.includes('hello')) return 'hello';
+    return 'default';
+  };
+
   // 处理发送消息
   const handleSend = useCallback((text: String) => {
     // 清理emoji用于处理
@@ -84,25 +159,10 @@ const AIChat = () => {
     // 增加亲密度 - 会在 useEffect 中检测并显示提示
     incrementIntimacy();
 
-    // AI 响应
+    // AI 响应 - 使用随机回复
     setTimeout(() => {
-      let reply = '听到你这么说真棒！';
-
-      if (cleanText === '我要喝水') {
-        reply = '好哒，我们去拿杯子喝水吧！';
-      } else if (cleanText === '我开心' || cleanText === '开心') {
-        reply = '太棒了！开心的时候可以做什么呢？要不要一起唱首歌？';
-      } else if (cleanText === '我想玩球' || cleanText === '玩球') {
-        reply = '玩球真有趣！你会拍球吗？我们一起练习吧！';
-      } else if (cleanText.includes('难过') || cleanText.includes('不开心')) {
-        reply = '没关系，我陪着你哦。要不要听个有趣的故事？📖';
-      } else if (cleanText.includes('生气')) {
-        reply = '深呼吸，慢慢来~ 🧘 我们一起平静一下好吗？';
-      } else if (cleanText.includes('谢谢')) {
-        reply = '不客气！我们是好朋友呀！💕';
-      } else if (cleanText.includes('你好') || cleanText.includes('嗨')) {
-        reply = `你好呀！${profile.name}！见到你真开心！🌟`;
-      }
+      const category = classifyMessage(cleanText);
+      const reply = getRandomReply(category);
 
       const botMsg: Message = { 
         id: Date.now() + 1, 
