@@ -219,9 +219,13 @@ const BookInteraction = () => {
           
           const answerLower = trimmedText.toLowerCase();
           const correctLower = story.answer.toLowerCase();
-          const keywords = correctLower.split(/[,，、]/).filter(k => k.trim().length > 2);
-          const matchedCount = keywords.filter(k => answerLower.includes(k.trim())).length;
-          const correct = matchedCount >= Math.ceil(keywords.length * 0.6);
+          // 用空格/逗号/顿号分割关键词，不过滤短词
+          const keywords = correctLower.split(/[,，、\s]+/).filter(k => k.trim().length > 0);
+          // 计算匹配的关键词数量（关键词需要1个以上字符）
+          const validKeywords = keywords.filter(k => k.trim().length >= 1);
+          const matchedCount = validKeywords.filter(k => answerLower.includes(k.trim())).length;
+          // 至少匹配一个关键词即可（适合儿童）
+          const correct = matchedCount >= 1;
           
           setIsCorrect(correct);
           setShowResult(true);
