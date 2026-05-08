@@ -40,24 +40,24 @@ const BookList = () => {
       id: 2,
       title: '日常沟通',
       desc: '学会表达你的基本需求',
-      status: 'active', // 始终可访问，无需解锁
+      status: dailyStats.bookCompleted >= 1 ? 'active' : 'locked', // 尝试过情绪识别就能解锁
       stars: dailyStarsCalc,
       color: 'bg-emerald-50',
       borderColor: 'border-emerald-100',
       iconColor: 'text-emerald-500',
-      gradient: 'from-emerald-200 to-teal-200',
+      gradient: dailyStats.bookCompleted >= 1 ? 'from-emerald-200 to-teal-200' : 'from-slate-200 to-gray-200',
       image: 'https://modao.cc/agent-py/media/generated_images/2026-05-02/aa7156b859894d3c90a8d6ef1a1ffd12.jpg#desc=Morning%20routine%2C%20breakfast%20table%2C%20kids%2C%20friendly%20style'
     },
     {
       id: 3,
       title: '求助场景',
       desc: '遇到困难时如何开口',
-      status: 'active', // 始终可访问，无需解锁
+      status: dailyStats.bookCompleted >= 4 ? 'active' : 'locked', // 尝试过日常沟通就能解锁
       stars: helpStarsCalc,
       color: 'bg-slate-50',
       borderColor: 'border-slate-100',
       iconColor: 'text-slate-400',
-      gradient: 'from-blue-200 to-indigo-200',
+      gradient: dailyStats.bookCompleted >= 4 ? 'from-blue-200 to-indigo-200' : 'from-slate-200 to-gray-200',
       image: 'https://modao.cc/agent-py/media/generated_images/2026-05-02/7e38337d73b549ada55dfddf80cc62a9.jpg#desc=Boy%20looking%20for%20help%2C%20park%20scene%2C%20kind%20stranger'
     }
   ];
