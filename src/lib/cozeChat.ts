@@ -8,6 +8,17 @@ interface ChatMessage {
   content: string;
 }
 
+// 生成固定的用户 ID（存储在 localStorage）
+function getFixedUserId(): string {
+  const STORAGE_KEY = 'star_baby_user_id';
+  let userId = localStorage.getItem(STORAGE_KEY);
+  if (!userId) {
+    userId = `star_baby_${Math.random().toString(36).substring(2, 10)}`;
+    localStorage.setItem(STORAGE_KEY, userId);
+  }
+  return userId;
+}
+
 // 获取 AI 回复
 export async function getAIReply(
   userMessage: string,
@@ -36,7 +47,7 @@ export async function getAIReply(
       },
       body: JSON.stringify({
         bot_id: BOT_ID,
-        user_id: `user_${Date.now()}`,
+        user_id: getFixedUserId(),
         query: userMessage,
         stream: false,
         auto_save_history: true,
