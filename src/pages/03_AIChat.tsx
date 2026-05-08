@@ -134,61 +134,100 @@ const AIChat = () => {
   // 调用 Coze API 获取智能回复
   const getAIReply = async (userMessage: string, history: { role: string; content: string }[]): Promise<string> => {
     const apiKey = import.meta.env.VITE_COZE_API_KEY;
+    const botId = import.meta.env.VITE_COZE_BOT_ID;
     
-    if (!apiKey || apiKey === 'your_coze_api_key_here') {
-      console.warn('未配置 Coze API Key，使用随机回复');
+    if (!apiKey || apiKey === 'your_coze_api_key_here' || !botId || botId === 'your_bot_id_here') {
+      console.warn('未配置 Coze API Key 或 Bot ID，使用随机回复');
       return getRandomReply(classifyMessage(userMessage));
     }
 
     try {
-      // 构建对话消息
-      const messages = [
-        {
-          role: 'system',
-          content: `你是"小鸡猫"，一个可爱、活泼、友好的儿童AI伙伴。你是一个使用纯文字交流的小动物形象（卡通风格）。
-你的特点：
-1. 说话可爱、活泼，使用简单的语言
-2. 经常使用叠词和可爱的语气词
-3. 喜欢用 emoji 表达情绪
-4. 回答简短有趣，适合3-12岁儿童
-5. 遇到负面情绪要温柔安慰
-6. 遇到开心的事情要一起开心
-7. 每次回复控制在30字以内，要简短有趣
+      // 构建对话历史作为上下文
+      const additionalMessages: any[] = [];
+      history.forEach(h => {
+        additionalMessages.push({
+          role: h.role === 'assistant' ? 'assistant' : 'user',
+          content: h.content,
+          type: 'text'
+        });
+      });
 
-请用简短的、符合儿童理解能力的方式回复。`
-        },
-        ...history.map(h => ({ role: h.role, content: h.content })),
-        { role: 'user', content: userMessage }
-      ];
-
-      const response = await fetch('/v1/chat/completions', {
+      // 1. 发起对话
+      const chatResponse = await fetch('/coze-api/v3/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${apiKey}`,
         },
         body: JSON.stringify({
-          model: 'doubao-pro-32k',
-          messages,
+          bot_id: botId,
+          user_id: `user_${Date.now()}`,
+          query: userMessage,
           stream: false,
-          max_tokens: 200,
-          temperature: 0.8,
+          additional_messages: additionalMessages.slice(-10), // 最多传10条历史
         })
       });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Coze API Error:', response.status, errorText);
-        throw new Error(`API 请求失败: ${response.status}`);
+      if (!chatResponse.ok) {
+        const errorText = await chatResponse.text();
+        console.error('Coze Chat API Error:', chatResponse.status, errorText);
+        throw new Error(`API 请求失败: ${chatResponse.status}`);
       }
 
-      const data = await response.json();
-      const content = data.choices?.[0]?.message?.content;
+      const chatData = await chatResponse.json();
+      const chatId = chatData.data?.id;
+      const conversationId = chatData.data?.conversation_id;
+
+      if (!chatId) {
+        console.error('获取 chat_id 失败:', chatData);
+        return getRandomReply(classifyMessage(userMessage));
+      }
+
+      // 2. 轮询获取结果（非流式需要轮询）
+      const maxRetries = 30;
+      const retryInterval = 1000;
       
-      return content?.trim() || getRandomReply(classifyMessage(userMessage));
+      for (let i = 0; i < maxRetries; i++) {
+        await new Promise(resolve => setTimeout(resolve, retryInterval));
+        
+        const statusResponse = await fetch(`/coze-api/v3/chat/retrieve?chat_id=${chatId}&conversation_id=${conversationId}`, {
+          headers: {
+            'Authorization': `Bearer ${apiKey}`,
+          }
+        });
+
+        if (!statusResponse.ok) continue;
+        
+        const statusData = await statusResponse.json();
+        const status = statusData.data?.status;
+
+        if (status === 'completed') {
+          // 3. 获取消息列表
+          const messagesResponse = await fetch(`/coze-api/v3/chat/message/list?chat_id=${chatId}&conversation_id=${conversationId}`, {
+            headers: {
+              'Authorization': `Bearer ${apiKey}`,
+            }
+          });
+
+          if (!messagesResponse.ok) continue;
+          
+          const messagesData = await messagesResponse.json();
+          const botMessage = messagesData.data?.find((m: any) => m.role === 'assistant' && m.type === 'answer');
+          
+          if (botMessage?.content) {
+            return botMessage.content.trim();
+          }
+          
+          break;
+        } else if (status === 'failed') {
+          console.error('Chat failed:', statusData);
+          break;
+        }
+      }
+
+      return getRandomReply(classifyMessage(userMessage));
     } catch (error) {
       console.error('LLM API Error:', error);
-      // API 失败时使用基于分类的回复
       return getRandomReply(classifyMessage(userMessage));
     }
   };
