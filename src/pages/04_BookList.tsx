@@ -17,18 +17,18 @@ const BookList = () => {
   // 计算已通关的绘本数量（每本绘本3道题）
   const booksCompleted = Math.floor(dailyStats.bookCompleted / 3);
 
-  // 根据全局答题数计算每个板块的星星
+  // 星星计算：每个关卡答对所有题才显示3星
   // 情绪识别(1-3题) -> 日常沟通(4-6题) -> 求助场景(7-9题)
-  const emotionStars = Math.min(3, Math.max(0, dailyStats.bookCompleted));
-  const dailyStars = Math.min(3, Math.max(0, dailyStats.bookCompleted - 3));
-  const helpStars = Math.min(3, Math.max(0, dailyStats.bookCompleted - 6));
+  const emotionStars = dailyStats.bookCompleted >= 3 ? 3 : dailyStats.bookCompleted;
+  const dailyStarsCalc = dailyStats.bookCompleted >= 6 ? 3 : Math.max(0, dailyStats.bookCompleted - 3);
+  const helpStarsCalc = dailyStats.bookCompleted >= 9 ? 3 : Math.max(0, dailyStats.bookCompleted - 6);
 
   const books = [
     {
       id: 1,
       title: '情绪表达',
       desc: '认识开心、难过和生气',
-      status: dailyStats.bookCompleted >= 1 ? 'active' : 'locked',
+      status: 'active', // 第一个关卡始终可访问
       stars: emotionStars,
       color: 'bg-rose-50',
       borderColor: 'border-rose-100',
@@ -40,8 +40,8 @@ const BookList = () => {
       id: 2,
       title: '日常沟通',
       desc: '学会表达你的基本需求',
-      status: dailyStats.bookCompleted >= 4 ? 'active' : (dailyStats.bookCompleted >= 4 ? 'active' : 'locked'),
-      stars: dailyStars,
+      status: dailyStats.bookCompleted >= 3 ? 'active' : 'locked', // 情绪识别通关(3题)后才能解锁
+      stars: dailyStarsCalc,
       color: 'bg-emerald-50',
       borderColor: 'border-emerald-100',
       iconColor: 'text-emerald-500',
@@ -52,12 +52,12 @@ const BookList = () => {
       id: 3,
       title: '求助场景',
       desc: '遇到困难时如何开口',
-      status: dailyStats.bookCompleted >= 7 ? 'active' : (dailyStats.bookCompleted >= 7 ? 'active' : 'locked'),
-      stars: helpStars,
+      status: dailyStats.bookCompleted >= 6 ? 'active' : 'locked', // 日常沟通通关(6题)后才能解锁
+      stars: helpStarsCalc,
       color: 'bg-slate-50',
       borderColor: 'border-slate-100',
       iconColor: 'text-slate-400',
-      gradient: dailyStats.bookCompleted >= 4 ? 'from-blue-200 to-indigo-200' : 'from-slate-200 to-gray-200',
+      gradient: dailyStats.bookCompleted >= 6 ? 'from-blue-200 to-indigo-200' : 'from-slate-200 to-gray-200',
       image: 'https://modao.cc/agent-py/media/generated_images/2026-05-02/7e38337d73b549ada55dfddf80cc62a9.jpg#desc=Boy%20looking%20for%20help%2C%20park%20scene%2C%20kind%20stranger'
     }
   ];
