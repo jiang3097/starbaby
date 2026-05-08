@@ -70,7 +70,7 @@ function initRecognition(): SpeechRecognition | null {
     }
 
     // 如果有最终结果，传递给回调
-    if (finalTranscript) {
+    if (finalTranscript && finalTranscript.trim()) {
       console.log('[语音识别] 最终:', finalTranscript);
       _callbacks.onTranscript?.(finalTranscript, true);
       // 最终结果后重启识别（continuous 模式可能自动停止）

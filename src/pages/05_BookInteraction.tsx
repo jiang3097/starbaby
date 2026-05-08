@@ -199,11 +199,15 @@ const BookInteraction = () => {
 
     startListening({
       onTranscript: (text: string, isFinal: boolean) => {
+        // 过滤空文本
+        const trimmedText = text.trim();
+        if (!trimmedText) return;
+        
         if (isFinal) {
-          setUserAnswer(text);
+          setUserAnswer(trimmedText);
           setIsListening(false);
           
-          const answerLower = text.toLowerCase();
+          const answerLower = trimmedText.toLowerCase();
           const correctLower = story.answer.toLowerCase();
           const keywords = correctLower.split(/[,，、]/).filter(k => k.trim().length > 2);
           const matchedCount = keywords.filter(k => answerLower.includes(k.trim())).length;
