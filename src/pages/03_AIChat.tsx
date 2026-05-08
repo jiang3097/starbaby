@@ -153,6 +153,16 @@ const AIChat = () => {
         });
       });
 
+      // 如果没有历史消息，添加一条初始消息避免请求失败
+      if (additionalMessages.length === 0) {
+        additionalMessages.push({
+          role: 'user',
+          content: '你好',
+          type: 'question',
+          content_type: 'text'
+        });
+      }
+
       // 使用流式响应直接获取结果
       const response = await fetch('/coze-api/v3/chat', {
         method: 'POST',
