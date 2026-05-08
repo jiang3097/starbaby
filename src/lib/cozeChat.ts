@@ -1,5 +1,5 @@
 // Coze Bot 聊天 API
-const API_KEY = import.meta.env.VITE_COZE_API_KEY || 'cztei_lPzkONn9zQPM1NqSFT5F5gUBkz83aCeXbZ4qzQQCxGaNy4d2L9wmA8B67bF8l08sS';
+const API_KEY = import.meta.env.VITE_COZE_API_KEY || 'cztei_lrQtHogJaQ13ppl2U8o0zjeil63jzagwJ79ge9LlSnzFwzfLAno6DmWftY37dOQ8a';
 const BOT_ID = '7637378853279088686';
 
 interface ChatMessage {
