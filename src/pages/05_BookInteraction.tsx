@@ -232,7 +232,7 @@ const BookInteraction = () => {
             speakText("太棒了！回答正确！获得一颗星星！");
           } else {
             console.log('答错了，正确答案是:', story.answer);
-            speakText(`再想想看，正确答案是：${story.answer}`);
+            speakText(`就快要答对了哦，正确答案是：${story.answer}`);
           }
         }
       },
@@ -740,11 +740,8 @@ const BookInteraction = () => {
               )}
             </motion.div>
             
-            <h2 className={cn(
-              "text-3xl font-bold mb-2",
-              isCorrect ? "text-emerald-600" : "text-amber-600"
-            )}>
-              {isCorrect ? "太棒了！🎉" : "回答得很好！"}
+            <h2 className="text-3xl font-bold mb-2 text-amber-600">
+              就快要答对了哦！
             </h2>
             
             {!isCorrect && (
