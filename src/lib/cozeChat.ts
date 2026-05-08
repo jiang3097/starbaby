@@ -25,20 +25,7 @@ export async function getAIReply(
   history: ChatMessage[] = []
 ): Promise<string> {
   try {
-    // 准备上下文消息（最近6条对话）
-    const recentHistory = history.slice(-6);
-    
-    // 构建 additional_messages
-    const additionalMessages = recentHistory.length > 0 
-      ? recentHistory.map(msg => ({
-          role: msg.role,
-          content: msg.content,
-          type: msg.role === 'user' ? 'question' : 'answer',
-          content_type: 'text'
-        }))
-      : [{ role: 'user', content: '你好', type: 'question', content_type: 'text' }];
-
-    // 发起对话（非流式）
+    // 发起对话（非流式），不传 additional_messages 让 Bot 自由回复
     const response = await fetch(API_BASE, {
       method: 'POST',
       headers: {
@@ -50,8 +37,7 @@ export async function getAIReply(
         user_id: getFixedUserId(),
         query: userMessage,
         stream: false,
-        auto_save_history: true,
-        additional_messages: additionalMessages
+        auto_save_history: true
       })
     });
 
