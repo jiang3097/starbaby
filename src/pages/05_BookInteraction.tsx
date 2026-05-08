@@ -224,8 +224,8 @@ const BookInteraction = () => {
           // 计算匹配的关键词数量（关键词需要1个以上字符）
           const validKeywords = keywords.filter(k => k.trim().length >= 1);
           const matchedCount = validKeywords.filter(k => answerLower.includes(k.trim())).length;
-          // 至少匹配一个关键词即可（适合儿童）
-          const correct = matchedCount >= 1;
+          // 匹配60%的关键词即可（适合儿童）
+          const correct = matchedCount >= Math.ceil(validKeywords.length * 0.6);
           
           setIsCorrect(correct);
           setShowResult(true);
