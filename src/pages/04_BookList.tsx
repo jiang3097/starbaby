@@ -28,7 +28,7 @@ const BookList = () => {
       id: 1,
       title: '情绪表达',
       desc: '认识开心、难过和生气',
-      status: 'active', // 第一个关卡始终可访问
+      status: 'active', // 始终可访问
       stars: emotionStars,
       color: 'bg-rose-50',
       borderColor: 'border-rose-100',
@@ -40,7 +40,7 @@ const BookList = () => {
       id: 2,
       title: '日常沟通',
       desc: '学会表达你的基本需求',
-      status: dailyStats.bookCompleted >= 3 ? 'active' : 'locked', // 情绪识别通关(3题)后才能解锁
+      status: 'active', // 始终可访问，无需解锁
       stars: dailyStarsCalc,
       color: 'bg-emerald-50',
       borderColor: 'border-emerald-100',
@@ -52,12 +52,12 @@ const BookList = () => {
       id: 3,
       title: '求助场景',
       desc: '遇到困难时如何开口',
-      status: dailyStats.bookCompleted >= 6 ? 'active' : 'locked', // 日常沟通通关(6题)后才能解锁
+      status: 'active', // 始终可访问，无需解锁
       stars: helpStarsCalc,
       color: 'bg-slate-50',
       borderColor: 'border-slate-100',
       iconColor: 'text-slate-400',
-      gradient: dailyStats.bookCompleted >= 6 ? 'from-blue-200 to-indigo-200' : 'from-slate-200 to-gray-200',
+      gradient: 'from-blue-200 to-indigo-200',
       image: 'https://modao.cc/agent-py/media/generated_images/2026-05-02/7e38337d73b549ada55dfddf80cc62a9.jpg#desc=Boy%20looking%20for%20help%2C%20park%20scene%2C%20kind%20stranger'
     }
   ];
