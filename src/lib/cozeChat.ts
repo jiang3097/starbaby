@@ -22,13 +22,15 @@ export async function getAIReply(
     // 准备上下文消息（最近10条）
     const recentHistory = history.slice(-10);
     
-    // 构建 additional_messages
-    const additionalMessages = recentHistory.map(msg => ({
-      role: msg.role,
-      content: msg.content,
-      type: msg.role === 'user' ? 'question' : 'answer',
-      content_type: 'text'
-    }));
+    // 构建 additional_messages（至少需要一条消息）
+    const additionalMessages = recentHistory.length > 0 
+      ? recentHistory.map(msg => ({
+          role: msg.role,
+          content: msg.content,
+          type: msg.role === 'user' ? 'question' : 'answer',
+          content_type: 'text'
+        }))
+      : [{ role: 'user', content: '你好', type: 'question', content_type: 'text' }];
 
     // 发起对话
     const response = await fetch('https://api.coze.cn/v3/chat', {
