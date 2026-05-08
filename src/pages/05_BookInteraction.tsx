@@ -219,10 +219,15 @@ const BookInteraction = () => {
           
           if (correct) {
             // 每答对一题就获得一个星星并累计通关次数
-            setEarnedStars(prev => prev + 1);
+            console.log('答对了！增加星星');
+            setEarnedStars(prev => {
+              console.log('earnedStars:', prev, '->', prev + 1);
+              return prev + 1;
+            });
             incrementGamePass(); // 实时更新通关次数
             speakText("太棒了！回答正确！获得一颗星星！");
           } else {
+            console.log('答错了，正确答案是:', story.answer);
             speakText(`回答得很好。其实正确答案是：${story.answer}`);
           }
         }

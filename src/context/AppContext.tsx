@@ -60,12 +60,18 @@ const defaultDailyStats: DailyStats = {
 };
 
 function AppProvider({ children }: { children: React.ReactNode }) {
-  // 强制从0开始，不读取任何旧数据
+  // 从 localStorage 读取数据，检查日期是否需要重置
   const [dailyStats, setDailyStats] = useState<DailyStats>(() => {
-    // 强制清除旧数据
-    localStorage.removeItem(DAILY_STORAGE_KEY);
-    localStorage.removeItem(WEEKLY_STORAGE_KEY);
-    return { ...defaultDailyStats };
+    const today = new Date().toISOString().split('T')[0];
+    const saved = localStorage.getItem(DAILY_STORAGE_KEY);
+    if (saved) {
+      const parsed = JSON.parse(saved) as DailyStats;
+      // 如果是同一天，保留数据；否则重置
+      if (parsed.date === today) {
+        return parsed;
+      }
+    }
+    return { ...defaultDailyStats, date: today };
   });
   const [weeklyStats, setWeeklyStats] = useState<WeeklyStats>({});
   const [timeLimit, setTimeLimitState] = useState<TimeLimit>({ enabled: false, minutes: 30, customMinutes: null });

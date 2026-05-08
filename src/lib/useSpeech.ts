@@ -50,7 +50,7 @@ export const VOICE_PACKAGES: VoicePackage[] = [
 ];
 
 // 当前选中的音色包
-let currentPackage = VOICE_PACKAGES[0];
+let currentPackage = VOICE_PACKAGES[3]; // 默认使用火山引擎音色
 
 // 获取音色包
 export const getVoicePackage = (): VoicePackage => currentPackage;
@@ -70,7 +70,7 @@ export const setVoicePackage = (pkg: VoicePackage) => {
 };
 
 // 当前使用的 TTS 引擎
-let useCozeTTS = true; // 默认使用 Coze TTS
+let useCozeTTS = false; // 默认使用火山引擎 TTS（Coze TTS 需要权限）
 
 /**
  * 设置是否使用 Coze TTS
