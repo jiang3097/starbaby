@@ -142,18 +142,19 @@ const AIChat = () => {
     }
 
     try {
-      // 构建对话历史作为上下文
+      // 构建对话历史作为上下文 - 符合 Coze 格式
       const additionalMessages: any[] = [];
-      history.forEach(h => {
+      history.slice(-10).forEach(h => {
         additionalMessages.push({
           role: h.role === 'assistant' ? 'assistant' : 'user',
           content: h.content,
-          type: 'text'
+          type: h.role === 'assistant' ? 'answer' : 'question',
+          content_type: 'text'
         });
       });
 
-      // 1. 发起对话
-      const chatResponse = await fetch('/coze-api/v3/chat', {
+      // 使用流式响应直接获取结果
+      const response = await fetch('/coze-api/v3/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -163,66 +164,57 @@ const AIChat = () => {
           bot_id: botId,
           user_id: `user_${Date.now()}`,
           query: userMessage,
-          stream: false,
-          additional_messages: additionalMessages.slice(-10), // 最多传10条历史
+          stream: true,
+          auto_save_history: true,
+          additional_messages: additionalMessages,
         })
       });
 
-      if (!chatResponse.ok) {
-        const errorText = await chatResponse.text();
-        console.error('Coze Chat API Error:', chatResponse.status, errorText);
-        throw new Error(`API 请求失败: ${chatResponse.status}`);
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Coze Chat API Error:', response.status, errorText);
+        throw new Error(`API 请求失败: ${response.status}`);
       }
 
-      const chatData = await chatResponse.json();
-      const chatId = chatData.data?.id;
-      const conversationId = chatData.data?.conversation_id;
+      // 处理流式响应
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+      let fullContent = '';
+      let messageId = '';
 
-      if (!chatId) {
-        console.error('获取 chat_id 失败:', chatData);
-        return getRandomReply(classifyMessage(userMessage));
-      }
+      while (reader) {
+        const { done, value } = await reader.read();
+        if (done) break;
 
-      // 2. 轮询获取结果（非流式需要轮询）
-      const maxRetries = 30;
-      const retryInterval = 1000;
-      
-      for (let i = 0; i < maxRetries; i++) {
-        await new Promise(resolve => setTimeout(resolve, retryInterval));
-        
-        const statusResponse = await fetch(`/coze-api/v3/chat/retrieve?chat_id=${chatId}&conversation_id=${conversationId}`, {
-          headers: {
-            'Authorization': `Bearer ${apiKey}`,
-          }
-        });
+        const chunk = decoder.decode(value);
+        const lines = chunk.split('\n');
 
-        if (!statusResponse.ok) continue;
-        
-        const statusData = await statusResponse.json();
-        const status = statusData.data?.status;
-
-        if (status === 'completed') {
-          // 3. 获取消息列表
-          const messagesResponse = await fetch(`/coze-api/v3/chat/message/list?chat_id=${chatId}&conversation_id=${conversationId}`, {
-            headers: {
-              'Authorization': `Bearer ${apiKey}`,
+        for (const line of lines) {
+          if (line.startsWith('event:')) {
+            // 忽略事件类型
+          } else if (line.startsWith('data:')) {
+            const data = line.slice(5);
+            try {
+              const parsed = JSON.parse(data);
+              
+              // 提取内容增量
+              if (parsed.type === 'answer' && parsed.content) {
+                fullContent += parsed.content;
+              }
+              
+              // 记录消息 ID
+              if (parsed.id) {
+                messageId = parsed.id;
+              }
+            } catch (e) {
+              // 忽略解析错误
             }
-          });
-
-          if (!messagesResponse.ok) continue;
-          
-          const messagesData = await messagesResponse.json();
-          const botMessage = messagesData.data?.find((m: any) => m.role === 'assistant' && m.type === 'answer');
-          
-          if (botMessage?.content) {
-            return botMessage.content.trim();
           }
-          
-          break;
-        } else if (status === 'failed') {
-          console.error('Chat failed:', statusData);
-          break;
         }
+      }
+
+      if (fullContent.trim()) {
+        return fullContent.trim();
       }
 
       return getRandomReply(classifyMessage(userMessage));
