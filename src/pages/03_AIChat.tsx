@@ -8,6 +8,7 @@ import { speakText, preloadVoices, stopSpeaking, startListening, stopListening }
 import { useUser } from '../context/UserContext';
 import { useApp } from '../context/AppContext';
 import VoiceSelector from '../components/VoiceSelector';
+import { getAIReply } from '../lib/cozeChat';
 
 interface Message {
   id: number;
@@ -133,103 +134,18 @@ const AIChat = () => {
 
   // 调用 Coze API 获取智能回复
   const getAIReply = async (userMessage: string, history: { role: string; content: string }[]): Promise<string> => {
-    const apiKey = import.meta.env.VITE_COZE_API_KEY;
-    const botId = import.meta.env.VITE_COZE_BOT_ID;
-    
-    if (!apiKey || apiKey === 'your_coze_api_key_here' || !botId || botId === 'your_bot_id_here') {
-      console.warn('未配置 Coze API Key 或 Bot ID，使用随机回复');
-      return getRandomReply(classifyMessage(userMessage));
-    }
-
     try {
-      // 构建对话历史作为上下文 - 符合 Coze 格式
-      const additionalMessages: any[] = [];
-      history.slice(-10).forEach(h => {
-        additionalMessages.push({
-          role: h.role === 'assistant' ? 'assistant' : 'user',
-          content: h.content,
-          type: h.role === 'assistant' ? 'answer' : 'question',
-          content_type: 'text'
-        });
-      });
-
-      // 如果没有历史消息，添加一条初始消息避免请求失败
-      if (additionalMessages.length === 0) {
-        additionalMessages.push({
-          role: 'user',
-          content: '你好',
-          type: 'question',
-          content_type: 'text'
-        });
-      }
-
-      // 使用流式响应直接获取结果
-      const response = await fetch('/coze-api/v3/chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`,
-        },
-        body: JSON.stringify({
-          bot_id: botId,
-          user_id: `user_${Date.now()}`,
-          query: userMessage,
-          stream: true,
-          auto_save_history: true,
-          additional_messages: additionalMessages,
-        })
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Coze Chat API Error:', response.status, errorText);
-        throw new Error(`API 请求失败: ${response.status}`);
-      }
-
-      // 处理流式响应
-      const reader = response.body?.getReader();
-      const decoder = new TextDecoder();
-      let fullContent = '';
-      let messageId = '';
-
-      while (reader) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        const chunk = decoder.decode(value);
-        const lines = chunk.split('\n');
-
-        for (const line of lines) {
-          if (line.startsWith('event:')) {
-            // 忽略事件类型
-          } else if (line.startsWith('data:')) {
-            const data = line.slice(5);
-            try {
-              const parsed = JSON.parse(data);
-              
-              // 提取内容增量
-              if (parsed.type === 'answer' && parsed.content) {
-                fullContent += parsed.content;
-              }
-              
-              // 记录消息 ID
-              if (parsed.id) {
-                messageId = parsed.id;
-              }
-            } catch (e) {
-              // 忽略解析错误
-            }
-          }
-        }
-      }
-
-      if (fullContent.trim()) {
-        return fullContent.trim();
-      }
-
-      return getRandomReply(classifyMessage(userMessage));
+      // 使用优化后的 Coze Chat API（非流式，更可靠）
+      const chatHistory = history.map(h => ({
+        role: h.role as 'user' | 'assistant',
+        content: h.content
+      }));
+      
+      const reply = await getAIReply(userMessage, chatHistory);
+      return reply;
     } catch (error) {
-      console.error('LLM API Error:', error);
+      console.error('AI Chat Error:', error);
+      // API 失败时使用随机回复
       return getRandomReply(classifyMessage(userMessage));
     }
   };
