@@ -231,17 +231,14 @@ const BookInteraction = () => {
           setShowResult(true);
           setPhase('feedback');
           
-          // 统计：增加主动表达次数和绘本完成数
+          // 统计：增加主动表达次数
           incrementExpression('book');
-          incrementBookCompleted();
           
           if (correct) {
-            // 每答对一题就获得一个星星并累计通关次数
+            // 答对：增加绘本完成数和星星
+            incrementBookCompleted();
             console.log('答对了！增加星星');
-            setEarnedStars(prev => {
-              console.log('earnedStars:', prev, '->', prev + 1);
-              return prev + 1;
-            });
+            setEarnedStars(prev => prev + 1);
             incrementGamePass(); // 实时更新通关次数
             speakText("太棒了！回答正确！获得一颗星星！");
           } else {
