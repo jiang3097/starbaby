@@ -147,7 +147,7 @@ export const volcSpeak = (
 /**
  * 原生浏览器 TTS 回退
  */
-const nativeSpeakText = (text: string, onEnd?: () => void): void => {
+export const nativeSpeakText = (text: string, onEnd?: () => void): void => {
   if (!('speechSynthesis' in window)) {
     console.log('[火山TTS] 浏览器不支持语音合成');
     onEnd?.();
