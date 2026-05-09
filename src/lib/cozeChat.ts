@@ -1,122 +1,97 @@
-// Coze Bot 聊天 API - 优化版
-const API_KEY = import.meta.env.VITE_COZE_API_KEY || 'cztei_lrQtHogJaQ13ppl2U8o0zjeil63jzagwJ79ge9LlSnzFwzfLAno6DmWftY37dOQ8a';
+import { CozeAPI, ChatEventType, MessageStatus } from '@coze/api';
+
+const COZE_API_KEY = import.meta.env.VITE_COZE_API_KEY || '';
 const BOT_ID = '7637378853279088686';
-const API_BASE = 'https://api.coze.cn/v3/chat';
 
-interface ChatMessage {
-  role: 'user' | 'assistant';
-  content: string;
-}
-
-// 生成固定的用户 ID（存储在 localStorage）
-function getFixedUserId(): string {
-  const STORAGE_KEY = 'star_baby_user_id';
-  let userId = localStorage.getItem(STORAGE_KEY);
+// 获取或创建用户ID
+function getUserId(): string {
+  let userId = localStorage.getItem('coze_user_id');
   if (!userId) {
-    userId = `star_baby_${Math.random().toString(36).substring(2, 10)}`;
-    localStorage.setItem(STORAGE_KEY, userId);
+    userId = `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    localStorage.setItem('coze_user_id', userId);
   }
   return userId;
 }
 
-// 获取 AI 回复
+interface CozeMessage {
+  role: 'user' | 'assistant';
+  content: string;
+  id?: string;
+}
+
 export async function getAIReply(
   userMessage: string,
-  history: ChatMessage[] = []
+  conversationHistory: CozeMessage[] = []
 ): Promise<string> {
+  if (!COZE_API_KEY) {
+    // 如果没有 API Key，返回一个友好的提示
+    return '星小宝暂时无法回复，请稍后再试~';
+  }
+
+  const client = new CozeAPI({
+    token: COZE_API_KEY,
+    baseURL: 'https://api.coze.cn',
+  });
+
+  const userId = getUserId();
+
   try {
-    // 发起对话（非流式），不传 additional_messages 让 Bot 自由回复
-    const response = await fetch(API_BASE, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${API_KEY}`
-      },
-      body: JSON.stringify({
-        bot_id: BOT_ID,
-        user_id: getFixedUserId(),
-        query: userMessage,
-        stream: false,
-        auto_save_history: true
-      })
+    // 准备历史消息（最近10条）
+    const historyMessages = conversationHistory.slice(-10).map((msg) => ({
+      role: msg.role,
+      content: msg.content,
+    }));
+
+    // 发起聊天
+    const chatResp = await client.chat.create({
+      bot_id: BOT_ID,
+      user_id: userId,
+      query: userMessage,
+      stream: false,
+      auto_save_history: true,
+      additional_messages: historyMessages.length > 0 ? historyMessages : undefined,
     });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Coze API Error:', response.status, errorText);
-      throw new Error(`API error: ${response.status}`);
-    }
+    const { conversation_id, id: chat_id } = chatResp.chat;
 
-    const data = await response.json();
-    
-    // 检查响应状态
-    if (data.code !== 0) {
-      console.error('Coze API code error:', data);
-      throw new Error(data.msg || 'API error');
-    }
+    // 轮询获取结果
+    const maxWaitTime = 15000; // 15秒超时
+    const startTime = Date.now();
 
-    const chatId = data.data.id;
-    const conversationId = data.data.conversation_id;
+    while (Date.now() - startTime < maxWaitTime) {
+      const chatInfo = await client.chat.retrieve({ chat_id, conversation_id });
 
-    // 轮询获取结果（最多等待15秒）
-    const maxAttempts = 15;
-    let attempts = 0;
-    
-    while (attempts < maxAttempts) {
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      const statusResponse = await fetch(
-        `https://api.coze.cn/v3/chat/retrieve?chat_id=${chatId}&conversation_id=${conversationId}`,
-        {
-          headers: {
-            'Authorization': `Bearer ${API_KEY}`
-          }
-        }
-      );
-
-      if (!statusResponse.ok) {
-        attempts++;
-        continue;
-      }
-
-      const statusData = await statusResponse.json();
-      
-      if (statusData.data?.status === 'completed') {
+      if (chatInfo.status === MessageStatus.COMPLETED) {
         // 获取消息列表
-        const messagesResponse = await fetch(
-          `https://api.coze.cn/v3/chat/message/list?chat_id=${chatId}&conversation_id=${conversationId}`,
-          {
-            headers: {
-              'Authorization': `Bearer ${API_KEY}`
-            }
-          }
+        const messagesResp = await client.chat.message.list({ chat_id, conversation_id });
+
+        // 找到助手的回复
+        const assistantMessage = messagesResp.messages.find(
+          (msg) => msg.role === 'assistant' && msg.type === 'answer'
         );
 
-        if (messagesResponse.ok) {
-          const messagesData = await messagesResponse.json();
-          
-          // 找到 assistant 的回复
-          const assistantMessage = messagesData.data?.find(
-            (msg: any) => msg.role === 'assistant' && msg.type === 'answer'
-          );
-          
-          if (assistantMessage?.content) {
-            return assistantMessage.content.trim();
-          }
+        if (assistantMessage && assistantMessage.content) {
+          return assistantMessage.content.trim();
         }
-        
-        break;
-      } else if (statusData.data?.status === 'failed') {
-        throw new Error('Chat failed');
+
+        return '星小宝暂时不知道说什么~';
+      } else if (chatInfo.status === MessageStatus.FAILED) {
+        console.error('Chat failed:', chatInfo);
+        return '星小宝遇到了一点小问题，稍等一下哦~';
       }
-      
-      attempts++;
+
+      // 等待1秒后再次检查
+      await new Promise((resolve) => setTimeout(resolve, 1000));
     }
 
-    // 超时或失败时返回空
-    throw new Error('Timeout');
-  } catch (error) {
-    console.error('Coze Chat Error:', error);
-    throw error;
+    return '星小宝思考中...请稍后再试';
+  } catch (error: any) {
+    console.error('Coze API Error:', error);
+    
+    if (error?.code === 4101) {
+      return '星小宝暂时无法回复，请稍后再试~';
+    }
+    
+    return '星小宝遇到了一点小问题，稍等一下哦~';
   }
 }
