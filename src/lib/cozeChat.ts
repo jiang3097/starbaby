@@ -52,7 +52,7 @@ export async function getAIReply(
       additional_messages: historyMessages.length > 0 ? historyMessages : undefined,
     });
 
-    const { conversation_id, id: chat_id } = chatResp.chat;
+    const { conversation_id, id: chat_id } = chatResp;
 
     // 轮询获取结果
     const maxWaitTime = 15000; // 15秒超时
