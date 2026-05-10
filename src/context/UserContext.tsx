@@ -73,8 +73,8 @@ const defaultProfile: UserProfile = {
   mood: 60,
   moodUsedToday: 0,
   moodDate: '',
-  toys: 1,  // 新用户自带1个玩具
-  foods: 1,  // 新用户自带1个食物
+  toys: 0,
+  foods: 0,
   totalGamePassed: 0,
 };
 
@@ -189,8 +189,8 @@ export const UserProvider = ({ children }: UserProviderProps) => {
           mood: 60,
           moodUsedToday: 0,
           moodDate: today,
-          toys: 1, // 重置为1个玩具
-          foods: 1, // 重置为1个食物
+          toys: 0,
+          foods: 0,
           totalGamePassed: 0,
         };
         setProfile(corrected);
