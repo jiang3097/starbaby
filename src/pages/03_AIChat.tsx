@@ -547,7 +547,7 @@ const AIChat = () => {
         </AnimatePresence>
 
         <p className="text-center text-amber-600 text-sm font-medium">
-          {isListening ? '请说话哦~' : '👆 点击麦克风，和我说话吧'}
+          {isListening ? '请说话哦~' : '说话后再次点击麦克风即可发送'}
         </p>
       </div>
 
