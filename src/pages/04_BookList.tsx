@@ -17,11 +17,11 @@ const BookList = () => {
   // 计算已通关的绘本数量（每本绘本3道题）
   const booksCompleted = Math.floor(dailyStats.bookCompleted / 3);
 
-  // 星星计算：每道题答对就获得1颗星星
+  // 星星计算：每个关卡答对所有题才显示3星
   // 情绪识别(1-3题) -> 日常沟通(4-6题) -> 求助场景(7-9题)
-  const emotionStars = Math.min(3, dailyStats.bookCompleted);
-  const dailyStarsCalc = Math.max(0, Math.min(3, dailyStats.bookCompleted - 3));
-  const helpStarsCalc = Math.max(0, Math.min(3, dailyStats.bookCompleted - 6));
+  const emotionStars = dailyStats.bookCompleted >= 3 ? 3 : dailyStats.bookCompleted;
+  const dailyStarsCalc = dailyStats.bookCompleted >= 6 ? 3 : Math.max(0, dailyStats.bookCompleted - 3);
+  const helpStarsCalc = dailyStats.bookCompleted >= 9 ? 3 : Math.max(0, dailyStats.bookCompleted - 6);
 
   const books = [
     {
@@ -52,12 +52,12 @@ const BookList = () => {
       id: 3,
       title: '求助场景',
       desc: '遇到困难时如何开口',
-      status: dailyStats.bookCompleted >= 4 ? 'active' : 'locked', // 尝试过日常沟通就能解锁
+      status: 'locked',
       stars: helpStarsCalc,
       color: 'bg-slate-50',
       borderColor: 'border-slate-100',
       iconColor: 'text-slate-400',
-      gradient: dailyStats.bookCompleted >= 4 ? 'from-blue-200 to-indigo-200' : 'from-slate-200 to-gray-200',
+      gradient: 'from-slate-200 to-gray-200',
       image: 'https://modao.cc/agent-py/media/generated_images/2026-05-02/7e38337d73b549ada55dfddf80cc62a9.jpg#desc=Boy%20looking%20for%20help%2C%20park%20scene%2C%20kind%20stranger'
     }
   ];
