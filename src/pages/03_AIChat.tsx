@@ -1,13 +1,12 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, Mic, Volume2, Send, Square } from 'lucide-react';
+import { ChevronLeft, Mic, Send } from 'lucide-react';
 import MobileShell from '../components/MobileShell';
 import { cn } from '../lib/utils';
-import { speakText, preloadVoices, stopSpeaking, startListening, stopListening } from '../lib/useSpeech';
+import { startListening, stopListening } from '../lib/useSpeech';
 import { useUser } from '../context/UserContext';
 import { useApp } from '../context/AppContext';
-import VoiceSelector from '../components/VoiceSelector';
 import { getAIReply } from '../lib/cozeChat';
 
 interface Message {
@@ -24,11 +23,9 @@ const AIChat = () => {
     { id: 1, type: 'bot', text: `你好呀！我是${profile.name}！今天心情怎么样？` },
   ]);
   const [isListening, setIsListening] = useState(false);
-  const [isSpeaking, setIsSpeaking] = useState(false);
   const [isAIThinking, setIsAIThinking] = useState(false);
   const [showIntimacyTip, setShowIntimacyTip] = useState(false);
   const [currentIntimacy, setCurrentIntimacy] = useState(profile.intimacy);
-  const [isVoiceSelectorOpen, setIsVoiceSelectorOpen] = useState(false);
   const [tempTranscript, setTempTranscript] = useState('');
   const hasStartedTraining = useRef(false);
   const prevIntimacyRef = useRef(profile.intimacy);
@@ -44,11 +41,6 @@ const AIChat = () => {
     }
     prevIntimacyRef.current = profile.intimacy;
   }, [profile.intimacy]);
-
-  // 预加载语音
-  useEffect(() => {
-    preloadVoices();
-  }, []);
 
   // 进入页面时开始训练计时（只执行一次）
   useEffect(() => {
@@ -199,9 +191,6 @@ const AIChat = () => {
       
       setMessages(prev => [...prev, botMsg]);
       setIsAIThinking(false);
-
-      // AI 自动朗读回复
-      speakText(reply);
     } catch (error) {
       console.error('AI 回复失败:', error);
       setIsAIThinking(false);
@@ -237,14 +226,6 @@ const AIChat = () => {
         }
       });
     }
-  };
-
-  // 朗读按钮
-  const handleReadAloud = (text: string) => {
-    setIsSpeaking(true);
-    speakText(text, () => {
-      setIsSpeaking(false);
-    });
   };
 
   return (
@@ -307,29 +288,11 @@ const AIChat = () => {
           </motion.div>
           <span className={cn(
             "text-xs font-bold mt-1 px-3 py-0.5 rounded-full",
-            isSpeaking ? 'bg-amber-100 text-amber-600' : isListening ? 'bg-rose-100 text-rose-500' : 'bg-sky-100 text-sky-500'
+            isListening ? 'bg-rose-100 text-rose-500' : 'bg-sky-100 text-sky-500'
           )}>
-          {isSpeaking ? '正在朗读' : isListening ? '正在听...' : profile.name}
+          {isListening ? '正在听...' : profile.name}
           </span>
         </div>
-        
-        <button 
-          onClick={() => {
-            if (isSpeaking) {
-              stopSpeaking();
-            } else {
-              setIsVoiceSelectorOpen(true);
-            }
-          }}
-          className={cn(
-            "w-12 h-12 rounded-full flex items-center justify-center shadow-lg transition-colors",
-            isSpeaking 
-              ? "bg-rose-400 text-white hover:bg-rose-500 animate-pulse" 
-              : "bg-white text-purple-500 hover:bg-purple-50"
-          )}
-        >
-          {isSpeaking ? <Square size={20} /> : <Volume2 size={24} />}
-        </button>
       </div>
 
       {/* 亲密度增加提示 */}
@@ -396,40 +359,6 @@ const AIChat = () => {
             )}>
               {/* 消息内容 */}
               <p className="text-[15px] font-medium leading-relaxed whitespace-pre-wrap">{msg.text}</p>
-              
-              {/* Bot message controls */}
-              {msg.type === 'bot' && (
-                <div className="mt-3 flex items-center gap-2">
-                  <button
-                    onClick={() => {
-                      if (isSpeaking) {
-                        stopSpeaking();
-                        setIsSpeaking(false);
-                      } else {
-                        handleReadAloud(msg.text);
-                      }
-                    }}
-                    className={cn(
-                      "flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full transition-all shadow-sm",
-                      isSpeaking 
-                        ? "bg-rose-100 text-rose-500" 
-                        : "bg-sky-50 text-sky-500 hover:bg-sky-100"
-                    )}
-                  >
-                    {isSpeaking ? (
-                      <>
-                        <Square size={14} />
-                        <span>停止</span>
-                      </>
-                    ) : (
-                      <>
-                        <Volume2 size={14} />
-                        <span>朗读</span>
-                      </>
-                    )}
-                  </button>
-                </div>
-              )}
             </div>
             
             {/* 用户头像 */}
@@ -570,9 +499,6 @@ const AIChat = () => {
           {isListening ? '请说话哦~' : '👆 点击麦克风，和我说话吧'}
         </p>
       </div>
-
-      {/* 声音选择器 */}
-      <VoiceSelector isOpen={isVoiceSelectorOpen} onClose={() => setIsVoiceSelectorOpen(false)} />
     </MobileShell>
   );
 };
