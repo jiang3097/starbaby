@@ -198,6 +198,25 @@ const BookInteraction = () => {
     };
   }, [bookId]); // 只依赖 bookId
 
+  // 进入反馈阶段时自动朗读反馈
+  useEffect(() => {
+    if (phase === 'feedback' && showResult) {
+      const feedbackText = isCorrect ? "恭喜你答对了！" : "就快要答对了哦！";
+      setTimeout(() => {
+        speakText(feedbackText);
+      }, 300);
+    }
+  }, [phase, showResult, isCorrect]);
+
+  // 进入问题阶段时自动朗读问题
+  useEffect(() => {
+    if (phase === 'question') {
+      setTimeout(() => {
+        speakText(removeEmoji(story.question));
+      }, 500);
+    }
+  }, [phase, story.question]);
+
   const resetState = useCallback(() => {
     setPhase('intro');
     setIsPlaying(false);
