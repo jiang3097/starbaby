@@ -279,14 +279,7 @@ const AIChat = () => {
       </div>
 
       {/* Header */}
-      <div className="px-6 pt-4 flex items-center justify-between sticky top-0 bg-gradient-to-b from-amber-50/90 to-transparent z-10 pb-2">
-        <button 
-          onClick={() => navigate(-1)}
-          className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-lg text-amber-500 hover:bg-amber-50 transition-colors"
-        >
-          <ChevronLeft size={28} />
-        </button>
-        
+      <div className="px-6 pt-4 flex items-center justify-center sticky top-0 bg-gradient-to-b from-amber-50/90 to-transparent z-10 pb-2">
         {/* 形象展示 */}
         <div className="flex flex-col items-center">
           <motion.div
@@ -509,13 +502,7 @@ const AIChat = () => {
             <span className="text-4xl relative z-10">🎤</span>
           </motion.button>
           
-          {/* 提示文字 */}
-          <p className={cn(
-            "mt-2 text-xs font-medium transition-all duration-300",
-            isListening ? "text-rose-500" : "text-amber-600/70"
-          )}>
-            {isListening ? "松手自动发送，无需点击结束" : "说话后自动发送，无需点击结束"}
-          </p>
+          {/* 无提示文字 */}
         </div>
 
         {/* Listening indicator */}
