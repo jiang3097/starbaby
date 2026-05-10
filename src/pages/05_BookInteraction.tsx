@@ -734,7 +734,7 @@ const BookInteraction = () => {
             </motion.div>
             
             <h2 className="text-3xl font-bold mb-2 text-amber-600">
-              就快要答对了哦！
+              {isCorrect ? "恭喜你答对了！" : "就快要答对了哦！"}
             </h2>
             
             {!isCorrect && (
