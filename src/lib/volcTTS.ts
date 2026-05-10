@@ -69,6 +69,7 @@ export const stopVolcAudio = (): void => {
 
 /**
  * 火山引擎 TTS 朗读
+ * 优先使用原生 TTS（兼容性更好）
  */
 export const volcSpeak = (
   text: string,
@@ -80,68 +81,9 @@ export const volcSpeak = (
     return;
   }
 
-  const voice = voiceId || currentVoice;
-
-  // 如果没有配置 Access Token，使用原生 TTS
-  if (!VOLC_TTS_CONFIG.ACCESS_TOKEN) {
-    console.log('[火山TTS] 未配置 Access Token，使用原生 TTS');
-    nativeSpeakText(text, onEnd);
-    return;
-  }
-
-  console.log('[火山TTS] 开始朗读:', text);
-
-  fetch(VOLC_TTS_CONFIG.URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${VOLC_TTS_CONFIG.ACCESS_TOKEN}`,
-    },
-    body: JSON.stringify({
-      app: {
-        appid: VOLC_TTS_CONFIG.APP_ID || ' volc_tts_demo',
-        token: VOLC_TTS_CONFIG.ACCESS_TOKEN,
-        cluster: 'volcengine_tts',
-      },
-      user: {
-        uid: 'tts_user_' + Date.now(),
-      },
-      audio: {
-        voice_type: voice,
-        encoding: 'mp3',
-        speed_ratio: 1.0,
-        volume_ratio: 1.0,
-        pitch_ratio: 1.0,
-        text_type: 'ssml',
-        operation: 'submit',
-      },
-      request: {
-        reqid: Date.now().toString(),
-        timestamp: Date.now(),
-        version: '0.1.0',
-        user_params: {},
-      },
-      data: text,
-    }),
-  })
-    .then(response => response.json())
-    .then(data => {
-      console.log('[火山TTS] 响应:', data);
-
-      if (data.code === 30000 || data.data?.audio) {
-        const audioData = data.data.audio;
-        window._volcAudio = playAudio(audioData, onEnd);
-        console.log('[火山TTS] 开始播放音频');
-      } else {
-        console.log('[火山TTS] 请求失败:', data.message || '未知错误');
-        nativeSpeakText(text, onEnd);
-      }
-    })
-    .catch(error => {
-      console.error('[火山TTS] 请求异常:', error);
-      // 回退到原生 TTS
-      nativeSpeakText(text, onEnd);
-    });
+  // 优先使用原生 TTS（跨平台兼容性最好）
+  console.log('[TTS] 使用原生语音朗读:', text);
+  nativeSpeakText(text, onEnd);
 };
 
 /**

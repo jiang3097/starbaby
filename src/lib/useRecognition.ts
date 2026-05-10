@@ -124,16 +124,44 @@ function restartRecognition() {
   }
 }
 
+// 请求麦克风权限
+export async function requestMicrophonePermission(): Promise<boolean> {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    stream.getTracks().forEach(track => track.stop());
+    return true;
+  } catch (error) {
+    console.error('[语音识别] 麦克风权限被拒绝:', error);
+    return false;
+  }
+}
+
 // 开始监听
-export function startListening(
+export async function startListening(
   callbacks: VoiceRecognitionCallbacks = {}
-): boolean {
+): Promise<boolean> {
   const { onTranscript, onEnd, onError, onStart } = callbacks;
   _callbacks = { onTranscript, onEnd, onError, onStart };
 
+  // 检查是否支持
+  const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognitionAPI) {
+    onError?.('浏览器不支持语音识别');
+    return false;
+  }
+
+  // 请求麦克风权限
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    stream.getTracks().forEach(track => track.stop());
+  } catch (permError) {
+    onError?.('请允许使用麦克风');
+    return false;
+  }
+
   const recognition = initRecognition();
   if (!recognition) {
-    onError?.('浏览器不支持语音识别');
+    onError?.('初始化语音识别失败');
     return false;
   }
 

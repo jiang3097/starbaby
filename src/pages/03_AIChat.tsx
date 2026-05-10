@@ -217,6 +217,7 @@ const AIChat = () => {
       setIsListening(true);
       setTempTranscript('');
 
+      // 使用 Promise 处理 async 的 startListening
       startListening({
         onTranscript: (text: string, isFinal: boolean) => {
           if (isFinal) {
@@ -228,6 +229,11 @@ const AIChat = () => {
           } else {
             setTempTranscript(text);
           }
+        },
+        onError: (error: string) => {
+          console.error('[AIChat] 语音识别错误:', error);
+          setIsListening(false);
+          setTempTranscript('');
         },
         onEnd: () => {
           setIsListening(false);
