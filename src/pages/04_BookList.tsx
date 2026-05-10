@@ -14,14 +14,14 @@ const BookList = () => {
   const [isAIChatOpen, setIsAIChatOpen] = useState(false);
   const [selectedBook, setSelectedBook] = useState<string>('');
 
-  // 计算已通关的绘本数量（每本绘本3道题）
-  const booksCompleted = Math.floor(dailyStats.bookCompleted / 3);
+  // 计算已通关的关卡数量（每道题算一关）
+  const booksCompleted = dailyStats.bookCompleted;
 
-  // 星星计算：每个关卡答对所有题才显示3星
-  // 情绪识别(1-3题) -> 日常沟通(4-6题) -> 求助场景(7-9题)
-  const emotionStars = dailyStats.bookCompleted >= 3 ? 3 : dailyStats.bookCompleted;
-  const dailyStarsCalc = dailyStats.bookCompleted >= 6 ? 3 : Math.max(0, dailyStats.bookCompleted - 3);
-  const helpStarsCalc = dailyStats.bookCompleted >= 9 ? 3 : Math.max(0, dailyStats.bookCompleted - 6);
+  // 星星计算：每道题答对就显示对应的星星数量
+  // 情绪识别(第1-3关) -> 日常沟通(第4-6关) -> 求助场景(第7-9关)
+  const emotionStars = Math.min(3, dailyStats.bookCompleted);
+  const dailyStarsCalc = Math.max(0, Math.min(3, dailyStats.bookCompleted - 3));
+  const helpStarsCalc = Math.max(0, Math.min(3, dailyStats.bookCompleted - 6));
 
   const books = [
     {
