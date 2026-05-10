@@ -17,11 +17,11 @@ const BookList = () => {
   // 计算已通关的绘本数量（每本绘本3道题）
   const booksCompleted = Math.floor(dailyStats.bookCompleted / 3);
 
-  // 星星计算：每个关卡答对所有题才显示3星
+  // 星星计算：每道题答对就获得1颗星星
   // 情绪识别(1-3题) -> 日常沟通(4-6题) -> 求助场景(7-9题)
-  const emotionStars = dailyStats.bookCompleted >= 3 ? 3 : dailyStats.bookCompleted;
-  const dailyStarsCalc = dailyStats.bookCompleted >= 6 ? 3 : Math.max(0, dailyStats.bookCompleted - 3);
-  const helpStarsCalc = dailyStats.bookCompleted >= 9 ? 3 : Math.max(0, dailyStats.bookCompleted - 6);
+  const emotionStars = Math.min(3, dailyStats.bookCompleted);
+  const dailyStarsCalc = Math.max(0, Math.min(3, dailyStats.bookCompleted - 3));
+  const helpStarsCalc = Math.max(0, Math.min(3, dailyStats.bookCompleted - 6));
 
   const books = [
     {
