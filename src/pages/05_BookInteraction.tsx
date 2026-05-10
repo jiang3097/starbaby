@@ -6,7 +6,6 @@ import MobileShell from '../components/MobileShell';
 import { Button } from '../components/ui/button';
 import { cn } from '../lib/utils';
 import { speakText, startListening, stopListening, preloadVoices, stopSpeaking } from '../lib/useSpeech';
-import VoiceSelector from '../components/VoiceSelector';
 
 import { useUser } from '../context/UserContext';
 import { useApp } from '../context/AppContext';
@@ -156,7 +155,6 @@ const BookInteraction = () => {
   const [isCorrect, setIsCorrect] = useState(false);
   const [showResult, setShowResult] = useState(false);
   const [earnedStars, setEarnedStars] = useState(0); // 本次获得星星数
-  const [isVoiceSelectorOpen, setIsVoiceSelectorOpen] = useState(false);
 
   
   const bookData = BOOKS_DATA[Number(bookId) || 1];
@@ -338,15 +336,6 @@ const BookInteraction = () => {
                 "text-white shadow-md"
               )}>
                 {bookData.title}
-              </div>
-              
-              <div className="flex gap-2">
-                <button 
-                  onClick={() => setIsVoiceSelectorOpen(true)}
-                  className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-amber-500 shadow-md border-2 border-amber-100"
-                >
-                  <Volume2 size={18} />
-                </button>
               </div>
             </div>
 
@@ -836,8 +825,6 @@ const BookInteraction = () => {
           </motion.div>
         )}
       </AnimatePresence>
-
-      <VoiceSelector isOpen={isVoiceSelectorOpen} onClose={() => setIsVoiceSelectorOpen(false)} />
     </MobileShell>
   );
 };
