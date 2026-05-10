@@ -794,7 +794,7 @@ const BookInteraction = () => {
               </div>
             </motion.div>
 
-            <h1 className="text-4xl font-bold text-slate-800 mb-2">真棒！</h1>
+            <h1 className="text-4xl font-bold text-slate-800 mb-2">非常棒！</h1>
             <p className="text-lg text-slate-500 mb-4">{bookData.successText}</p>
             <p className="text-sm text-amber-500 mb-2">本次得分：{earnedStars}/{bookData.stories.length}</p>
             <p className="text-2xl text-amber-500 font-bold mb-12">
