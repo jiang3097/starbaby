@@ -732,6 +732,14 @@ const BookInteraction = () => {
               )}
             </motion.div>
             
+            <motion.div
+              animate={{ scale: [1, 1.2, 1] }}
+              transition={{ duration: 0.5 }}
+              className="text-5xl mb-4"
+            >
+              ⭐ x {earnedStars}
+            </motion.div>
+            
             <h2 className="text-3xl font-bold mb-2 text-amber-600">
               {isCorrect ? "恭喜你答对了！" : "就快要答对了哦！"}
             </h2>
