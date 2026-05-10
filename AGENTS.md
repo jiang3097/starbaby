@@ -82,6 +82,34 @@ const MyComponent = () => {
 - 使用 localStorage 存储用户选择
 - Key: `star_baby_profile`
 
+## Coze AI 聊天功能
+
+基于 Coze API 实现星小宝智能对话。
+
+### 核心模块
+- `src/lib/cozeChat.ts` - Coze 聊天 API 封装
+- `src/pages/03_AIChat.tsx` - AI 宠物聊天页面
+
+### API 配置
+- **Bot ID**: `7637378853279088686`
+- **API Endpoint**: `https://api.coze.cn/open_api/v2/chat`
+- **Token**: 存储在 `.env` 的 `VITE_COZE_API_KEY`
+- **Token 类型**: PAT (Personal Access Token)，建议在 https://www.coze.cn/user/profile 创建
+
+### API 调用方式
+```typescript
+import { getAIReply } from '../lib/cozeChat';
+
+// 调用星小宝回复
+const reply = await getAIReply('你好');
+```
+
+### 注意事项
+- Bot 需要发布「API」渠道才能通过 API 访问
+- PAT token 有效期较长，但仍需定期检查
+- 如果 token 过期，星小宝会回复"暂时无法回复"
+- 用户 ID 存储在 localStorage (`coze_user_id`)，保持会话连贯
+
 ## 语音功能
 
 基于 Web Speech API 实现，支持多种声音包选择。
