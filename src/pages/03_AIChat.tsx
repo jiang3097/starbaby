@@ -7,7 +7,6 @@ import { cn } from '../lib/utils';
 import { speakText, preloadVoices, stopSpeaking, startListening, stopListening } from '../lib/useSpeech';
 import { useUser } from '../context/UserContext';
 import { useApp } from '../context/AppContext';
-import VoiceSelector from '../components/VoiceSelector';
 import { getAIReply } from '../lib/cozeChat';
 
 interface Message {
@@ -28,7 +27,6 @@ const AIChat = () => {
   const [isAIThinking, setIsAIThinking] = useState(false);
   const [showIntimacyTip, setShowIntimacyTip] = useState(false);
   const [currentIntimacy, setCurrentIntimacy] = useState(profile.intimacy);
-  const [isVoiceSelectorOpen, setIsVoiceSelectorOpen] = useState(false);
   const [tempTranscript, setTempTranscript] = useState('');
   const hasStartedTraining = useRef(false);
   const prevIntimacyRef = useRef(profile.intimacy);
@@ -312,24 +310,6 @@ const AIChat = () => {
           {isSpeaking ? '正在朗读' : isListening ? '正在听...' : profile.name}
           </span>
         </div>
-        
-        <button 
-          onClick={() => {
-            if (isSpeaking) {
-              stopSpeaking();
-            } else {
-              setIsVoiceSelectorOpen(true);
-            }
-          }}
-          className={cn(
-            "w-12 h-12 rounded-full flex items-center justify-center shadow-lg transition-colors",
-            isSpeaking 
-              ? "bg-rose-400 text-white hover:bg-rose-500 animate-pulse" 
-              : "bg-white text-purple-500 hover:bg-purple-50"
-          )}
-        >
-          {isSpeaking ? <Square size={20} /> : <Volume2 size={24} />}
-        </button>
       </div>
 
       {/* 亲密度增加提示 */}
@@ -571,8 +551,6 @@ const AIChat = () => {
         </p>
       </div>
 
-      {/* 声音选择器 */}
-      <VoiceSelector isOpen={isVoiceSelectorOpen} onClose={() => setIsVoiceSelectorOpen(false)} />
     </MobileShell>
   );
 };
