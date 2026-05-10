@@ -7,6 +7,11 @@ import { Button } from '../components/ui/button';
 import { cn } from '../lib/utils';
 import { speakText, startListening, stopListening, preloadVoices, stopSpeaking } from '../lib/useSpeech';
 
+// 移除 emoji，只保留文字
+const removeEmoji = (text: string): string => {
+  return text.replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F900}-\u{1F9FF}\u{1FA00}-\u{1FA6F}\u{1FA70}-\u{1FAFF}]/gu, '');
+};
+
 import { useUser } from '../context/UserContext';
 import { useApp } from '../context/AppContext';
 
@@ -208,7 +213,7 @@ const BookInteraction = () => {
   const startReading = useCallback(() => {
     setPhase('reading');
     setIsPlaying(true);
-    speakText(story.text, () => {
+    speakText(removeEmoji(story.text), () => {
       setIsPlaying(false);
       // 朗读完成后进入跟读阶段，让用户自己点击进入答题
       setPhase('follow-up');
@@ -482,7 +487,7 @@ const BookInteraction = () => {
               <motion.button
                 animate={{ scale: isPlaying ? [1, 1.1, 1] : 1 }}
                 transition={{ repeat: isPlaying ? Infinity : 0, duration: 1 }}
-                onClick={() => !isPlaying && speakText(story.text)}
+                onClick={() => !isPlaying && speakText(removeEmoji(story.text))}
                 className={cn(
                   "mt-6 w-16 h-16 rounded-full flex items-center justify-center shadow-lg transition-all",
                   isPlaying 
@@ -567,7 +572,7 @@ const BookInteraction = () => {
                     if (isPlaying) {
                       stopSpeaking();
                     } else {
-                      speakText(story.text);
+                      speakText(removeEmoji(story.text));
                     }
                   }}
                   className={cn(
@@ -594,7 +599,7 @@ const BookInteraction = () => {
                 <Button
                   onClick={() => {
                     setPhase('question');
-                    speakText(story.question);
+                    speakText(removeEmoji(story.question));
                   }}
                   className="w-full h-14 bg-gradient-to-r from-rose-400 to-pink-500 text-white font-bold text-lg rounded-full shadow-lg border-none"
                 >
