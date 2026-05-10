@@ -133,7 +133,7 @@ const AIChat = () => {
   };
 
   // 调用 Coze API 获取智能回复
-  const getAIReply = async (userMessage: string, history: { role: string; content: string }[]): Promise<string> => {
+  const fetchAIReply = async (userMessage: string, history: { role: string; content: string }[]): Promise<string> => {
     try {
       // 使用优化后的 Coze Chat API（非流式，更可靠）
       const chatHistory = history.map(h => ({
@@ -187,7 +187,7 @@ const AIChat = () => {
 
     // AI 响应 - 调用 LLM API 获取智能回复
     try {
-      const reply = await getAIReply(cleanText, history);
+      const reply = await fetchAIReply(cleanText, history);
       
       const botMsg: Message = { 
         id: Date.now() + 1, 
