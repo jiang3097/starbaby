@@ -155,8 +155,25 @@ const BookInteraction = () => {
   const [isCorrect, setIsCorrect] = useState(false);
   const [showResult, setShowResult] = useState(false);
   const [earnedStars, setEarnedStars] = useState(0); // 本次获得星星数
+  const [passedLevels, setPassedLevels] = useState<Set<number>>(new Set()); // 本次会话已通过关卡
 
-  
+  // 检查并标记关卡是否已通过（使用 localStorage 持久化）
+  const checkAndMarkPassed = useCallback((levelId: number): boolean => {
+    if (!bookId) return false;
+    const storageKey = `star_baby_passed_levels_${bookId}`;
+    const stored = localStorage.getItem(storageKey);
+    const passed: number[] = stored ? JSON.parse(stored) : [];
+    
+    if (passed.includes(levelId)) {
+      return false; // 已经通过过了
+    }
+    
+    // 标记为已通过
+    const newPassed = [...passed, levelId];
+    localStorage.setItem(storageKey, JSON.stringify(newPassed));
+    return true; // 首次通过
+  }, [bookId]);
+
   const bookData = BOOKS_DATA[Number(bookId) || 1];
   const story = bookData?.stories[currentStory];
 
@@ -242,18 +259,27 @@ const BookInteraction = () => {
       incrementExpression('book');
       
       if (correct) {
-        // 答对：增加绘本完成数和星星
-        incrementBookCompleted();
-        console.log('答对了！增加星星');
-        setEarnedStars(prev => prev + 1);
-        incrementGamePass(); // 实时更新通关次数
-        speakText("太棒了！回答正确！获得一颗星星！");
+        // 检查是否首次通过此关卡
+        const isFirstTime = checkAndMarkPassed(story.id);
+        
+        if (isFirstTime) {
+          // 首次通过：增加绘本完成数和星星
+          incrementBookCompleted();
+          console.log('首次通过！增加星星');
+          setEarnedStars(prev => prev + 1);
+          incrementGamePass(); // 实时更新通关次数
+          speakText("太棒了！回答正确！获得一颗星星！");
+        } else {
+          // 重复通过：不累加
+          console.log('重复通过此关卡，不累加星星');
+          speakText("太棒了！回答正确！");
+        }
       } else {
         console.log('答错了，正确答案是:', story.displayAnswer || story.answer);
         speakText(`就快要答对了哦，正确答案是：${story.displayAnswer || story.answer}`);
       }
     }
-  }, [userAnswer, story, incrementExpression, incrementBookCompleted]);
+  }, [userAnswer, story, incrementExpression, incrementBookCompleted, checkAndMarkPassed]);
   
   // 下一题
   const nextStory = () => {

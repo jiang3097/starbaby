@@ -14,14 +14,24 @@ const BookList = () => {
   const [isAIChatOpen, setIsAIChatOpen] = useState(false);
   const [selectedBook, setSelectedBook] = useState<string>('');
 
-  // 计算已通关的关卡数量（每道题算一关）
-  const booksCompleted = dailyStats.bookCompleted;
+  // 从 localStorage 读取已通过的关卡
+  const getPassedLevels = (bookId: number): number[] => {
+    const storageKey = `star_baby_passed_levels_${bookId}`;
+    const stored = localStorage.getItem(storageKey);
+    return stored ? JSON.parse(stored) : [];
+  };
 
-  // 星星计算：每道题答对就显示对应的星星数量
-  // 情绪识别(第1-3关) -> 日常沟通(第4-6关) -> 求助场景(第7-9关)
-  const emotionStars = Math.min(3, dailyStats.bookCompleted);
-  const dailyStarsCalc = Math.max(0, Math.min(3, dailyStats.bookCompleted - 3));
-  const helpStarsCalc = Math.max(0, Math.min(3, dailyStats.bookCompleted - 6));
+  // 计算已通关的关卡数量（每道题算一关，首次通过才计数）
+  const passedLevels1 = getPassedLevels(1);
+  const passedLevels2 = getPassedLevels(2);
+  const passedLevels3 = getPassedLevels(3);
+  
+  const booksCompleted = passedLevels1.length + passedLevels2.length + passedLevels3.length;
+
+  // 星星计算：从 localStorage 读取已通过关卡数
+  const emotionStars = passedLevels1.length; // 情绪识别已通过关卡数
+  const dailyStarsCalc = passedLevels2.length; // 日常沟通已通过关卡数
+  const helpStarsCalc = passedLevels3.length; // 求助场景已通过关卡数
 
   const books = [
     {
@@ -40,12 +50,12 @@ const BookList = () => {
       id: 2,
       title: '日常沟通',
       desc: '学会表达你的基本需求',
-      status: dailyStats.bookCompleted >= 1 ? 'active' : 'locked', // 尝试过情绪识别就能解锁
+      status: passedLevels1.length >= 1 ? 'active' : 'locked', // 完成情绪识别第一关后才能解锁
       stars: dailyStarsCalc,
       color: 'bg-emerald-50',
       borderColor: 'border-emerald-100',
       iconColor: 'text-emerald-500',
-      gradient: dailyStats.bookCompleted >= 1 ? 'from-emerald-200 to-teal-200' : 'from-slate-200 to-gray-200',
+      gradient: passedLevels1.length >= 1 ? 'from-emerald-200 to-teal-200' : 'from-slate-200 to-gray-200',
       image: 'https://modao.cc/agent-py/media/generated_images/2026-05-02/aa7156b859894d3c90a8d6ef1a1ffd12.jpg#desc=Morning%20routine%2C%20breakfast%20table%2C%20kids%2C%20friendly%20style'
     },
     {
