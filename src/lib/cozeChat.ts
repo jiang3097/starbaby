@@ -1,4 +1,4 @@
-const COZE_API_KEY = import.meta.env.VITE_COZE_API_KEY || '';
+const COZE_API_KEY = 'pat_gRm0YNMfdE0PcnRPJy0dSDfosq4j5ITVGLtLqSSR9CLJ4Q8bx9rUqplRfzsHXAA2';
 const BOT_ID = '7637378853279088686';
 
 // 获取或创建用户ID
