@@ -278,42 +278,6 @@ const AIChat = () => {
             ⭐
           </motion.div>
         ))}
-
-        {/* AI 思考中的提示 */}
-        {isAIThinking && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9, y: 15 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            className="flex items-end gap-3 max-w-[88%] self-start"
-          >
-            <motion.div
-              animate={{ y: [0, -3, 0] }}
-              transition={{ repeat: Infinity, duration: 2 }}
-              className={cn(
-                "w-10 h-10 rounded-full p-0.5 shadow-md border-2 border-white flex-shrink-0 bg-gradient-to-br overflow-hidden",
-                avatar.color
-              )}
-            >
-              <img 
-                src={avatar.image}
-                alt={profile.name} 
-                className="w-full h-full object-cover rounded-full"
-              />
-            </motion.div>
-            <div className="p-4 rounded-[24px] shadow-md bg-white border border-slate-100">
-              <div className="flex items-center gap-2">
-                <span className="text-slate-500 text-sm">星小宝在想</span>
-                <motion.span
-                  animate={{ opacity: [1, 0, 1] }}
-                  transition={{ repeat: Infinity, duration: 1.5 }}
-                  className="text-lg"
-                >
-                  ...
-                </motion.span>
-              </div>
-            </div>
-          </motion.div>
-        )}
       </div>
 
       {/* Header */}
@@ -476,6 +440,44 @@ const AIChat = () => {
             )}
           </motion.div>
         ))}
+
+        {/* AI 思考中的提示 - 紧跟在消息列表后面 */}
+        {isAIThinking && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9, y: 15 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            className={cn(
+              "flex items-end gap-3 max-w-[88%] self-start"
+            )}
+          >
+            <motion.div
+              animate={{ y: [0, -3, 0] }}
+              transition={{ repeat: Infinity, duration: 2 }}
+              className={cn(
+                "w-10 h-10 rounded-full p-0.5 shadow-md border-2 border-white flex-shrink-0 bg-gradient-to-br overflow-hidden",
+                avatar.color
+              )}
+            >
+              <img 
+                src={avatar.image}
+                alt={profile.name} 
+                className="w-full h-full object-cover rounded-full"
+              />
+            </motion.div>
+            <div className="p-4 rounded-[24px] shadow-md bg-white border border-slate-100">
+              <div className="flex items-center gap-2">
+                <span className="text-slate-500 text-sm">星小宝在想</span>
+                <motion.span
+                  animate={{ opacity: [1, 0, 1] }}
+                  transition={{ repeat: Infinity, duration: 1.5 }}
+                  className="text-lg"
+                >
+                  ...
+                </motion.span>
+              </div>
+            </div>
+          </motion.div>
+        )}
       </div>
 
       {/* Input Area */}
