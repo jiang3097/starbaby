@@ -207,7 +207,7 @@ const AIChat = () => {
   }, [profile.name, messages]);
 
   // 点击麦克风开始说话
-  const handleMicClick = () => {
+  const handleMicClick = async () => {
     if (isListening) {
       // 停止录音
       stopListening();
@@ -217,29 +217,34 @@ const AIChat = () => {
       setIsListening(true);
       setTempTranscript('');
 
-      // 使用 Promise 处理 async 的 startListening
-      startListening({
-        onTranscript: (text: string, isFinal: boolean) => {
-          if (isFinal) {
+      try {
+        await startListening({
+          onTranscript: (text: string, isFinal: boolean) => {
+            if (isFinal) {
+              setIsListening(false);
+              setTempTranscript('');
+              if (text.trim()) {
+                handleSend(text.trim());
+              }
+            } else {
+              setTempTranscript(text);
+            }
+          },
+          onError: (error: string) => {
+            console.error('[AIChat] 语音识别错误:', error);
             setIsListening(false);
             setTempTranscript('');
-            if (text.trim()) {
-              handleSend(text.trim());
-            }
-          } else {
-            setTempTranscript(text);
+          },
+          onEnd: () => {
+            setIsListening(false);
+            setTempTranscript('');
           }
-        },
-        onError: (error: string) => {
-          console.error('[AIChat] 语音识别错误:', error);
-          setIsListening(false);
-          setTempTranscript('');
-        },
-        onEnd: () => {
-          setIsListening(false);
-          setTempTranscript('');
-        }
-      });
+        });
+      } catch (error) {
+        console.error('[AIChat] 启动语音识别失败:', error);
+        setIsListening(false);
+        setTempTranscript('');
+      }
     }
   };
 
@@ -488,6 +493,7 @@ const AIChat = () => {
           <motion.button
             whileTap={{ scale: 0.9 }}
             onClick={handleMicClick}
+            style={{ touchAction: 'manipulation' }}
             className={cn(
               "w-20 h-20 rounded-full flex items-center justify-center transition-all duration-300 relative shadow-lg",
               isListening 
