@@ -210,39 +210,7 @@ const BookInteraction = () => {
         const trimmedText = text.trim();
         if (!trimmedText) return;
         
-        if (isFinal) {
-          setUserAnswer(trimmedText);
-          setIsListening(false);
-          
-          const answerLower = trimmedText.toLowerCase();
-          const correctLower = story.answer.toLowerCase();
-          // 用空格/逗号/顿号分割关键词，不过滤短词
-          const keywords = correctLower.split(/[,，、\s]+/).filter(k => k.trim().length > 0);
-          // 计算匹配的关键词数量（关键词需要1个以上字符）
-          const validKeywords = keywords.filter(k => k.trim().length >= 1);
-          const matchedCount = validKeywords.filter(k => answerLower.includes(k.trim())).length;
-          // 匹配60%的关键词即可（适合儿童）
-          const correct = matchedCount >= Math.ceil(validKeywords.length * 0.6);
-          
-          setIsCorrect(correct);
-          setShowResult(true);
-          setPhase('feedback');
-          
-          // 统计：增加主动表达次数
-          incrementExpression('book');
-          
-          if (correct) {
-            // 答对：增加绘本完成数和星星
-            incrementBookCompleted();
-            console.log('答对了！增加星星');
-            setEarnedStars(prev => prev + 1);
-            incrementGamePass(); // 实时更新通关次数
-            speakText("太棒了！回答正确！获得一颗星星！");
-          } else {
-            console.log('答错了，正确答案是:', story.displayAnswer || story.answer);
-            speakText(`就快要答对了哦，正确答案是：${story.displayAnswer || story.answer}`);
-          }
-        }
+        setUserAnswer(trimmedText);
       },
       onEnd: () => {
         setIsListening(false);
@@ -250,11 +218,42 @@ const BookInteraction = () => {
     });
   }, [story, incrementExpression, incrementBookCompleted]);
 
-  // 停止录音
+  // 停止录音并提交答案
   const stopCurrentListening = useCallback(() => {
     stopListening();
     setIsListening(false);
-  }, []);
+    
+    // 如果有回答，进行判断
+    if (userAnswer.trim()) {
+      const answerLower = userAnswer.toLowerCase();
+      const correctLower = story.answer.toLowerCase();
+      // 用空格/逗号/顿号分割关键词
+      const keywords = correctLower.split(/[,，、\s]+/).filter(k => k.trim().length > 0);
+      const validKeywords = keywords.filter(k => k.trim().length >= 1);
+      const matchedCount = validKeywords.filter(k => answerLower.includes(k.trim())).length;
+      // 匹配60%的关键词即可（适合儿童）
+      const correct = matchedCount >= Math.ceil(validKeywords.length * 0.6);
+      
+      setIsCorrect(correct);
+      setShowResult(true);
+      setPhase('feedback');
+      
+      // 统计：增加主动表达次数
+      incrementExpression('book');
+      
+      if (correct) {
+        // 答对：增加绘本完成数和星星
+        incrementBookCompleted();
+        console.log('答对了！增加星星');
+        setEarnedStars(prev => prev + 1);
+        incrementGamePass(); // 实时更新通关次数
+        speakText("太棒了！回答正确！获得一颗星星！");
+      } else {
+        console.log('答错了，正确答案是:', story.displayAnswer || story.answer);
+        speakText(`就快要答对了哦，正确答案是：${story.displayAnswer || story.answer}`);
+      }
+    }
+  }, [userAnswer, story, incrementExpression, incrementBookCompleted]);
   
   // 下一题
   const nextStory = () => {
@@ -692,11 +691,11 @@ const BookInteraction = () => {
               {/* 控制按钮 */}
               <div className="flex gap-4 w-full max-w-sm">
                 <Button
-                  onClick={() => stopListening()}
+                  onClick={stopCurrentListening}
                   variant="secondary"
                   className="flex-1 h-14 bg-slate-100 text-slate-600 font-bold rounded-full border-none"
                 >
-                  停止
+                  说完啦
                 </Button>
                 <Button
                   onClick={startAnswering}
