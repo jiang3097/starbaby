@@ -1,11 +1,36 @@
-// TTS 朗读功能 - 使用云服务 API
+// TTS 朗读功能 - 支持浏览器和 Capacitor 原生插件
 
-// 检测浏览器是否支持
-const isBrowserSupported = () => {
+import { TextToSpeech } from '@capacitor-community/text-to-speech';
+
+// 检测是否在 Capacitor 环境
+const isCapacitor = () => {
+  return typeof (window as any).Capacitor !== 'undefined';
+};
+
+// Capacitor TTS
+const speakWithCapacitor = async (text: string): Promise<void> => {
+  await TextToSpeech.speak({
+    text,
+    lang: 'zh-CN',
+    rate: 0.9,
+    pitch: 1.0,
+    volume: 1.0
+  });
+};
+
+// 停止 Capacitor TTS
+const stopCapacitor = async (): Promise<void> => {
+  try {
+    await TextToSpeech.stop();
+  } catch {}
+};
+
+// 检测浏览器 TTS
+const isBrowserTTS = () => {
   return typeof window !== 'undefined' && 'speechSynthesis' in window;
 };
 
-// 使用浏览器原生 TTS
+// 浏览器 TTS
 const speakWithBrowser = (text: string): Promise<void> => {
   return new Promise((resolve, reject) => {
     const synth = window.speechSynthesis;
@@ -22,14 +47,10 @@ const speakWithBrowser = (text: string): Promise<void> => {
     utterance.pitch = 1.0;
     
     utterance.onend = () => resolve();
-    utterance.onerror = (e) => {
-      // 出错后尝试用另一种方式
-      reject(e);
-    };
+    utterance.onerror = () => resolve(); // 出错也当完成
     
     synth.speak(utterance);
     
-    // 延迟检查是否真正在播放
     setTimeout(() => {
       if (!synth.speaking) {
         reject(new Error('未开始'));
@@ -38,73 +59,98 @@ const speakWithBrowser = (text: string): Promise<void> => {
   });
 };
 
-// 主函数 - 优先浏览器，不行再尝试其他
+// 主函数
 export const speakText = async (text: string): Promise<void> => {
   if (!text) return;
   
   const cleanText = text.replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '').trim();
   if (!cleanText) return;
   
-  // 尝试浏览器 TTS
-  if (isBrowserSupported()) {
+  // 优先用 Capacitor 原生 TTS
+  if (isCapacitor()) {
     try {
-      await speakWithBrowser(cleanText);
+      await speakWithCapacitor(cleanText);
       return;
     } catch (e) {
-      console.warn('[TTS] 浏览器TTS失败:', e);
+      console.warn('[TTS] Capacitor TTS 失败，尝试浏览器:', e);
     }
   }
   
-  // 如果浏览器不支持，显示文字提示
+  // 降级到浏览器 TTS
+  if (isBrowserTTS()) {
+    await speakWithBrowser(cleanText);
+    return;
+  }
+  
   throw new Error('朗读暂不可用');
 };
 
 // 停止
-export const stopSpeaking = () => {
-  if (typeof window !== 'undefined' && window.speechSynthesis) {
+export const stopSpeaking = async (): Promise<void> => {
+  if (isCapacitor()) {
+    await stopCapacitor();
+  } else if (isBrowserTTS()) {
     window.speechSynthesis.cancel();
   }
 };
 
-export const isSpeechSupport = () => isBrowserSupported();
-export const isTTSAvailable = () => isBrowserSupported();
+export const isSpeechSupport = () => isCapacitor() || isBrowserTTS();
+export const isTTSAvailable = () => isCapacitor() || isBrowserTTS();
 
 // ==================== 语音识别 ====================
-let recognition: any = null;
+import { SpeechRecognition } from '@capacitor-community/speech-recognition';
 
-export const isSpeechRecognitionSupported = () => {
-  if (typeof window === 'undefined') return false;
-  return 'SpeechRecognition' in window || 'webkitSpeechRecognition' in window;
+// 检测语音识别支持
+export const isSpeechRecognitionSupported = (): boolean => {
+  if (typeof window !== 'undefined' && !isCapacitor()) {
+    return 'SpeechRecognition' in window || 'webkitSpeechRecognition' in window;
+  }
+  return true;
 };
 
-export const startListening = (
+let webRecognition: any = null;
+
+export const startListening = async (
   onResult: (text: string) => void,
   onError?: (error: string) => void
 ): Promise<void> => {
-  return new Promise((resolve, reject) => {
-    if (typeof window === 'undefined') {
-      reject(new Error('不支持'));
+  // Capacitor 环境使用原生插件
+  if (isCapacitor()) {
+    try {
+      const result = await SpeechRecognition.start({
+        language: 'zh-CN'
+      });
+      
+      if (result.matches && result.matches.length > 0) {
+        onResult(result.matches[0]);
+      }
       return;
+    } catch (e: any) {
+      onError?.(e.message || '语音识别失败');
+      throw e;
     }
-    
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SpeechRecognition) {
+  }
+  
+  // 浏览器环境使用 Web Speech API
+  return new Promise((resolve, reject) => {
+    const SpeechRecognitionAPI = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognitionAPI) {
       const err = '不支持语音识别';
       onError?.(err);
       reject(new Error(err));
       return;
     }
     
-    if (!recognition) {
-      recognition = new SpeechRecognition();
-      recognition.continuous = false;
-      recognition.interimResults = true;
-      recognition.lang = 'zh-CN';
+    if (!webRecognition) {
+      webRecognition = new SpeechRecognitionAPI();
+      webRecognition.continuous = false;
+      webRecognition.interimResults = true;
+      webRecognition.lang = 'zh-CN';
     }
     
     let finalText = '';
     
-    recognition.onresult = (event: any) => {
+    webRecognition.onresult = (event: any) => {
       for (let i = event.resultIndex; i < event.results.length; i++) {
         if (event.results[i].isFinal) {
           finalText += event.results[i][0].transcript;
@@ -112,12 +158,12 @@ export const startListening = (
       }
     };
     
-    recognition.onerror = (event: any) => {
+    webRecognition.onerror = (event: any) => {
       onError?.(event.error || '错误');
       reject(new Error(event.error));
     };
     
-    recognition.onend = () => {
+    webRecognition.onend = () => {
       if (finalText) {
         onResult(finalText);
         resolve();
@@ -128,7 +174,7 @@ export const startListening = (
     };
     
     try {
-      recognition.start();
+      webRecognition.start();
     } catch (e) {
       onError?.('启动失败');
       reject(e);
@@ -136,10 +182,14 @@ export const startListening = (
   });
 };
 
-export const stopListening = () => {
-  if (recognition) {
+export const stopListening = async (): Promise<void> => {
+  if (isCapacitor()) {
     try {
-      recognition.stop();
+      await SpeechRecognition.stop();
+    } catch {}
+  } else if (webRecognition) {
+    try {
+      webRecognition.stop();
     } catch {}
   }
 };
