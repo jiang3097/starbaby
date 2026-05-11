@@ -90,14 +90,13 @@ export const getTTSStatus = () => {
   };
 };
 
-// 语音朗读
+// 语音朗读（优先使用浏览器原生 TTS，无需 API）
 const speakWithTTS = (text: string, onEnd?: () => void) => {
-  if (useCozeTTS && isCozeTTSEnabled()) {
-    cozeSpeak(text, onEnd);
-  } else if (isVolcEnabled()) {
-    volcSpeak(text, onEnd);
-  } else {
+  // 优先使用原生 TTS（兼容性最好）
+  if ('speechSynthesis' in window) {
     nativeSpeakText(text, onEnd);
+  } else {
+    console.warn('[语音] 浏览器不支持语音合成');
   }
 };
 
