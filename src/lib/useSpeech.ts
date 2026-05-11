@@ -141,6 +141,14 @@ export const nativeTTS = (text: string, onEnd?: () => void): void => {
   nativeSpeakText(text, onEnd);
 };
 
+// 检查浏览器是否支持语音功能
+export const isSpeechSupport = (): { tts: boolean; stt: boolean } => {
+  return {
+    tts: 'speechSynthesis' in window,
+    stt: 'webkitSpeechRecognition' in window || 'SpeechRecognition' in window,
+  };
+};
+
 // 导出音色列表和设置函数
 export {
   VOLC_VOICES,

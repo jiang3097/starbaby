@@ -1,13 +1,14 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, Mic, Volume2, Send, Square } from 'lucide-react';
+import { ChevronLeft, Mic, Volume2, Send, Square, Keyboard } from 'lucide-react';
 import MobileShell from '../components/MobileShell';
 import { cn } from '../lib/utils';
-import { speakText, preloadVoices, stopSpeaking, startListening, stopListening } from '../lib/useSpeech';
+import { speakText, preloadVoices, stopSpeaking, startListening, stopListening, isSpeechSupport } from '../lib/useSpeech';
 import { useUser } from '../context/UserContext';
 import { useApp } from '../context/AppContext';
 import { getAIReply } from '../lib/cozeChat';
+import { useSpeechSupport } from '../lib/useSpeechSupport';
 
 interface Message {
   id: number;
@@ -19,6 +20,7 @@ const AIChat = () => {
   const navigate = useNavigate();
   const { profile, avatar, incrementIntimacy } = useUser();
   const { startTraining, incrementExpression, incrementChatMessage } = useApp();
+  const { recognition: isSpeechRecognitionSupported, checked } = useSpeechSupport();
   const [messages, setMessages] = useState<Message[]>([
     { id: 1, type: 'bot', text: `你好呀！我是${profile.name}！今天心情怎么样？` },
   ]);
@@ -29,6 +31,7 @@ const AIChat = () => {
   const [currentIntimacy, setCurrentIntimacy] = useState(profile.intimacy);
   const [tempTranscript, setTempTranscript] = useState('');
   const [micError, setMicError] = useState('');
+  const [textInput, setTextInput] = useState('');
   const hasStartedTraining = useRef(false);
   const prevIntimacyRef = useRef(profile.intimacy);
   
@@ -206,6 +209,15 @@ const AIChat = () => {
       setIsAIThinking(false);
     }
   }, [profile.name, messages]);
+
+  // 文字输入发送
+  const handleTextSend = () => {
+    const text = textInput.trim();
+    if (text) {
+      handleSend(text);
+      setTextInput('');
+    }
+  };
 
   // 点击麦克风开始说话
   const handleMicClick = async () => {
@@ -529,55 +541,130 @@ const AIChat = () => {
                 </>
               )}
             </AnimatePresence>
-            <span className="text-4xl relative z-10">🎤</span>
+            <span className="text-4xl">🎤</span>
           </motion.button>
-          
-          {/* 麦克风错误提示 */}
-          {micError && (
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0 }}
-              className="mt-2 px-4 py-2 bg-red-100 text-red-600 rounded-xl text-sm text-center max-w-[250px]"
-            >
-              {micError}
-            </motion.div>
-          )}
         </div>
 
-        {/* Listening indicator */}
-        <AnimatePresence>
-          {isListening && (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 10 }}
-              className="flex items-center justify-center gap-3 py-2"
+        {/* 根据浏览器支持情况显示不同输入方式 */}
+        {isSpeechSupport().stt && (
+          <div className="flex flex-col items-center">
+            {/* 麦克风按钮 */}
+            <motion.button
+              onMouseDown={handleMicClick}
+              onTouchStart={handleMicClick}
+              disabled={isAIThinking}
+              className={`w-20 h-20 rounded-full flex items-center justify-center ${
+                isListening 
+                  ? 'bg-gradient-to-br from-rose-400 to-pink-500 shadow-lg shadow-rose-300/50' 
+                  : 'bg-gradient-to-br from-amber-400 to-orange-500 shadow-lg shadow-orange-300/50'
+              } ${isAIThinking ? 'opacity-50' : 'active:scale-95'} transition-all touch-manipulation`}
+              whileTap={{ scale: 0.95 }}
             >
-              <div className="flex gap-1 items-end">
-                {[1, 2, 3, 4].map(i => (
+              <AnimatePresence mode="wait">
+                {isListening && (
                   <motion.div
-                    key={i}
-                    animate={{ height: [12, 28, 12], scaleY: [0.5, 1, 0.5] }}
-                    transition={{ 
-                      repeat: Infinity, 
-                      duration: 0.5, 
-                      delay: i * 0.1 
-                    }}
-                    className="w-2 bg-gradient-to-t from-rose-400 to-pink-400 rounded-full"
+                    initial={{ scale: 0, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    exit={{ scale: 0, opacity: 0 }}
+                    className="absolute inset-0 rounded-full bg-rose-500/30 animate-ping"
                   />
-                ))}
-              </div>
-              <span className="text-base text-rose-500 font-bold">在听你说哦~</span>
-            </motion.div>
-          )}
-        </AnimatePresence>
+                )}
+              </AnimatePresence>
+              <AnimatePresence mode="wait">
+                {isListening ? (
+                  <motion.span
+                    key="stop"
+                    initial={{ scale: 0, rotate: -180 }}
+                    animate={{ scale: 1, rotate: 0 }}
+                    exit={{ scale: 0, rotate: 180 }}
+                    className="text-4xl relative z-10"
+                  >
+                    ⏹
+                  </motion.span>
+                ) : (
+                  <motion.span
+                    key="mic"
+                    initial={{ scale: 0, rotate: 180 }}
+                    animate={{ scale: 1, rotate: 0 }}
+                    exit={{ scale: 0, rotate: -180 }}
+                    className="text-4xl relative z-10"
+                  >
+                    🎤
+                  </motion.span>
+                )}
+              </AnimatePresence>
+            </motion.button>
+          </div>
+        )}
 
-        <p className="text-center text-amber-600 text-sm font-medium">
-          {isListening ? '请说话哦~' : '说话后再次点击麦克风即可发送'}
-        </p>
+        {!isSpeechSupport().stt && (
+          <div className="w-full max-w-[280px] flex gap-2 px-4">
+            <input
+              type="text"
+              value={textInput}
+              onChange={(e) => setTextInput(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleTextSend()}
+              placeholder="输入文字..."
+              className="flex-1 px-4 py-3 rounded-full border-2 border-amber-300 focus:border-amber-500 outline-none text-base"
+            />
+            <button
+              onClick={handleTextSend}
+              disabled={isAIThinking || !textInput.trim()}
+              className="px-5 py-3 bg-gradient-to-br from-amber-400 to-orange-500 text-white font-bold rounded-full disabled:opacity-50"
+            >
+              发送
+            </button>
+          </div>
+        )}
+        
+        {/* 麦克风错误提示 */}
+        {micError && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            className="mt-2 px-4 py-2 bg-red-100 text-red-600 rounded-xl text-sm text-center max-w-[250px]"
+          >
+            {micError}
+          </motion.div>
+        )}
       </div>
 
+      {/* Listening indicator */}
+      <AnimatePresence>
+        {isListening && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 10 }}
+            className="flex items-center justify-center gap-3 py-2"
+          >
+            <div className="flex gap-1 items-end">
+              {[1, 2, 3, 4].map(i => (
+                <motion.div
+                  key={i}
+                  animate={{ height: [12, 28, 12], scaleY: [0.5, 1, 0.5] }}
+                  transition={{ 
+                    repeat: Infinity, 
+                    duration: 0.5, 
+                    delay: i * 0.1 
+                  }}
+                  className="w-2 bg-gradient-to-t from-rose-400 to-pink-400 rounded-full"
+                />
+              ))}
+            </div>
+            <span className="text-base text-rose-500 font-bold">在听你说哦~</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* 提示文字 */}
+      <p className="text-center text-amber-600 text-sm font-medium">
+        {isSpeechSupport().stt 
+          ? (isListening ? '请说话哦~' : '说话后再次点击麦克风即可发送')
+          : '输入文字与星小宝聊天吧~'
+        }
+      </p>
     </MobileShell>
   );
 };
