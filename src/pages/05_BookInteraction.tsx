@@ -5,7 +5,7 @@ import { ChevronLeft, Volume2, Mic, Check, ArrowRight, Trophy, RefreshCw, Sparkl
 import MobileShell from '../components/MobileShell';
 import { Button } from '../components/ui/button';
 import { cn } from '../lib/utils';
-import { speakText, startListening, stopListening, preloadVoices, stopSpeaking } from '../lib/useSpeech';
+import { speakText, startListening, stopListening, preloadVoices, stopSpeaking, isSpeechSupport } from '../lib/useSpeech';
 
 // 移除 emoji，只保留文字
 const removeEmoji = (text: string): string => {
@@ -161,6 +161,17 @@ const BookInteraction = () => {
   const [showResult, setShowResult] = useState(false);
   const [earnedStars, setEarnedStars] = useState(0); // 本次获得星星数
   const [passedLevels, setPassedLevels] = useState<Set<number>>(new Set()); // 本次会话已通过关卡
+  const [ttsAvailable, setTtsAvailable] = useState(true); // TTS 是否可用
+
+  // 检测 TTS 是否可用
+  useEffect(() => {
+    const checkTTS = () => {
+      const available = typeof window !== 'undefined' && 'speechSynthesis' in window;
+      setTtsAvailable(available);
+      console.log('[Book] TTS available:', available);
+    };
+    checkTTS();
+  }, []);
 
   // 检查并标记关卡是否已通过（使用 localStorage 持久化）
   const checkAndMarkPassed = useCallback((levelId: number): boolean => {
@@ -203,7 +214,11 @@ const BookInteraction = () => {
     if (phase === 'feedback' && showResult) {
       const feedbackText = isCorrect ? "恭喜你答对了！" : "就快要答对了哦！";
       setTimeout(() => {
-        speakText(feedbackText);
+        try {
+          speakText(feedbackText);
+        } catch (e) {
+          console.error('[Book] Feedback TTS error:', e);
+        }
       }, 300);
     }
   }, [phase, showResult, isCorrect]);
@@ -212,7 +227,11 @@ const BookInteraction = () => {
   useEffect(() => {
     if (phase === 'question') {
       setTimeout(() => {
-        speakText(removeEmoji(story.question));
+        try {
+          speakText(removeEmoji(story.question));
+        } catch (e) {
+          console.error('[Book] Question TTS error:', e);
+        }
       }, 500);
     }
   }, [phase, story.question]);
@@ -232,11 +251,17 @@ const BookInteraction = () => {
   const startReading = useCallback(() => {
     setPhase('reading');
     setIsPlaying(true);
-    speakText(removeEmoji(story.text), () => {
+    try {
+      speakText(removeEmoji(story.text), () => {
+        setIsPlaying(false);
+        // 朗读完成后进入跟读阶段，让用户自己点击进入答题
+        setPhase('follow-up');
+      });
+    } catch (e) {
+      console.error('[Book] TTS error:', e);
       setIsPlaying(false);
-      // 朗读完成后进入跟读阶段，让用户自己点击进入答题
       setPhase('follow-up');
-    });
+    }
   }, [story]);
 
   // 开始回答
@@ -292,15 +317,15 @@ const BookInteraction = () => {
           console.log('首次通过！增加星星');
           setEarnedStars(prev => prev + 1);
           incrementGamePass(); // 实时更新通关次数
-          speakText("太棒了！回答正确！获得一颗星星！");
+          try { speakText("太棒了！回答正确！获得一颗星星！"); } catch {}
         } else {
           // 重复通过：不累加
           console.log('重复通过此关卡，不累加星星');
-          speakText("太棒了！回答正确！");
+          try { speakText("太棒了！回答正确！"); } catch {}
         }
       } else {
         console.log('答错了，正确答案是:', story.displayAnswer || story.answer);
-        speakText(`就快要答对了哦，正确答案是：${story.displayAnswer || story.answer}`);
+        try { speakText(`就快要答对了哦，正确答案是：${story.displayAnswer || story.answer}`); } catch {}
       }
     }
   }, [userAnswer, story, incrementExpression, incrementBookCompleted, checkAndMarkPassed]);
