@@ -495,7 +495,7 @@ const AIChat = () => {
       </div>
 
       {/* Input Area */}
-      <div className="p-6 bg-gradient-to-t from-white to-amber-50/50 rounded-t-[32px] shadow-[0_-4px_20px_rgba(0,0,0,0.08)] space-y-4">
+      <div className="px-4 pb-4 pt-2 bg-gradient-to-t from-white to-amber-50/50 rounded-t-[32px] shadow-[0_-4px_20px_rgba(0,0,0,0.08)] space-y-4 safe-area-bottom">
         {/* Quick Phrases */}
         <div className="flex gap-2.5 overflow-x-auto pb-2 scrollbar-hide">
           {quickPhrases.map(phrase => (
@@ -511,7 +511,7 @@ const AIChat = () => {
         </div>
 
         {/* 微信风格输入框 */}
-        <div className="w-full max-w-[320px] flex items-center gap-2 px-3">
+        <div className="w-full flex items-center gap-2 px-1">
           {/* 麦克风按钮 */}
           {isSpeechSupport().stt ? (
             <button
