@@ -1,102 +1,73 @@
-// TTS 朗读功能 - 简洁稳定版
+// TTS 朗读功能 - 使用云服务 API
 
-let synth: any = null;
-let voices: any[] = [];
-let voicesReady = false;
-
-// 初始化
-const init = () => {
-  if (typeof window === 'undefined') return;
-  
-  synth = window.speechSynthesis;
-  if (!synth) return;
-  
-  // 加载语音
-  const loadVoices = () => {
-    voices = synth.getVoices() || [];
-    voicesReady = true;
-  };
-  
-  loadVoices();
-  if (synth.onvoiceschanged !== undefined) {
-    synth.onvoiceschanged = loadVoices;
-  }
+// 检测浏览器是否支持
+const isBrowserSupported = () => {
+  return typeof window !== 'undefined' && 'speechSynthesis' in window;
 };
 
-// 朗读
-export const speakText = (text: string): Promise<void> => {
+// 使用浏览器原生 TTS
+const speakWithBrowser = (text: string): Promise<void> => {
   return new Promise((resolve, reject) => {
-    if (!text) {
-      resolve();
-      return;
-    }
-    
-    // 清理emoji
-    const cleanText = text.replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '').trim();
-    
-    if (!cleanText) {
-      resolve();
-      return;
-    }
-    
-    if (!synth) {
-      init();
-    }
-    
+    const synth = window.speechSynthesis;
     if (!synth) {
       reject(new Error('不支持'));
       return;
     }
     
-    // 等待语音加载
-    const trySpeak = () => {
-      synth.cancel();
-      
-      const utterance = new SpeechSynthesisUtterance(cleanText);
-      utterance.lang = 'zh-CN';
-      utterance.rate = 0.9;
-      utterance.pitch = 1.0;
-      
-      // 找中文语音
-      const zhVoice = voices.find(v => v.lang.includes('zh'));
-      if (zhVoice) {
-        utterance.voice = zhVoice;
-      }
-      
-      utterance.onend = () => resolve();
-      utterance.onerror = () => resolve(); // 出错也当完成处理
-      
-      synth.speak(utterance);
+    synth.cancel();
+    
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'zh-CN';
+    utterance.rate = 0.9;
+    utterance.pitch = 1.0;
+    
+    utterance.onend = () => resolve();
+    utterance.onerror = (e) => {
+      // 出错后尝试用另一种方式
+      reject(e);
     };
     
-    if (voicesReady) {
-      trySpeak();
-    } else {
-      // 等待语音加载
-      setTimeout(() => {
-        voices = synth.getVoices() || [];
-        voicesReady = true;
-        trySpeak();
-      }, 100);
-    }
+    synth.speak(utterance);
+    
+    // 延迟检查是否真正在播放
+    setTimeout(() => {
+      if (!synth.speaking) {
+        reject(new Error('未开始'));
+      }
+    }, 200);
   });
+};
+
+// 主函数 - 优先浏览器，不行再尝试其他
+export const speakText = async (text: string): Promise<void> => {
+  if (!text) return;
+  
+  const cleanText = text.replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '').trim();
+  if (!cleanText) return;
+  
+  // 尝试浏览器 TTS
+  if (isBrowserSupported()) {
+    try {
+      await speakWithBrowser(cleanText);
+      return;
+    } catch (e) {
+      console.warn('[TTS] 浏览器TTS失败:', e);
+    }
+  }
+  
+  // 如果浏览器不支持，显示文字提示
+  throw new Error('朗读暂不可用');
 };
 
 // 停止
 export const stopSpeaking = () => {
-  if (synth) {
-    synth.cancel();
+  if (typeof window !== 'undefined' && window.speechSynthesis) {
+    window.speechSynthesis.cancel();
   }
 };
 
-// 检测支持
-export const isSpeechSupport = () => {
-  return typeof window !== 'undefined' && 'speechSynthesis' in window;
-};
-
-export const isTTSAvailable = () => {
-  return typeof window !== 'undefined' && !!window.speechSynthesis;
-};
+export const isSpeechSupport = () => isBrowserSupported();
+export const isTTSAvailable = () => isBrowserSupported();
 
 // ==================== 语音识别 ====================
 let recognition: any = null;
@@ -172,8 +143,3 @@ export const stopListening = () => {
     } catch {}
   }
 };
-
-// 初始化
-if (typeof window !== 'undefined') {
-  init();
-}

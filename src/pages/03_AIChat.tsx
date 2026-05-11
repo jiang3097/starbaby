@@ -198,7 +198,7 @@ const AIChat = () => {
       setIsAIThinking(false);
 
       // AI 自动朗读回复
-      speakText(reply);
+      speakText(reply).catch(() => {});
     } catch (error) {
       console.error('AI 回复失败:', error);
       setIsAIThinking(false);
@@ -248,8 +248,9 @@ const AIChat = () => {
   // 朗读按钮
   const handleReadAloud = (text: string) => {
     setIsSpeaking(true);
-    speakText(text);
-    setTimeout(() => setIsSpeaking(false), 100);
+    speakText(text)
+      .then(() => setIsSpeaking(false))
+      .catch(() => setIsSpeaking(false));
   };
 
   return (
