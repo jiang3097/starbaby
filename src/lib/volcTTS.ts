@@ -90,60 +90,79 @@ export const volcSpeak = (
  * 原生浏览器 TTS 回退
  */
 export const nativeSpeakText = (text: string, onEnd?: () => void): void => {
+  // 调试信息
+  console.log('[TTS] 尝试朗读:', text);
+  
   if (!('speechSynthesis' in window)) {
-    console.log('[火山TTS] 浏览器不支持语音合成');
+    console.log('[TTS] 错误: 浏览器不支持语音合成');
     onEnd?.();
     return;
   }
 
-  // 停止之前的朗读
-  window.speechSynthesis.cancel();
-
-  const utterance = new SpeechSynthesisUtterance(text);
-  utterance.lang = 'zh-CN';
-  utterance.rate = 1.0;
-  utterance.pitch = 1.0;
-  utterance.volume = 1.0;
-
-  // 选择中文语音（需要等待 voices loaded）
-  const selectVoice = () => {
-    // 某些浏览器需要等待 voices loaded
-    let voices = window.speechSynthesis.getVoices();
+  try {
+    // 停止之前的朗读
+    window.speechSynthesis.cancel();
     
-    // 如果 voices 为空，等待 voiceschanged 事件
-    if (voices.length === 0) {
-      const loadVoices = () => {
-        voices = window.speechSynthesis.getVoices();
-        const zhVoice = voices.find(v => v.lang.includes('zh')) || voices[0];
-        if (zhVoice) {
-          utterance.voice = zhVoice;
+    // 某些移动浏览器需要在 speak 之前确保 audio context 被初始化
+    // 创建一个空 utterance 来"唤醒" audio context
+    const wakeUp = new SpeechSynthesisUtterance('');
+    wakeUp.volume = 0; // 静音唤醒
+    window.speechSynthesis.speak(wakeUp);
+    
+    // 等待一小段时间后播放真正的内容
+    setTimeout(() => {
+      window.speechSynthesis.cancel();
+      
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = 'zh-CN';
+      utterance.rate = 1.0;
+      utterance.pitch = 1.0;
+      utterance.volume = 1.0;
+
+      // 选择中文语音
+      const selectVoice = () => {
+        let voices = window.speechSynthesis.getVoices();
+        
+        if (voices.length === 0) {
+          const loadVoices = () => {
+            voices = window.speechSynthesis.getVoices();
+            const zhVoice = voices.find(v => v.lang.includes('zh')) || voices[0];
+            if (zhVoice) {
+              utterance.voice = zhVoice;
+              console.log('[TTS] 已选择语音:', zhVoice.name);
+            }
+            window.speechSynthesis.removeEventListener('voiceschanged', loadVoices);
+          };
+          window.speechSynthesis.addEventListener('voiceschanged', loadVoices);
+          window.speechSynthesis.getVoices();
+        } else {
+          const zhVoice = voices.find(v => v.lang.includes('zh')) || voices[0];
+          if (zhVoice) {
+            utterance.voice = zhVoice;
+            console.log('[TTS] 已选择语音:', zhVoice.name);
+          }
         }
-        window.speechSynthesis.removeEventListener('voiceschanged', loadVoices);
       };
-      window.speechSynthesis.addEventListener('voiceschanged', loadVoices);
-      // 触发一次获取
-      window.speechSynthesis.getVoices();
-    } else {
-      const zhVoice = voices.find(v => v.lang.includes('zh')) || voices[0];
-      if (zhVoice) {
-        utterance.voice = zhVoice;
-      }
-    }
-  };
-  
-  selectVoice();
+      
+      selectVoice();
 
-  utterance.onend = () => {
-    console.log('[火山TTS] 原生 TTS 朗读完成');
-    onEnd?.();
-  };
-  utterance.onerror = (e) => {
-    console.log('[火山TTS] 原生 TTS 朗读失败:', e.error);
-    onEnd?.();
-  };
+      utterance.onend = () => {
+        console.log('[TTS] 朗读完成');
+        onEnd?.();
+      };
+      utterance.onerror = (e) => {
+        console.log('[TTS] 朗读失败:', e.error);
+        onEnd?.();
+      };
 
-  console.log('[火山TTS] 使用原生 TTS 朗读');
-  window.speechSynthesis.speak(utterance);
+      console.log('[TTS] 开始朗读');
+      window.speechSynthesis.speak(utterance);
+    }, 100);
+    
+  } catch (e) {
+    console.log('[TTS] 异常:', e);
+    onEnd?.();
+  }
 };
 
 // 全局变量用于控制播放
