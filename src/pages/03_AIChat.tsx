@@ -28,6 +28,7 @@ const AIChat = () => {
   const [showIntimacyTip, setShowIntimacyTip] = useState(false);
   const [currentIntimacy, setCurrentIntimacy] = useState(profile.intimacy);
   const [tempTranscript, setTempTranscript] = useState('');
+  const [micError, setMicError] = useState('');
   const hasStartedTraining = useRef(false);
   const prevIntimacyRef = useRef(profile.intimacy);
   
@@ -234,6 +235,15 @@ const AIChat = () => {
             console.error('[AIChat] 语音识别错误:', error);
             setIsListening(false);
             setTempTranscript('');
+            // 显示错误提示
+            if (error === 'not-allowed' || error === 'Permission denied') {
+              setMicError('请在浏览器设置中允许使用麦克风');
+            } else if (error === 'browser-not-supported') {
+              setMicError('浏览器不支持语音识别，请使用Chrome');
+            } else {
+              setMicError('语音识别失败，请重试');
+            }
+            setTimeout(() => setMicError(''), 3000);
           },
           onEnd: () => {
             setIsListening(false);
@@ -522,7 +532,17 @@ const AIChat = () => {
             <span className="text-4xl relative z-10">🎤</span>
           </motion.button>
           
-          {/* 无提示文字 */}
+          {/* 麦克风错误提示 */}
+          {micError && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              className="mt-2 px-4 py-2 bg-red-100 text-red-600 rounded-xl text-sm text-center max-w-[250px]"
+            >
+              {micError}
+            </motion.div>
+          )}
         </div>
 
         {/* Listening indicator */}
