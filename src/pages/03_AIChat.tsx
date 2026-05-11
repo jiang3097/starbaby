@@ -510,41 +510,6 @@ const AIChat = () => {
           ))}
         </div>
 
-        {/* Voice Button */}
-        <div className="flex flex-col items-center justify-center py-3">
-          <motion.button
-            whileTap={{ scale: 0.9 }}
-            onClick={handleMicClick}
-            style={{ touchAction: 'manipulation' }}
-            className={cn(
-              "w-20 h-20 rounded-full flex items-center justify-center transition-all duration-300 relative shadow-lg",
-              isListening 
-                ? "bg-gradient-to-r from-rose-400 to-pink-500 shadow-[0_0_30px_rgba(244,63,94,0.4)]" 
-                : "bg-gradient-to-r from-amber-400 to-orange-400 shadow-[0_8px_20px_rgba(251,146,60,0.4)]"
-            )}
-          >
-            <AnimatePresence>
-              {isListening && (
-                <>
-                  <motion.div
-                    initial={{ scale: 1 }}
-                    animate={{ scale: [1, 1.5, 1] }}
-                    transition={{ repeat: Infinity, duration: 1.2 }}
-                    className="absolute inset-0 rounded-full bg-rose-300/40"
-                  />
-                  <motion.div
-                    initial={{ scale: 1 }}
-                    animate={{ scale: [1, 1.3, 1] }}
-                    transition={{ repeat: Infinity, duration: 1.2, delay: 0.2 }}
-                    className="absolute inset-0 rounded-full bg-rose-300/30"
-                  />
-                </>
-              )}
-            </AnimatePresence>
-            <span className="text-4xl">🎤</span>
-          </motion.button>
-        </div>
-
         {/* 微信风格输入框 */}
         <div className="w-full max-w-[320px] flex items-center gap-2 px-3">
           {/* 麦克风按钮 */}
