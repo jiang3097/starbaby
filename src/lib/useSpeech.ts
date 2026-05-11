@@ -102,9 +102,11 @@ const speakWithTTS = (text: string, onEnd?: () => void) => {
 
 // 停止朗读
 const stopCurrentTTS = () => {
-  if (useCozeTTS && isCozeTTSEnabled()) {
-    stopCozeAudio();
+  // 停止原生 TTS
+  if ('speechSynthesis' in window) {
+    window.speechSynthesis.cancel();
   }
+  // 停止火山引擎 TTS
   stopVolcAudio();
 };
 
