@@ -4,11 +4,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, Mic, Volume2, Send, Square, Keyboard } from 'lucide-react';
 import MobileShell from '../components/MobileShell';
 import { cn } from '../lib/utils';
-import { speakText, preloadVoices, stopSpeaking, startListening, stopListening, isSpeechSupport } from '../lib/useSpeech';
+import { speakText, stopSpeaking, isTTSAvailable, isSpeechRecognitionSupported, startListening, stopListening } from '../lib/useSpeech';
 import { useUser } from '../context/UserContext';
 import { useApp } from '../context/AppContext';
 import { getAIReply } from '../lib/cozeChat';
-import { useSpeechSupport } from '../lib/useSpeechSupport';
 
 interface Message {
   id: number;
@@ -20,7 +19,6 @@ const AIChat = () => {
   const navigate = useNavigate();
   const { profile, avatar, incrementIntimacy } = useUser();
   const { startTraining, incrementExpression, incrementChatMessage } = useApp();
-  const { recognition: isSpeechRecognitionSupported, checked } = useSpeechSupport();
   const [messages, setMessages] = useState<Message[]>([
     { id: 1, type: 'bot', text: `你好呀！我是${profile.name}！今天心情怎么样？` },
   ]);
@@ -34,6 +32,7 @@ const AIChat = () => {
   const [textInput, setTextInput] = useState('');
   const hasStartedTraining = useRef(false);
   const prevIntimacyRef = useRef(profile.intimacy);
+  const isRecognitionSupported = typeof window !== 'undefined' && ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window);
   
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -47,10 +46,6 @@ const AIChat = () => {
     prevIntimacyRef.current = profile.intimacy;
   }, [profile.intimacy]);
 
-  // 预加载语音
-  useEffect(() => {
-    preloadVoices();
-  }, []);
 
   // 进入页面时开始训练计时（只执行一次）
   useEffect(() => {
@@ -231,41 +226,21 @@ const AIChat = () => {
       setTempTranscript('');
 
       try {
-        await startListening({
-          onTranscript: (text: string, isFinal: boolean) => {
-            if (isFinal) {
-              setIsListening(false);
-              setTempTranscript('');
-              if (text.trim()) {
-                handleSend(text.trim());
-              }
-            } else {
-              setTempTranscript(text);
-            }
-          },
-          onError: (error: string) => {
-            console.error('[AIChat] 语音识别错误:', error);
-            setIsListening(false);
-            setTempTranscript('');
-            // 显示错误提示
-            if (error === 'not-allowed' || error === 'Permission denied') {
-              setMicError('请在浏览器设置中允许使用麦克风');
-            } else if (error === 'browser-not-supported') {
-              setMicError('浏览器不支持语音识别，请使用Chrome');
-            } else {
-              setMicError('语音识别失败，请重试');
-            }
-            setTimeout(() => setMicError(''), 3000);
-          },
-          onEnd: () => {
-            setIsListening(false);
-            setTempTranscript('');
-          }
+        await startListening((text) => {
+          setTempTranscript(text);
+          setIsListening(false);
+          handleSend(text);
+        }, (error) => {
+          console.error('[AIChat] 语音识别错误:', error);
+          setIsListening(false);
+          setMicError('语音识别出错');
+          setTimeout(() => setMicError(''), 3000);
         });
       } catch (error) {
         console.error('[AIChat] 启动语音识别失败:', error);
         setIsListening(false);
-        setTempTranscript('');
+        setMicError('启动失败');
+        setTimeout(() => setMicError(''), 3000);
       }
     }
   };
@@ -273,9 +248,8 @@ const AIChat = () => {
   // 朗读按钮
   const handleReadAloud = (text: string) => {
     setIsSpeaking(true);
-    speakText(text, () => {
-      setIsSpeaking(false);
-    });
+    speakText(text);
+    setTimeout(() => setIsSpeaking(false), 100);
   };
 
   return (
@@ -513,7 +487,7 @@ const AIChat = () => {
         {/* 微信风格输入框 */}
         <div className="w-full flex items-center gap-2 px-1">
           {/* 麦克风按钮 */}
-          {isSpeechSupport().stt ? (
+          {isRecognitionSupported ? (
             <button
               onMouseDown={handleMicClick}
               onTouchStart={handleMicClick}
@@ -602,7 +576,7 @@ const AIChat = () => {
 
       {/* 提示文字 */}
       <p className="text-center text-amber-600 text-sm font-medium">
-        {isSpeechSupport().stt 
+        {isRecognitionSupported 
           ? (isListening ? '请说话哦~' : '说话后再次点击麦克风即可发送')
           : '输入文字与星小宝聊天吧~'
         }

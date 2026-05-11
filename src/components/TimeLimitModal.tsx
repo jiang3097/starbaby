@@ -4,7 +4,7 @@ import { Moon } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useApp } from '../context/AppContext';
 import { useUser } from '../context/UserContext';
-import { speakText, preloadVoices } from '../lib/useSpeech';
+import { speakText } from '../lib/useSpeech';
 
 const TimeLimitModal = () => {
   const { showTimeLimitModal, setShowTimeLimitModal, resetTimeLimit, timeLimit } = useApp();
@@ -19,7 +19,7 @@ const TimeLimitModal = () => {
       setShowUnlock(false);
       setPin('');
       setError(false);
-      preloadVoices();
+      
       // 语音播报
       const messages = [
         `嗨，${profile.name}！今天的训练时间到啦～`,

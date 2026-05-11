@@ -7,7 +7,7 @@ import { cn } from '../lib/utils';
 import { useUser } from '../context/UserContext';
 import { useApp } from '../context/AppContext';
 import { getWeekDates } from '../lib/utils';
-import { speakText, preloadVoices } from '../lib/useSpeech';
+import { speakText } from '../lib/useSpeech';
 
 // 洗澡特效组件
 const BathEffect = ({ show, onComplete }: { show: boolean; onComplete: () => void }) => {
@@ -122,7 +122,7 @@ const GrowthRecord = () => {
 
   // 预加载语音
   useEffect(() => {
-    preloadVoices();
+    
   }, []);
 
   // 计算今日活跃度 - 直接使用 dailyStats 确保完全同步

@@ -1,164 +1,176 @@
-// 语音服务 - 使用 Coze TTS + 火山引擎 TTS 回退
-// 支持多种音色选择
+// 浏览器原生 TTS
+const synth = typeof window !== 'undefined' ? window.speechSynthesis : null;
+let voices: SpeechSynthesisVoice[] = [];
 
-import { 
-  volcSpeak, 
-  stopVolcAudio,
-  VOLC_VOICES,
-  setVolcVoice,
-  getVolcVoice,
-  isVolcEnabled,
-  nativeSpeakText,
-  type IVolcVoice 
-} from './volcTTS';
+// 加载语音列表
+export const preloadVoices = (): Promise<SpeechSynthesisVoice[]> => {
+  return new Promise((resolve) => {
+    if (!synth) {
+      resolve([]);
+      return;
+    }
+    const loadVoices = () => {
+      voices = synth!.getVoices();
+      resolve(voices);
+    };
+    if (voices.length > 0) {
+      resolve(voices);
+    } else if (synth!.onvoiceschanged !== undefined) {
+      synth!.onvoiceschanged = loadVoices;
+      setTimeout(loadVoices, 100);
+    } else {
+      setTimeout(loadVoices, 100);
+    }
+  });
+};
 
-import {
-  cozeSpeak,
-  stopCozeAudio,
-  COZE_VOICES,
-  setCozeVoice,
-  getCozeVoice,
-  isCozeTTSEnabled,
-  type ICozeVoice
-} from './cozeTTS';
-
-import {
-  startListening as recStartListening,
-  stopListening as recStopListening,
-  isListening as recIsListening,
-} from './useRecognition';
-
-// 音色包类型（用于UI展示）
-export interface VoicePackage {
-  id: string;
-  name: string;
-  emoji: string;
-  description: string;
-  type: 'coze' | 'volc';
-}
-
-// 组合所有音色包
-export const VOICE_PACKAGES: VoicePackage[] = [
-  // Coze 音色
-  { id: 'coze_shanshan', name: '珊珊', emoji: '👧', description: '活泼可爱的女声，适合儿童', type: 'coze' },
-  { id: 'coze_shanshan2', name: '闪闪', emoji: '✨', description: '清脆活泼的女孩声音', type: 'coze' },
-  { id: 'coze_nvyou', name: '女朋友', emoji: '💕', description: '温柔甜美的女声', type: 'coze' },
-  // 火山引擎音色
-  { id: 'volc_BV703', name: '俏皮女声', emoji: '🎤', description: '清脆活泼，适合儿童', type: 'volc' },
-  { id: 'volc_BV700', name: '清新女声', emoji: '🌸', description: '清新自然的女生声音', type: 'volc' },
-  { id: 'volc_BV701', name: '醇厚男声', emoji: '🎸', description: '低沉有磁性的男声', type: 'volc' },
-];
-
-// 当前选中的音色包
-let currentPackage = VOICE_PACKAGES[3]; // 默认使用火山引擎音色
-
-// 获取音色包
-export const getVoicePackage = (): VoicePackage => currentPackage;
-
-// 设置音色包
-export const setVoicePackage = (pkg: VoicePackage) => {
-  currentPackage = pkg;
-  if (pkg.type === 'coze') {
-    // Coze 音色使用 cozeTTS
-    setUseCozeTTS(true);
-    setCozeVoice(pkg.id.replace('coze_', ''));
-  } else {
-    // 火山引擎音色
-    setUseCozeTTS(false);
-    setVolcVoice(pkg.id.replace('volc_', ''));
+// 获取中文语音
+export const getChineseVoice = (): SpeechSynthesisVoice | null => {
+  if (!synth) return null;
+  if (voices.length === 0) {
+    voices = synth.getVoices();
   }
+  // 优先找中文语音
+  const chineseVoice = voices.find(v => 
+    v.lang.includes('zh') || v.lang.includes('CN')
+  );
+  return chineseVoice || voices[0] || null;
 };
 
-// 当前使用的 TTS 引擎
-let useCozeTTS = false; // 默认使用火山引擎 TTS（Coze TTS 需要权限）
-
-/**
- * 设置是否使用 Coze TTS
- */
-export const setUseCozeTTS = (use: boolean) => {
-  useCozeTTS = use;
+// TTS 是否可用
+export const isTTSAvailable = (): boolean => {
+  return typeof window !== 'undefined' && !!window.speechSynthesis;
 };
 
-/**
- * 检查当前 TTS 状态
- */
-export const getTTSStatus = () => {
-  return {
-    useCozeTTS,
-    cozeEnabled: isCozeTTSEnabled(),
-    volcEnabled: isVolcEnabled(),
-  };
-};
+// 朗读文字
+export const speakText = (text: string): Promise<void> => {
+  return new Promise((resolve, reject) => {
+    if (!synth) {
+      reject(new Error('浏览器不支持语音合成'));
+      return;
+    }
 
-// 语音朗读（优先使用浏览器原生 TTS，无需 API）
-const speakWithTTS = (text: string, onEnd?: () => void) => {
-  // 优先使用原生 TTS（兼容性最好）
-  if ('speechSynthesis' in window) {
-    nativeSpeakText(text, onEnd);
-  } else {
-    console.warn('[语音] 浏览器不支持语音合成');
-  }
+    // 移除 emoji
+    const cleanText = text.replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '');
+
+    synth.cancel();
+
+    const utterance = new SpeechSynthesisUtterance(cleanText);
+    utterance.lang = 'zh-CN';
+    utterance.rate = 0.9;
+    utterance.pitch = 1.1;
+
+    const voice = getChineseVoice();
+    if (voice) {
+      utterance.voice = voice;
+    }
+
+    utterance.onend = () => resolve();
+    utterance.onerror = (e) => reject(e);
+
+    synth.speak(utterance);
+  });
 };
 
 // 停止朗读
-const stopCurrentTTS = () => {
-  // 停止原生 TTS
-  if ('speechSynthesis' in window) {
-    window.speechSynthesis.cancel();
-  }
-  // 停止火山引擎 TTS
-  stopVolcAudio();
-};
-
-// 语音朗读（兼容旧接口：支持 text + onEnd 或只传 text）
-export const speakText = (text: string, onEnd?: (() => void) | undefined): void => {
-  if (typeof text === 'string') {
-    speakWithTTS(text, onEnd as (() => void) | undefined);
+export const stopSpeaking = (): void => {
+  if (synth) {
+    synth.cancel();
   }
 };
 
-// 停止朗读
-export const stopSpeaking = stopCurrentTTS;
+// 检测 TTS 支持
+export const isSpeechSupport = (): boolean => {
+  return typeof window !== 'undefined' && 'speechSynthesis' in window;
+};
 
-// 语音识别
-export const startListening = recStartListening;
-export const stopListening = recStopListening;
+// ===== 语音识别 (Web Speech API) =====
+let recognition: any = null;
 
-// 预加载语音（用于 TTS）
-export const preloadVoices = (): void => {
-  // 预加载浏览器语音列表（用于原生 TTS 回退）
-  if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-    window.speechSynthesis.getVoices();
+// 初始化语音识别
+const initRecognition = (): any => {
+  if (typeof window === 'undefined') return null;
+  
+  const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+  if (!SpeechRecognition) return null;
+
+  if (!recognition) {
+    recognition = new SpeechRecognition();
+    recognition.continuous = false;
+    recognition.interimResults = true;
+    recognition.lang = 'zh-CN';
+  }
+  return recognition;
+};
+
+// 启动语音识别
+export const startListening = (
+  onResult: (text: string) => void,
+  onError?: (error: string) => void
+): Promise<void> => {
+  return new Promise((resolve, reject) => {
+    const recog = initRecognition();
+    if (!recog) {
+      const err = '浏览器不支持语音识别';
+      onError?.(err);
+      reject(new Error(err));
+      return;
+    }
+
+    let finalTranscript = '';
+
+    recog.onresult = (event: any) => {
+      let interimTranscript = '';
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const transcript = event.results[i][0].transcript;
+        if (event.results[i].isFinal) {
+          finalTranscript += transcript;
+        } else {
+          interimTranscript += transcript;
+        }
+      }
+      if (finalTranscript) {
+        onResult(finalTranscript);
+        resolve();
+      }
+    };
+
+    recog.onerror = (event: any) => {
+      console.error('[Speech] 识别错误:', event.error);
+      const errMsg = event.error === 'not-allowed' ? '请允许使用麦克风' : '识别出错';
+      onError?.(errMsg);
+      reject(new Error(event.error));
+    };
+
+    recog.onend = () => {
+      if (finalTranscript) {
+        onResult(finalTranscript);
+      }
+      resolve();
+    };
+
+    try {
+      recog.start();
+    } catch (e) {
+      console.error('[Speech] 启动失败:', e);
+      reject(e);
+    }
+  });
+};
+
+// 停止语音识别
+export const stopListening = (): void => {
+  if (recognition) {
+    try {
+      recognition.stop();
+    } catch (e) {
+      console.error('[Speech] 停止失败:', e);
+    }
   }
 };
 
-// 初始化
-export const initVoice = (): void => {
-  console.log('[语音] Coze TTS 启用状态:', isCozeTTSEnabled() ? '已启用' : '未启用');
-  console.log('[语音] 火山引擎 TTS 启用状态:', isVolcEnabled() ? '已启用' : '未启用（使用原生 TTS）');
-  console.log('[语音] 当前 TTS 引擎:', useCozeTTS ? 'Coze TTS' : '火山引擎 TTS');
-};
-
-export const nativeTTS = (text: string, onEnd?: () => void): void => {
-  nativeSpeakText(text, onEnd);
-};
-
-// 检查浏览器是否支持语音功能
-export const isSpeechSupport = (): { tts: boolean; stt: boolean } => {
-  return {
-    tts: 'speechSynthesis' in window,
-    stt: 'webkitSpeechRecognition' in window || 'SpeechRecognition' in window,
-  };
-};
-
-// 导出音色列表和设置函数
-export {
-  VOLC_VOICES,
-  setVolcVoice,
-  getVolcVoice,
-  COZE_VOICES,
-  setCozeVoice,
-  getCozeVoice,
-  type IVolcVoice,
-  type ICozeVoice,
+// 语音识别是否可用
+export const isSpeechRecognitionSupported = (): boolean => {
+  if (typeof window === 'undefined') return false;
+  return !!(window.SpeechRecognition || (window as any).webkitSpeechRecognition);
 };

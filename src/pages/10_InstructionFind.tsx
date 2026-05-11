@@ -5,7 +5,7 @@ import { ChevronLeft, CheckCircle2, XCircle, ArrowRight, Trophy, Star, RotateCcw
 import MobileShell from '../components/MobileShell';
 import { Button } from '../components/ui/button';
 import { cn } from '../lib/utils';
-import { speakText, preloadVoices } from '../lib/useSpeech';
+import { speakText } from '../lib/useSpeech';
 import CelebrationEffect from '../components/CelebrationEffect';
 import ToyRewardEffect from '../components/ToyRewardEffect';
 import { useApp } from '../context/AppContext';
@@ -168,7 +168,7 @@ const InstructionFind = () => {
 
   // 预加载语音和图片
   useEffect(() => {
-    preloadVoices();
+    
     [IMAGE_1, IMAGE_2, IMAGE_3, IMAGE_4].forEach(src => {
       const img = new Image();
       img.src = src;
@@ -205,7 +205,7 @@ const InstructionFind = () => {
   useEffect(() => {
     if (question && !showResult) {
       setIsSpeaking(true);
-      speakText(question.question, () => setIsSpeaking(false));
+      speakText(question.question).then(() => setIsSpeaking(false)).catch(() => setIsSpeaking(false));
     }
   }, [currentQuestion, showResult, question]);
 
@@ -214,7 +214,7 @@ const InstructionFind = () => {
     setIsSpeaking(true);
     const optionLabels = ['A', 'B', 'C'];
     const optionsText = question.options.map((o, i) => `${optionLabels[i]}、${o}`).join('，');
-    speakText(`${question.question}。选项：${optionsText}`, () => setIsSpeaking(false));
+    speakText(`${question.question}。选项：${optionsText}`).then(() => setIsSpeaking(false)).catch(() => setIsSpeaking(false));
   };
 
   // 朗读题目时自动播报选项
@@ -249,10 +249,10 @@ const InstructionFind = () => {
       // 随机鼓励语
       const encouragements = ['太棒了！', '你真厉害！', '回答正确！', '太聪明了！'];
       const randomEnc = encouragements[Math.floor(Math.random() * encouragements.length)];
-      speakText(`${selectedText}，${randomEnc}`, () => setIsSpeaking(false));
+      speakText(`${selectedText}，${randomEnc}`).then(() => setIsSpeaking(false)).catch(() => setIsSpeaking(false));
     } else {
       setIsSpeaking(true);
-      speakText(`${selectedText}，正确答案是${question.answer}。${question.hint}`, () => setIsSpeaking(false));
+      speakText(`${selectedText}，正确答案是${question.answer}。${question.hint}`).then(() => setIsSpeaking(false)).catch(() => setIsSpeaking(false));
     }
   }, [question, showResult, incrementGamePass]);
 

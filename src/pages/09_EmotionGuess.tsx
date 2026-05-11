@@ -5,7 +5,7 @@ import { ChevronLeft, CheckCircle2, XCircle, ArrowRight, Trophy, Star, RotateCcw
 import MobileShell from '../components/MobileShell';
 import { Button } from '../components/ui/button';
 import { cn } from '../lib/utils';
-import { speakText, preloadVoices } from '../lib/useSpeech';
+import { speakText } from '../lib/useSpeech';
 import CelebrationEffect from '../components/CelebrationEffect';
 import ToyRewardEffect from '../components/ToyRewardEffect';
 import { useApp } from '../context/AppContext';
@@ -163,7 +163,7 @@ const EmotionGuess = () => {
 
   // 预加载
   useEffect(() => {
-    preloadVoices();
+    
     QUESTIONS_DATA.forEach(q => {
       const img = new Image();
       img.src = q.image;

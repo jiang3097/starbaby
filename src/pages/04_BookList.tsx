@@ -5,7 +5,6 @@ import { ChevronLeft, Lock, CheckCircle2, Star, Sparkles } from 'lucide-react';
 import MobileShell from '../components/MobileShell';
 import { Card } from '../components/ui/card';
 import { cn } from '../lib/utils';
-import AIChatPanel from '../components/AIChatPanel';
 import { useApp } from '../context/AppContext';
 
 const BookList = () => {
@@ -278,14 +277,9 @@ const BookList = () => {
               </Card>
             </motion.div>
           ))}
-        </div>
       </div>
 
-      <AIChatPanel 
-        isOpen={isAIChatOpen} 
-        onClose={() => setIsAIChatOpen(false)} 
-        context={selectedBook}
-      />
+  </div>
     </MobileShell>
   );
 };

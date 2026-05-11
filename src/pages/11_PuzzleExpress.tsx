@@ -5,7 +5,7 @@ import { ChevronLeft, CheckCircle2, Trophy, Star, RotateCcw } from 'lucide-react
 import MobileShell from '../components/MobileShell';
 import { Button } from '../components/ui/button';
 import { cn } from '../lib/utils';
-import { speakText, preloadVoices } from '../lib/useSpeech';
+import { speakText } from '../lib/useSpeech';
 import CelebrationEffect from '../components/CelebrationEffect';
 import ToyRewardEffect from '../components/ToyRewardEffect';
 import { useApp } from '../context/AppContext';
@@ -54,7 +54,7 @@ const PuzzleExpress = () => {
 
   // 预加载
   useEffect(() => {
-    preloadVoices();
+    
   }, []);
 
   // 进入页面时开始训练计时

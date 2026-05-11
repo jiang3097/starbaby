@@ -5,7 +5,7 @@ import { ChevronLeft, Volume2, Mic, Check, ArrowRight, Trophy, RefreshCw, Sparkl
 import MobileShell from '../components/MobileShell';
 import { Button } from '../components/ui/button';
 import { cn } from '../lib/utils';
-import { speakText, startListening, stopListening, preloadVoices, stopSpeaking, isSpeechSupport } from '../lib/useSpeech';
+import { speakText, startListening, stopListening, stopSpeaking, isSpeechSupport } from '../lib/useSpeech';
 
 // 移除 emoji，只保留文字
 const removeEmoji = (text: string): string => {
@@ -194,7 +194,7 @@ const BookInteraction = () => {
   const story = bookData?.stories[currentStory];
 
   useEffect(() => {
-    preloadVoices();
+    
   }, []);
 
   // 进入页面时开始训练计时（只执行一次）
@@ -248,15 +248,14 @@ const BookInteraction = () => {
   }, []);
 
   // 开始阅读
-  const startReading = useCallback(() => {
+  const startReading = useCallback(async () => {
     setPhase('reading');
     setIsPlaying(true);
     try {
-      speakText(removeEmoji(story.text), () => {
-        setIsPlaying(false);
-        // 朗读完成后进入跟读阶段，让用户自己点击进入答题
-        setPhase('follow-up');
-      });
+      await speakText(removeEmoji(story.text));
+      setIsPlaying(false);
+      // 朗读完成后进入跟读阶段，让用户自己点击进入答题
+      setPhase('follow-up');
     } catch (e) {
       console.error('[Book] TTS error:', e);
       setIsPlaying(false);
@@ -269,29 +268,28 @@ const BookInteraction = () => {
     setPhase('answering');
     setIsListening(true);
     setUserAnswer('');
-
-    startListening({
-      onTranscript: (text: string, isFinal: boolean) => {
-        // 过滤空文本
-        const trimmedText = text.trim();
-        if (!trimmedText) return;
-        
-        setUserAnswer(trimmedText);
-      },
-      onEnd: () => {
-        setIsListening(false);
-      }
+    startListening((text) => {
+      setUserAnswer(text);
+      // 识别完成后自动提交
+      stopCurrentListening(text);
+    }, (error) => {
+      console.error('[Book] 语音识别错误:', error);
+      setIsListening(false);
     });
-  }, [story, incrementExpression, incrementBookCompleted]);
+  }, [story]);
 
   // 停止录音并提交答案
-  const stopCurrentListening = useCallback(() => {
+  const stopCurrentListening = useCallback((recognizedText?: string) => {
     stopListening();
     setIsListening(false);
     
+    // 如果有识别的文本，优先使用
+    const finalAnswer = recognizedText || userAnswer;
+    setUserAnswer(finalAnswer);
+    
     // 如果有回答，进行判断
-    if (userAnswer.trim()) {
-      const answerLower = userAnswer.toLowerCase();
+    if (finalAnswer.trim()) {
+      const answerLower = finalAnswer.toLowerCase();
       const correctLower = story.answer.toLowerCase();
       // 用空格/逗号/顿号分割关键词
       const keywords = correctLower.split(/[,，、\s]+/).filter(k => k.trim().length > 0);
@@ -766,7 +764,7 @@ const BookInteraction = () => {
               {/* 控制按钮 */}
               <div className="flex gap-4 w-full max-w-sm">
                 <Button
-                  onClick={stopCurrentListening}
+                  onClick={() => stopCurrentListening()}
                   variant="secondary"
                   className="flex-1 h-14 bg-slate-100 text-slate-600 font-bold rounded-full border-none"
                 >
