@@ -545,77 +545,54 @@ const AIChat = () => {
           </motion.button>
         </div>
 
-        {/* 根据浏览器支持情况显示不同输入方式 */}
-        {isSpeechSupport().stt && (
-          <div className="flex flex-col items-center">
-            {/* 麦克风按钮 */}
-            <motion.button
+        {/* 微信风格输入框 */}
+        <div className="w-full max-w-[320px] flex items-center gap-2 px-3">
+          {/* 麦克风按钮 */}
+          {isSpeechSupport().stt ? (
+            <button
               onMouseDown={handleMicClick}
               onTouchStart={handleMicClick}
               disabled={isAIThinking}
-              className={`w-20 h-20 rounded-full flex items-center justify-center ${
+              className={`w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0 ${
                 isListening 
-                  ? 'bg-gradient-to-br from-rose-400 to-pink-500 shadow-lg shadow-rose-300/50' 
-                  : 'bg-gradient-to-br from-amber-400 to-orange-500 shadow-lg shadow-orange-300/50'
-              } ${isAIThinking ? 'opacity-50' : 'active:scale-95'} transition-all touch-manipulation`}
-              whileTap={{ scale: 0.95 }}
+                  ? 'bg-gradient-to-br from-rose-400 to-pink-500' 
+                  : 'bg-amber-100'
+              } ${isAIThinking ? 'opacity-50' : ''} transition-all active:scale-95`}
             >
-              <AnimatePresence mode="wait">
-                {isListening && (
-                  <motion.div
-                    initial={{ scale: 0, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    exit={{ scale: 0, opacity: 0 }}
-                    className="absolute inset-0 rounded-full bg-rose-500/30 animate-ping"
-                  />
-                )}
-              </AnimatePresence>
-              <AnimatePresence mode="wait">
-                {isListening ? (
-                  <motion.span
-                    key="stop"
-                    initial={{ scale: 0, rotate: -180 }}
-                    animate={{ scale: 1, rotate: 0 }}
-                    exit={{ scale: 0, rotate: 180 }}
-                    className="text-4xl relative z-10"
-                  >
-                    ⏹
-                  </motion.span>
-                ) : (
-                  <motion.span
-                    key="mic"
-                    initial={{ scale: 0, rotate: 180 }}
-                    animate={{ scale: 1, rotate: 0 }}
-                    exit={{ scale: 0, rotate: -180 }}
-                    className="text-4xl relative z-10"
-                  >
-                    🎤
-                  </motion.span>
-                )}
-              </AnimatePresence>
-            </motion.button>
-          </div>
-        )}
-
-        {!isSpeechSupport().stt && (
-          <div className="w-full max-w-[280px] flex gap-2 px-4">
-            <input
-              type="text"
-              value={textInput}
-              onChange={(e) => setTextInput(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleTextSend()}
-              placeholder="输入文字..."
-              className="flex-1 px-4 py-3 rounded-full border-2 border-amber-300 focus:border-amber-500 outline-none text-base"
-            />
-            <button
-              onClick={handleTextSend}
-              disabled={isAIThinking || !textInput.trim()}
-              className="px-5 py-3 bg-gradient-to-br from-amber-400 to-orange-500 text-white font-bold rounded-full disabled:opacity-50"
-            >
-              发送
+              {isListening ? (
+                <span className="text-white text-lg">⏹</span>
+              ) : (
+                <span className="text-2xl">🎤</span>
+              )}
             </button>
-          </div>
-        )}
+          ) : (
+            <button
+              disabled
+              className="w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0 bg-gray-100 opacity-50"
+            >
+              <span className="text-2xl opacity-50">🎤</span>
+            </button>
+          )}
+
+          {/* 文字输入框 */}
+          <input
+            type="text"
+            value={textInput}
+            onChange={(e) => setTextInput(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleTextSend()}
+            placeholder="说点什么..."
+            className="flex-1 px-4 py-2.5 rounded-full border-2 border-amber-200 focus:border-amber-400 outline-none text-base bg-white"
+          />
+
+          {/* 发送按钮 */}
+          <button
+            onClick={handleTextSend}
+            disabled={isAIThinking || !textInput.trim()}
+            className="w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0 bg-gradient-to-br from-amber-400 to-orange-500 disabled:opacity-40 active:scale-95 transition-all"
+          >
+            <span className="text-lg text-white">➤</span>
+          </button>
+        </div>
         
         {/* 麦克风错误提示 */}
         {micError && (
