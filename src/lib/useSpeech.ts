@@ -2,9 +2,14 @@
 
 import { TextToSpeech } from '@capacitor-community/text-to-speech';
 
-// 检测是否在 Capacitor 环境
+// 检测是否在 Capacitor 原生环境
 const isCapacitor = () => {
-  return typeof (window as any).Capacitor !== 'undefined';
+  if (typeof (window as any).Capacitor === 'undefined') {
+    return false;
+  }
+  // 检查是否真的是原生平台（而非开发环境的模拟）
+  const cap = (window as any).Capacitor;
+  return cap?.isNative === true || cap?.Platform?.isNative === true;
 };
 
 // Capacitor TTS
