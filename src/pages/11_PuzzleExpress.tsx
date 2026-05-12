@@ -253,8 +253,8 @@ const PuzzleExpress = () => {
             key={i}
             className="absolute text-orange-200"
             style={{ left: `${8 + i * 10}%`, top: `${5 + (i % 4) * 5}%` }}
-            animate={{ opacity: [0.2, 0.5, 0.2], scale: [0.8, 1.1, 0.8] }}
-            transition={{ repeat: Infinity, duration: 2.5 + i * 0.3 }}
+            animate={{ opacity: [0.3, 0.5, 0.3], y: [0, -5, 0] }}
+            transition={{ repeat: Infinity, duration: 3 + i * 0.5 }}
           >
             ⭐
           </motion.div>
@@ -417,7 +417,7 @@ const PuzzleExpress = () => {
         {/* ========== 成功界面 ========== */}
         {showSuccess && !allCompleted && (
           <motion.div key="success" initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="h-full flex flex-col items-center justify-center p-8 text-center">
-            <motion.div animate={{ scale: [1, 1.1, 1], rotate: [0, 5, -5, 0] }} transition={{ repeat: Infinity, duration: 1.5 }} className="relative mb-8">
+            <motion.div animate={{ scale: [1, 1.05, 1] }} transition={{ repeat: Infinity, duration: 2 }} className="relative mb-8">
               <div className="w-48 h-48 bg-gradient-to-br from-amber-200 to-amber-400 rounded-full flex items-center justify-center shadow-2xl">
                 <Trophy size={80} className="text-white" />
               </div>
@@ -460,7 +460,7 @@ const PuzzleExpress = () => {
             </div>
 
             <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
-              <motion.div animate={{ scale: [1, 1.1, 1], rotate: [0, 5, -5, 0] }} transition={{ repeat: Infinity, duration: 1.5 }} className="relative mb-8">
+              <motion.div animate={{ scale: [1, 1.05, 1] }} transition={{ repeat: Infinity, duration: 2 }} className="relative mb-8">
                 <div className="w-56 h-56 bg-gradient-to-br from-yellow-200 to-amber-400 rounded-full flex items-center justify-center shadow-2xl">
                   <Trophy size={100} className="text-white" />
                 </div>
