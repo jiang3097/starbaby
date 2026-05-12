@@ -257,7 +257,7 @@ const GrowthRecord = () => {
   };
 
   return (
-    <MobileShell className="bg-gradient-to-b from-purple-50 to-white" enableScroll={true}>
+    <MobileShell className="bg-gradient-to-b from-purple-50 to-white">
       <BathEffect show={showBathEffect} onComplete={handleBathComplete} />
 
       {/* 提示弹窗 */}

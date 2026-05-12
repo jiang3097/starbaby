@@ -280,32 +280,32 @@ const PuzzleExpress = () => {
               <div className="w-12" />
             </div>
 
-            <div className="flex-1 flex flex-col items-center justify-center p-4 text-center">
-              <motion.div initial={{ scale: 0.8 }} animate={{ scale: 1 }} className="w-28 h-28 bg-gradient-to-br from-orange-200 to-amber-300 rounded-full flex items-center justify-center shadow-xl mb-4">
-                <span className="text-5xl">🧩</span>
+            <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
+              <motion.div initial={{ scale: 0.8 }} animate={{ scale: 1 }} className="w-40 h-40 bg-gradient-to-br from-orange-200 to-amber-300 rounded-full flex items-center justify-center shadow-xl mb-8">
+                <span className="text-6xl">🧩</span>
               </motion.div>
               
-              <h1 className="text-2xl font-bold text-slate-800 mb-1">拼图表达</h1>
-              <p className="text-base text-slate-500 mb-4">把碎片拖到正确位置</p>
+              <h1 className="text-3xl font-bold text-slate-800 mb-2">拼图表达</h1>
+              <p className="text-lg text-slate-500 mb-6">把碎片拖到正确位置</p>
 
-              <div className="flex gap-2 mb-4">
-                <button onClick={() => setDifficulty(4)} className={cn("px-4 py-2 rounded-full font-bold transition-all shadow-md text-sm", difficulty === 4 ? "bg-gradient-to-r from-orange-400 to-amber-400 text-white scale-105" : "bg-white text-slate-600")}>
-                  4块
+              <div className="flex gap-3 mb-8">
+                <button onClick={() => setDifficulty(4)} className={cn("px-6 py-3 rounded-full font-bold transition-all shadow-md", difficulty === 4 ? "bg-gradient-to-r from-orange-400 to-amber-400 text-white scale-105" : "bg-white text-slate-600")}>
+                  4块 (2x2)
                 </button>
-                <button onClick={() => setDifficulty(9)} className={cn("px-4 py-2 rounded-full font-bold transition-all shadow-md text-sm", difficulty === 9 ? "bg-gradient-to-r from-orange-400 to-amber-400 text-white scale-105" : "bg-white text-slate-600")}>
-                  9块
+                <button onClick={() => setDifficulty(9)} className={cn("px-6 py-3 rounded-full font-bold transition-all shadow-md", difficulty === 9 ? "bg-gradient-to-r from-orange-400 to-amber-400 text-white scale-105" : "bg-white text-slate-600")}>
+                  9块 (3x3)
                 </button>
               </div>
 
-              <div className="grid grid-cols-2 gap-2 mb-4">
+              <div className="grid grid-cols-2 gap-2 mb-8">
                 {PUZZLE_IMAGES.map(img => (
-                  <div key={img.id} className="w-16 h-16 rounded-lg overflow-hidden shadow-md border-2 border-white">
+                  <div key={img.id} className="w-20 h-20 rounded-xl overflow-hidden shadow-md border-2 border-white">
                     <img src={img.url} alt="" className="w-full h-full object-cover" />
                   </div>
                 ))}
               </div>
 
-              <Button onClick={() => startGame(PUZZLE_IMAGES[0])} className="w-full max-w-xs h-12 rounded-full bg-gradient-to-r from-orange-400 to-amber-400 text-white font-bold text-lg shadow-lg border-none">
+              <Button onClick={() => startGame(PUZZLE_IMAGES[0])} className="w-full max-w-xs h-16 rounded-full bg-gradient-to-r from-orange-400 to-amber-400 text-white font-bold text-xl shadow-lg border-none">
                 开始游戏
               </Button>
             </div>
@@ -328,22 +328,22 @@ const PuzzleExpress = () => {
               </button>
             </div>
 
-            <div className="flex-1 flex flex-col items-center justify-center gap-3 p-4">
+            <div className="flex-1 flex flex-col items-center justify-center gap-4 p-6">
               {/* 进度 */}
               <div className="flex items-center gap-2">
-                <span className="text-xs text-slate-500">完成</span>
+                <span className="text-sm text-slate-500">完成进度</span>
                 <div className="flex gap-1">
                   {Array.from({ length: difficulty }).map((_, i) => (
-                    <div key={i} className={cn("w-2 h-2 rounded-full transition-all", i < correctCount ? "bg-emerald-400" : "bg-slate-200")} />
+                    <div key={i} className={cn("w-3 h-3 rounded-full transition-all", i < correctCount ? "bg-emerald-400" : "bg-slate-200")} />
                   ))}
                 </div>
-                <span className="text-xs font-bold text-orange-500">{correctCount}/{difficulty}</span>
+                <span className="text-sm font-bold text-orange-500">{correctCount}/{difficulty}</span>
               </div>
 
               {/* 参考图 */}
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-slate-500">参考</span>
-                <div className="rounded-lg overflow-hidden shadow border-2 border-orange-200" style={{ width: 50, height: 50 }}>
+              <div className="flex items-center gap-3">
+                <span className="text-sm text-slate-500">参考图</span>
+                <div className="rounded-xl overflow-hidden shadow-md border-2 border-orange-200" style={{ width: 60, height: 60 }}>
                   <img src={currentImage.url} alt="参考图" className="w-full h-full object-cover" />
                 </div>
               </div>

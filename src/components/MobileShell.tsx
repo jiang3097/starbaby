@@ -5,10 +5,9 @@ interface MobileShellProps {
   children: React.ReactNode;
   className?: string;
   showNav?: boolean;
-  enableScroll?: boolean;
 }
 
-const MobileShell: React.FC<MobileShellProps> = ({ children, className, showNav = false, enableScroll = false }) => {
+const MobileShell: React.FC<MobileShellProps> = ({ children, className, showNav = false }) => {
   return (
     <div className="flex items-center justify-center min-h-screen bg-slate-100 p-4 font-sans selection:bg-sky-100">
       <div className={cn(
@@ -16,7 +15,7 @@ const MobileShell: React.FC<MobileShellProps> = ({ children, className, showNav 
         className
       )}>
         {/* Notch / Status Bar Area */}
-        <div className="h-10 w-full flex items-center justify-center justify-between px-8 pt-4 pb-2 text-xs font-semibold text-slate-400 bg-transparent absolute top-0 z-50">
+        <div className="h-10 w-full flex items-center justify-between px-8 pt-4 pb-2 text-xs font-semibold text-slate-400 bg-transparent absolute top-0 z-50">
           <span>9:41</span>
           <div className="flex gap-1.5 items-center">
             <div className="w-4 h-4 rounded-full border border-slate-300 flex items-center justify-center">
@@ -31,7 +30,7 @@ const MobileShell: React.FC<MobileShellProps> = ({ children, className, showNav 
         </div>
 
         {/* Content */}
-        <div className={cn("flex-1 mt-10", showNav ? "mb-20" : "", enableScroll ? "overflow-y-auto scrollbar-hide touch-pan-y" : "overflow-hidden")}>
+        <div className={cn("flex-1 overflow-y-auto mt-10 scrollbar-hide", showNav ? "mb-20" : "")}>
           {children}
         </div>
 
