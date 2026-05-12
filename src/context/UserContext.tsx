@@ -113,23 +113,6 @@ const loadProfile = (avatarId: number): UserProfile => {
       const parsed = JSON.parse(saved);
       const today = new Date().toISOString().split('T')[0];
       
-      // 检查并迁移旧数据（intimacy > 60 是旧数据特征）
-      if (parsed.intimacy > 60) {
-        const migrated = createDefaultProfile(avatarId);
-        migrated.intimacy = parsed.intimacy ?? 60;
-        migrated.toys = parsed.toys ?? 0;
-        migrated.foods = parsed.foods ?? 0;
-        migrated.stars = parsed.stars ?? 0;
-        migrated.fullness = parsed.fullness ?? 60;
-        migrated.cleanliness = parsed.cleanliness ?? 60;
-        migrated.mood = parsed.mood ?? 60;
-        migrated.totalGamePassed = parsed.totalGamePassed ?? 0;
-        // 保留用户自定义的名字
-        migrated.name = parsed.name || migrated.name;
-        localStorage.setItem(storageKey, JSON.stringify(migrated));
-        return migrated;
-      }
-      
       // 获取保存的日期
       const savedDate = parsed.lastLoginDate || '';
       
