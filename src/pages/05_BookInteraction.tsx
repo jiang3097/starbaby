@@ -393,79 +393,58 @@ const BookInteraction = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="h-full flex flex-col relative"
+            className="h-full flex flex-col relative overflow-hidden"
           >
-            <div className="px-6 pt-4 flex items-center justify-between relative z-10">
+            {/* 顶部标题栏 */}
+            <div className="px-4 pt-2 pb-2 flex items-center justify-between relative z-10">
               <button
                 onClick={handleBack}
-                className="w-12 h-12 bg-white rounded-full flex items-center justify-center text-slate-400 shadow-lg"
+                className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-slate-400 shadow-lg"
               >
-                <ChevronLeft size={28} />
+                <ChevronLeft size={24} />
               </button>
-              
-              {/* 占位，保持布局 */}
-              <div className="w-12" />
-              
               <div className={cn(
-                "px-4 py-1.5 rounded-full text-sm font-bold bg-gradient-to-r",
+                "px-3 py-1 rounded-full text-xs font-bold bg-gradient-to-r",
                 bookData.gradient,
                 "text-white shadow-md"
               )}>
                 {bookData.title}
               </div>
+              <div className="w-10" />
             </div>
 
-            <div className="flex-1 flex flex-col items-center justify-center px-4 pb-4 text-center">
+            {/* 主内容区 */}
+            <div className="flex-1 flex flex-col items-center justify-center px-4 text-center">
               {/* 绘本图标 */}
-              <motion.div
-                initial={{ scale: 0.8 }}
-                animate={{ scale: 1 }}
-                className={cn(
-                  "w-24 h-24 rounded-2xl bg-gradient-to-br flex items-center justify-center shadow-2xl mb-3",
-                  bookData.gradient
-                )}
-              >
-                <span className="text-4xl">📖</span>
-              </motion.div>
+              <div className={cn(
+                "w-20 h-20 rounded-xl bg-gradient-to-br flex items-center justify-center shadow-xl mb-2",
+                bookData.gradient
+              )}>
+                <span className="text-3xl">📖</span>
+              </div>
               
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 }}
-                className="bg-white/80 backdrop-blur px-4 py-2 rounded-full shadow-md mb-2"
-              >
-                <p className="text-base font-bold text-slate-700">{bookData.title}</p>
+              <div className="bg-white/80 backdrop-blur px-3 py-1.5 rounded-full shadow-md mb-2">
+                <p className="text-sm font-bold text-slate-700">{bookData.title}</p>
                 <p className="text-xs text-slate-500">{bookData.subtitle}</p>
-              </motion.div>
+              </div>
 
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4 }}
-                className="bg-amber-50 border border-amber-200 px-4 py-1.5 rounded-full shadow-sm mb-4"
-              >
+              <div className="bg-amber-50 border border-amber-200 px-3 py-1 rounded-full shadow-sm mb-4">
                 <p className="text-xs text-amber-700">
                   第 <span className="font-bold">{currentStory + 1}</span> 页，共 <span className="font-bold">{bookData.stories.length}</span> 页
                 </p>
-              </motion.div>
+              </div>
 
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.6 }}
+              <Button
+                onClick={startReading}
+                className={cn(
+                  "h-10 px-6 rounded-full font-bold text-sm shadow-xl border-none bg-gradient-to-r",
+                  bookData.gradient,
+                  "text-white"
+                )}
               >
-                <Button
-                  onClick={startReading}
-                  className={cn(
-                    "h-11 px-8 rounded-full font-bold text-base shadow-xl border-none bg-gradient-to-r",
-                    bookData.gradient,
-                    "text-white"
-                  )}
-                >
-                  开始阅读
-                  <ArrowRight size={18} className="ml-2" />
-                </Button>
-              </motion.div>
+                开始阅读
+                <ArrowRight size={16} className="ml-1" />
+              </Button>
             </div>
           </motion.div>
         )}
