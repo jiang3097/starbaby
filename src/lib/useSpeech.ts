@@ -245,17 +245,17 @@ export const startListening = async (
   };
   
   recognition.onend = () => {
-    console.log('[Speech] Ended, final:', finalText);
+    console.log('[Speech] Ended, hasResult:', hasResult, 'final:', finalText);
     isCurrentlyListening = false;
     if (recognitionTimeout) {
       clearTimeout(recognitionTimeout);
       recognitionTimeout = null;
     }
+    // 如果有结果，返回结果；没有结果时不显示错误，让用户重新录音
     if (hasResult && finalText.trim()) {
       onResult(finalText.trim());
-    } else {
-      onError?.('未识别到语音，请再说一遍');
     }
+    // 没有结果时不调用 onError，用户可以重新点击开始录音
   };
   
   try {
