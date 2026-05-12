@@ -43,31 +43,36 @@ const BookList = () => {
       borderColor: 'border-rose-100',
       iconColor: 'text-rose-500',
       gradient: 'from-rose-200 to-pink-200',
-      image: 'https://modao.cc/agent-py/media/generated_images/2026-05-02/ba68d8f98ff34703933479aa9dbe851f.jpg#desc=Facial%20expressions%2C%20cute%20characters%2C%20happy%20sad%20angry'
+      image: 'https://modao.cc/agent-py/media/generated_images/2026-05-02/ba68d8f98ff34703933479aa9dbe851f.jpg#desc=Facial%20expressions%2C%20cute%20characters%2C%20happy%20sad%20angry',
+      totalLevels: 3 // 总关卡数
     },
     {
       id: 2,
       title: '日常沟通',
       desc: '学会表达你的基本需求',
-      status: passedLevels1.length >= 1 ? 'active' : 'locked', // 完成情绪识别第一关后才能解锁
+      // 需要情绪表达全部通关才能解锁
+      status: emotionStars >= 3 ? 'active' : 'locked',
       stars: dailyStarsCalc,
       color: 'bg-emerald-50',
       borderColor: 'border-emerald-100',
       iconColor: 'text-emerald-500',
-      gradient: passedLevels1.length >= 1 ? 'from-emerald-200 to-teal-200' : 'from-slate-200 to-gray-200',
-      image: 'https://modao.cc/agent-py/media/generated_images/2026-05-02/aa7156b859894d3c90a8d6ef1a1ffd12.jpg#desc=Morning%20routine%2C%20breakfast%20table%2C%20kids%2C%20friendly%20style'
+      gradient: emotionStars >= 3 ? 'from-emerald-200 to-teal-200' : 'from-slate-200 to-gray-200',
+      image: 'https://modao.cc/agent-py/media/generated_images/2026-05-02/aa7156b859894d3c90a8d6ef1a1ffd12.jpg#desc=Morning%20routine%2C%20breakfast%20table%2C%20kids%2C%20friendly%20style',
+      totalLevels: 3
     },
     {
       id: 3,
       title: '求助场景',
       desc: '遇到困难时如何开口',
-      status: 'locked',
+      // 需要日常沟通全部通关才能解锁
+      status: dailyStarsCalc >= 3 ? 'active' : 'locked',
       stars: helpStarsCalc,
       color: 'bg-slate-50',
       borderColor: 'border-slate-100',
       iconColor: 'text-slate-400',
-      gradient: 'from-slate-200 to-gray-200',
-      image: 'https://modao.cc/agent-py/media/generated_images/2026-05-02/7e38337d73b549ada55dfddf80cc62a9.jpg#desc=Boy%20looking%20for%20help%2C%20park%20scene%2C%20kind%20stranger'
+      gradient: dailyStarsCalc >= 3 ? 'from-blue-200 to-indigo-200' : 'from-slate-200 to-gray-200',
+      image: 'https://modao.cc/agent-py/media/generated_images/2026-05-02/7e38337d73b549ada55dfddf80cc62a9.jpg#desc=Boy%20looking%20for%20help%2C%20park%20scene%2C%20kind%20stranger',
+      totalLevels: 3
     }
   ];
 
@@ -229,8 +234,8 @@ const BookList = () => {
                     
                     {/* 右侧按钮 */}
                     <motion.div
-                      whileHover={{ scale: 1.1 }}
-                      whileTap={{ scale: 0.9 }}
+                      whileHover={book.status !== 'locked' ? { scale: 1.1 } : {}}
+                      whileTap={book.status !== 'locked' ? { scale: 0.9 } : {}}
                       className={cn(
                         "w-14 h-14 rounded-full flex items-center justify-center shadow-lg ml-4",
                         book.status === 'locked' 
@@ -245,6 +250,12 @@ const BookList = () => {
                       )}
                     </motion.div>
                   </div>
+                  {/* 解锁提示 */}
+                  {book.status === 'locked' && (
+                    <p className="text-xs text-slate-400 mt-1 ml-4">
+                      {book.id === 2 ? '需先完成情绪表达' : book.id === 3 ? '需先完成日常沟通' : ''}
+                    </p>
+                  )}
                 </div>
               </Card>
             </motion.div>
