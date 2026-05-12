@@ -167,7 +167,7 @@ export const startListening = async (
   }
   
   // 浏览器环境使用 Web Speech API
-  return new Promise((resolve, reject) => {
+  return new Promise<void>(async (resolve, reject) => {
     const SpeechRecognitionAPI = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SpeechRecognitionAPI) {
       const err = '不支持语音识别';
@@ -207,6 +207,26 @@ export const startListening = async (
         reject(new Error('no-speech'));
       }
     };
+    
+    // 浏览器环境先请求麦克风权限
+    let micPermissionGranted = false;
+    try {
+      const stream = await navigator.mediaDevices?.getUserMedia({ audio: true });
+      if (stream) {
+        stream.getTracks().forEach((track: any) => track.stop());
+        micPermissionGranted = true;
+      }
+    } catch (e) {
+      onError?.('请允许使用麦克风');
+      reject(new Error('permission-denied'));
+      return;
+    }
+    
+    if (!micPermissionGranted) {
+      onError?.('请允许使用麦克风');
+      reject(new Error('permission-denied'));
+      return;
+    }
     
     try {
       webRecognition.start();
