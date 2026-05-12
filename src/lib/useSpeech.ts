@@ -110,16 +110,26 @@ export const isSpeechRecognitionSupported = (): boolean => {
 
 let webRecognition: any = null;
 let recognitionTimeout: any = null;
+let isCurrentlyListening = false; // 防止重复启动
 
 export const startListening = async (
   onResult: (text: string) => void,
   onError?: (error: string) => void
 ): Promise<void> => {
+  // 如果正在录音，先停止
+  if (isCurrentlyListening) {
+    console.log('[Speech] Already listening, stopping first...');
+    await stopListening();
+  }
+  
   // 清除之前的超时
   if (recognitionTimeout) {
     clearTimeout(recognitionTimeout);
     recognitionTimeout = null;
   }
+  
+  // 设置正在录音标志
+  isCurrentlyListening = true;
   
   // Capacitor 环境使用原生插件
   if (isCapacitor()) {
@@ -216,6 +226,7 @@ export const startListening = async (
   
   recognition.onerror = (event: any) => {
     console.error('[Speech] Error:', event.error);
+    isCurrentlyListening = false;
     if (recognitionTimeout) {
       clearTimeout(recognitionTimeout);
       recognitionTimeout = null;
@@ -235,6 +246,7 @@ export const startListening = async (
   
   recognition.onend = () => {
     console.log('[Speech] Ended, final:', finalText);
+    isCurrentlyListening = false;
     if (recognitionTimeout) {
       clearTimeout(recognitionTimeout);
       recognitionTimeout = null;
@@ -251,6 +263,7 @@ export const startListening = async (
     webRecognition = recognition;
   } catch (e: any) {
     console.error('[Speech] Start failed:', e);
+    isCurrentlyListening = false;
     onError?.('启动失败');
   }
 };
@@ -273,4 +286,5 @@ export const stopListening = async (): Promise<void> => {
     } catch {}
     webRecognition = null;
   }
+  isCurrentlyListening = false;
 };
