@@ -488,14 +488,6 @@ const BookInteraction = () => {
               >
                 <Home size={22} />
               </button>
-              {/* 星星显示 */}
-              <div className="flex flex-col items-center gap-1">
-                <div className="flex items-center gap-1 bg-gradient-to-r from-amber-100 to-yellow-100 px-3 py-1.5 rounded-full shadow-md">
-                  <span className="text-lg">⭐</span>
-                  <span className="font-bold text-amber-600">{dailyStats.gamePassCount}</span>
-                  <span className="text-xs text-amber-500">颗星星</span>
-                </div>
-              </div>
               <div className={cn(
                 "px-4 py-1.5 rounded-full text-sm font-bold",
                 bookData.color,
