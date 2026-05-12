@@ -35,7 +35,10 @@ const WelcomePage = () => {
   const handleSelectAvatar = (avatar: typeof STAR_AVATARS[0]) => {
     setSelectedAvatar(avatar);
     setNickname(avatar.name);
-    setShowAvatarList(false);
+    // 重新选择模式下不关闭列表，让用户可以编辑名字
+    if (!rechooseMode) {
+      setShowAvatarList(false);
+    }
   };
 
   const handleSwitchAvatar = () => {
@@ -46,6 +49,8 @@ const WelcomePage = () => {
     if (selectedAvatar.id !== savedProfile.avatarId) {
       switchAvatar(selectedAvatar.id);
     }
+    // 保存名字
+    updateProfile({ name: nickname || selectedAvatar.name });
     handleStart();
   };
 
@@ -224,7 +229,7 @@ const WelcomePage = () => {
                       className="w-full h-14 bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 rounded-full flex items-center justify-center shadow-lg shadow-purple-200"
                     >
                       <span className="text-lg font-bold text-white">
-                        {hasSavedData ? '开始冒险' : '和星小宝一起玩'}
+                        {rechooseMode ? '开始冒险' : (hasSavedData ? '开始冒险' : '和星小宝一起玩')}
                       </span>
                       <motion.div
                         animate={{ x: [0, 5, 0] }}
