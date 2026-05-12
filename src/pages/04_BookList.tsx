@@ -64,13 +64,13 @@ const BookList = () => {
       id: 3,
       title: '求助场景',
       desc: '遇到困难时如何开口',
-      // 需要日常沟通全部通关才能解锁
-      status: dailyStarsCalc >= 3 ? 'active' : 'locked',
+      // 始终保持锁定
+      status: 'locked',
       stars: helpStarsCalc,
       color: 'bg-slate-50',
       borderColor: 'border-slate-100',
       iconColor: 'text-slate-400',
-      gradient: dailyStarsCalc >= 3 ? 'from-blue-200 to-indigo-200' : 'from-slate-200 to-gray-200',
+      gradient: 'from-slate-200 to-gray-200',
       image: 'https://modao.cc/agent-py/media/generated_images/2026-05-02/7e38337d73b549ada55dfddf80cc62a9.jpg#desc=Boy%20looking%20for%20help%2C%20park%20scene%2C%20kind%20stranger',
       totalLevels: 3
     }
@@ -253,7 +253,7 @@ const BookList = () => {
                   {/* 解锁提示 */}
                   {book.status === 'locked' && (
                     <p className="text-xs text-slate-400 mt-1 ml-4">
-                      {book.id === 2 ? '需先完成情绪表达' : book.id === 3 ? '需先完成日常沟通' : ''}
+                      {book.id === 2 ? '需先完成情绪表达' : ''}
                     </p>
                   )}
                 </div>
