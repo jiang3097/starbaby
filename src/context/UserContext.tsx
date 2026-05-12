@@ -114,27 +114,38 @@ const loadProfile = (avatarId: number): UserProfile => {
       // 检查并迁移旧数据（intimacy > 60 是旧数据特征）
       if (parsed.intimacy > 60) {
         const migrated = createDefaultProfile(avatarId);
+        migrated.intimacy = parsed.intimacy ?? 60;
         migrated.toys = parsed.toys ?? 0;
         migrated.foods = parsed.foods ?? 0;
+        migrated.fullness = parsed.fullness ?? 60;
+        migrated.cleanliness = parsed.cleanliness ?? 60;
+        migrated.mood = parsed.mood ?? 60;
+        migrated.totalGamePassed = parsed.totalGamePassed ?? 0;
         // 保留用户自定义的名字
         migrated.name = parsed.name || migrated.name;
         localStorage.setItem(storageKey, JSON.stringify(migrated));
         return migrated;
       }
       
-      // 新一天重置每日计数
+      // 新一天重置每日计数，保留其他数据
       const lastLogin = parsed.lastLoginDate || today;
       return {
-        ...createDefaultProfile(avatarId),
-        ...parsed,
+        avatarId: parsed.avatarId ?? avatarId,
+        name: parsed.name || STAR_AVATARS.find(a => a.id === avatarId)?.name || '星小宝',
+        intimacy: parsed.intimacy ?? 60,
         lastLoginDate: today,
         todayIntimacyAdded: lastLogin === today ? (parsed.todayIntimacyAdded || 0) : 0,
+        fullness: parsed.fullness ?? 60,
         fullnessUsedToday: parsed.fullnessDate === today ? (parsed.fullnessUsedToday || 0) : 0,
         fullnessDate: parsed.fullnessDate || today,
+        cleanliness: parsed.cleanliness ?? 60,
         lastBathDate: parsed.lastBathDate || today,
+        mood: parsed.mood ?? 60,
         moodUsedToday: parsed.moodDate === today ? (parsed.moodUsedToday || 0) : 0,
         moodDate: parsed.moodDate || today,
-        totalGamePassed: parsed.totalGamePassed || 0,
+        toys: parsed.toys ?? 0,
+        foods: parsed.foods ?? 0,
+        totalGamePassed: parsed.totalGamePassed ?? 0,
       };
     }
   } catch (e) {
