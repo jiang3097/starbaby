@@ -74,10 +74,38 @@ function AppProvider({ children }: { children: React.ReactNode }) {
     return { ...defaultDailyStats, date: today };
   });
   const [weeklyStats, setWeeklyStats] = useState<WeeklyStats>({});
-  const [timeLimit, setTimeLimitState] = useState<TimeLimit>({ enabled: false, minutes: 30, customMinutes: null });
+  const [timeLimit, setTimeLimitState] = useState<TimeLimit>(() => {
+    const saved = localStorage.getItem(LIMIT_STORAGE_KEY);
+    if (saved) {
+      try {
+        return JSON.parse(saved) as TimeLimit;
+      } catch {
+        return { enabled: false, minutes: 30, customMinutes: null };
+      }
+    }
+    return { enabled: false, minutes: 30, customMinutes: null };
+  });
   const [timeLimitReached, setTimeLimitReached] = useState(false);
   const [showTimeLimitModal, setShowTimeLimitModal] = useState(false);
   const [trainingStartTime, setTrainingStartTime] = useState<number | null>(null);
+
+  // 定时检查是否达到时间限制
+  useEffect(() => {
+    if (!timeLimit.enabled || timeLimitReached) return;
+
+    const interval = setInterval(() => {
+      if (trainingStartTime) {
+        const elapsed = Math.floor((Date.now() - trainingStartTime) / 60000);
+        const limitMinutes = timeLimit.customMinutes ?? timeLimit.minutes;
+        if (elapsed >= limitMinutes) {
+          setTimeLimitReached(true);
+          setShowTimeLimitModal(true);
+        }
+      }
+    }, 60000); // 每分钟检查一次
+
+    return () => clearInterval(interval);
+  }, [timeLimit, timeLimitReached, trainingStartTime]);
 
   const resetTimeLimit = useCallback(() => {
     setTimeLimitReached(false);
