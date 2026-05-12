@@ -158,26 +158,25 @@ export const startListening = async (
     return;
   }
   
-  // 先请求麦克风权限
-  try {
-    const stream = await navigator.mediaDevices?.getUserMedia({ audio: true });
-    if (stream) {
-      stream.getTracks().forEach((track: any) => track.stop());
-    }
-  } catch (e) {
-    onError?.('请允许使用麦克风');
-    return;
+  // 如果已经在识别，先停止
+  if (webRecognition) {
+    try {
+      webRecognition.abort();
+    } catch {}
+    webRecognition = null;
   }
   
   // 创建识别实例
   const recognition = new SpeechRecognitionAPI();
-  recognition.continuous = false;
-  recognition.interimResults = true;
+  recognition.continuous = false; // 单次识别
+  recognition.interimResults = false; // 只返回最终结果
   recognition.lang = 'zh-CN';
   
   let finalText = '';
+  let hasResult = false;
   
   recognition.onresult = (event: any) => {
+    hasResult = true;
     for (let i = event.resultIndex; i < event.results.length; i++) {
       if (event.results[i].isFinal) {
         finalText += event.results[i][0].transcript;
@@ -186,27 +185,36 @@ export const startListening = async (
   };
   
   recognition.onerror = (event: any) => {
+    console.error('Speech recognition error:', event.error);
     if (event.error === 'no-speech') {
       onError?.('未识别到语音');
-    } else if (event.error === 'not-allowed') {
+    } else if (event.error === 'not-allowed' || event.error === 'permission-denied') {
       onError?.('请允许使用麦克风');
+    } else if (event.error === 'aborted') {
+      // 用户主动停止，忽略
     } else {
-      onError?.(event.error || '语音识别出错');
+      onError?.('语音识别出错');
     }
   };
   
   recognition.onend = () => {
-    if (finalText) {
+    webRecognition = null;
+    if (hasResult && finalText) {
       onResult(finalText);
-    } else {
+    } else if (!hasResult) {
       onError?.('未识别到语音');
     }
+  };
+  
+  recognition.onstart = () => {
+    console.log('Speech recognition started');
   };
   
   try {
     recognition.start();
     webRecognition = recognition;
-  } catch (e) {
+  } catch (e: any) {
+    console.error('Start recognition failed:', e);
     onError?.('启动失败');
   }
 };
@@ -220,7 +228,7 @@ export const stopListening = async (): Promise<void> => {
     }
   } else if (webRecognition) {
     try {
-      webRecognition.stop();
+      webRecognition.abort();
     } catch {}
     webRecognition = null;
   }
