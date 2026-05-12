@@ -1,7 +1,11 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { STAR_AVATARS, type STAR_AVATAR } from '../lib/starAvatars';
+export type { STAR_AVATAR };
+export { STAR_AVATARS };
 
-const STORAGE_KEY = 'star_baby_profile';
+// 存储 key 定义
+const CURRENT_AVATAR_KEY = 'star_baby_current_avatar';
+const getProfileKey = (avatarId: number) => `star_baby_profile_${avatarId}`;
 
 // 玩具类型定义
 export const TOY_TYPES = [
@@ -38,8 +42,8 @@ export interface UserProfile {
   
   // 饱腹值
   fullness: number;
-  fullnessUsedToday: number; // 今天已使用食物次数
-  fullnessDate: string; // 上次使用食物的日期
+  fullnessUsedToday: number;
+  fullnessDate: string;
   
   // 清洁值
   cleanliness: number;
@@ -47,21 +51,21 @@ export interface UserProfile {
   
   // 心情值
   mood: number;
-  moodUsedToday: number; // 今天已使用玩具次数
-  moodDate: string; // 上次使用玩具的日期
+  moodUsedToday: number;
+  moodDate: string;
   
   // 道具
   toys: number;
   foods: number;
   
-  // 累计通关次数（用于判断获得玩具条件）
+  // 累计通关次数
   totalGamePassed: number;
 }
 
 interface UserContextType {
   profile: UserProfile;
   avatar: STAR_AVATAR;
-  updateProfile: (profile: Partial<UserProfile>) => void;
+  updateProfile: (updates: Partial<UserProfile>) => void;
   incrementIntimacy: () => void;
   useFood: () => boolean;
   useToy: () => boolean;
@@ -70,29 +74,81 @@ interface UserContextType {
   addFood: () => string | null;
   checkAndAddToy: (currentPassCount: number) => string | null;
   checkAndAddFood: () => string | null;
+  // 头像相关
+  switchAvatar: (avatarId: number) => void;
+  getAvatarProfile: (avatarId: number) => UserProfile | null;
 }
 
-const defaultProfile: UserProfile = {
-  avatarId: 1,
-  name: '星星',
-  intimacy: 60,
-  lastLoginDate: new Date().toISOString().split('T')[0],
-  todayIntimacyAdded: 0,
-  fullness: 60,
-  fullnessUsedToday: 0,
-  fullnessDate: '',
-  cleanliness: 60,
-  lastBathDate: new Date().toISOString().split('T')[0],
-  mood: 60,
-  moodUsedToday: 0,
-  moodDate: '',
-  toys: 0,
-  foods: 0,
-  totalGamePassed: 0,
+const createDefaultProfile = (avatarId: number): UserProfile => {
+  const avatar = STAR_AVATARS.find(a => a.id === avatarId) || STAR_AVATARS[0];
+  const today = new Date().toISOString().split('T')[0];
+  return {
+    avatarId,
+    name: avatar.name,
+    intimacy: 60,
+    lastLoginDate: today,
+    todayIntimacyAdded: 0,
+    fullness: 60,
+    fullnessUsedToday: 0,
+    fullnessDate: today,
+    cleanliness: 60,
+    lastBathDate: today,
+    mood: 60,
+    moodUsedToday: 0,
+    moodDate: today,
+    toys: 0,
+    foods: 0,
+    totalGamePassed: 0,
+  };
+};
+
+// 加载指定头像的数据
+const loadProfile = (avatarId: number): UserProfile => {
+  try {
+    const storageKey = getProfileKey(avatarId);
+    const saved = localStorage.getItem(storageKey);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      const today = new Date().toISOString().split('T')[0];
+      
+      // 检查并迁移旧数据（intimacy > 60 是旧数据特征）
+      if (parsed.intimacy > 60) {
+        const migrated = createDefaultProfile(avatarId);
+        migrated.toys = parsed.toys ?? 0;
+        migrated.foods = parsed.foods ?? 0;
+        localStorage.setItem(storageKey, JSON.stringify(migrated));
+        return migrated;
+      }
+      
+      // 新一天重置每日计数
+      const lastLogin = parsed.lastLoginDate || today;
+      return {
+        ...createDefaultProfile(avatarId),
+        ...parsed,
+        lastLoginDate: today,
+        todayIntimacyAdded: lastLogin === today ? (parsed.todayIntimacyAdded || 0) : 0,
+        fullnessUsedToday: parsed.fullnessDate === today ? (parsed.fullnessUsedToday || 0) : 0,
+        fullnessDate: parsed.fullnessDate || today,
+        lastBathDate: parsed.lastBathDate || today,
+        moodUsedToday: parsed.moodDate === today ? (parsed.moodUsedToday || 0) : 0,
+        moodDate: parsed.moodDate || today,
+        totalGamePassed: parsed.totalGamePassed || 0,
+      };
+    }
+  } catch (e) {
+    console.error('Failed to load profile:', e);
+  }
+  return createDefaultProfile(avatarId);
+};
+
+// 保存数据到指定头像
+const saveProfile = (profile: UserProfile) => {
+  const storageKey = getProfileKey(profile.avatarId);
+  localStorage.setItem(storageKey, JSON.stringify(profile));
 };
 
 const UserContext = createContext<UserContextType>({
-  profile: defaultProfile,
+  profile: createDefaultProfile(1),
   avatar: STAR_AVATARS[0],
   updateProfile: () => {},
   incrementIntimacy: () => {},
@@ -103,6 +159,8 @@ const UserContext = createContext<UserContextType>({
   addFood: () => null,
   checkAndAddToy: () => null,
   checkAndAddFood: () => null,
+  switchAvatar: () => {},
+  getAvatarProfile: () => null,
 });
 
 export const useUser = () => useContext(UserContext);
@@ -124,272 +182,159 @@ const getRandomFood = () => {
 };
 
 export const UserProvider = ({ children }: UserProviderProps) => {
-  const getInitialProfile = (): UserProfile => {
+  // 初始化当前头像 ID（从 localStorage 读取或默认为 1）
+  const [currentAvatarId, setCurrentAvatarId] = useState<number>(() => {
+    const saved = localStorage.getItem(CURRENT_AVATAR_KEY);
+    return saved ? parseInt(saved, 10) : 1;
+  });
+  
+  // 加载当前头像的数据
+  const [profile, setProfile] = useState<UserProfile>(() => loadProfile(currentAvatarId));
+  
+  // 获取当前头像信息
+  const avatar = STAR_AVATARS.find(a => a.id === profile.avatarId) || STAR_AVATARS[0];
+  
+  // 切换头像
+  const switchAvatar = useCallback((avatarId: number) => {
+    // 先保存当前数据
+    saveProfile(profile);
+    
+    // 更新当前头像 ID
+    setCurrentAvatarId(avatarId);
+    localStorage.setItem(CURRENT_AVATAR_KEY, avatarId.toString());
+    
+    // 加载新头像数据
+    const newProfile = loadProfile(avatarId);
+    setProfile(newProfile);
+  }, [profile]);
+  
+  // 获取指定头像的数据（用于预览等）
+  const getAvatarProfile = useCallback((avatarId: number): UserProfile | null => {
     try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        const today = new Date().toISOString().split('T')[0];
-        
-        // 如果 intimacy 大于60，说明是旧数据，需要重置为60
-        if (parsed.intimacy > 60) {
-          const migrated: UserProfile = {
-            ...defaultProfile,
-            avatarId: parsed.avatarId ?? 1,
-            name: parsed.name ?? '星星',
-            intimacy: 60,
-            lastLoginDate: today,
-            todayIntimacyAdded: 0,
-            fullness: 60, // 重置为60
-            fullnessUsedToday: 0,
-            fullnessDate: today,
-            cleanliness: 60, // 重置为60
-            lastBathDate: today,
-            mood: 60, // 重置为60
-            moodUsedToday: 0,
-            moodDate: today,
-            toys: parsed.toys ?? 0,
-            foods: parsed.foods ?? 0,
-            totalGamePassed: 0,
-          };
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(migrated));
-          return migrated;
-        }
-        
-        // 新数据格式，确保有所有字段，并检查日期重置每日使用次数
-        const lastLogin = parsed.lastLoginDate || today;
-        
-        return {
-          ...defaultProfile,
-          ...parsed,
-          lastLoginDate: today,
-          // 如果是新的一天，重置每日亲密度使用次数
-          todayIntimacyAdded: lastLogin === today ? (parsed.todayIntimacyAdded || 0) : 0,
-          // 如果是新的一天，重置每日使用次数
-          fullnessUsedToday: parsed.fullnessDate === today ? (parsed.fullnessUsedToday || 0) : 0,
-          fullnessDate: parsed.fullnessDate || today,
-          lastBathDate: parsed.lastBathDate || today,
-          // 如果是新的一天，重置每日使用次数
-          moodUsedToday: parsed.moodDate === today ? (parsed.moodUsedToday || 0) : 0,
-          moodDate: parsed.moodDate || today,
-          totalGamePassed: parsed.totalGamePassed || 0,
-        };
-      }
-    } catch (e) {
-      console.error('Failed to load profile:', e);
-    }
-    return defaultProfile;
-  };
-  
-  const [profile, setProfile] = useState<UserProfile>(getInitialProfile);
-  
-  // 初始化后检查并纠正旧数据
-  useEffect(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      const today = new Date().toISOString().split('T')[0];
-      
-      // 检查是否需要重置（确保新用户有道具）
-      const needsReset = parsed.intimacy > 60 || 
-                         (parsed.toys === 0 && parsed.foods === 0) ||
-                         !parsed.fullnessUsedToday;
-      
-      if (needsReset) {
-        const corrected = { 
-          ...parsed, 
-          intimacy: 60,
-          lastLoginDate: today,
-          todayIntimacyAdded: 0,
-          fullness: 60,
-          fullnessUsedToday: 0,
-          fullnessDate: today,
-          cleanliness: 60,
-          lastBathDate: today,
-          mood: 60,
-          moodUsedToday: 0,
-          moodDate: today,
-          toys: 0,
-          foods: 0,
-          totalGamePassed: 0,
-        };
-        setProfile(corrected);
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(corrected));
-      } else {
-        // 检查是否跨天，重置每日计数
-        const lastLogin = parsed.lastLoginDate || today;
-        
-        if (lastLogin !== today) {
-          const corrected = {
-            ...parsed,
-            lastLoginDate: today,
-            todayIntimacyAdded: 0,
-            fullnessUsedToday: parsed.fullnessDate === today ? (parsed.fullnessUsedToday || 0) : 0,
-            fullnessDate: parsed.fullnessDate || today,
-            moodUsedToday: parsed.moodDate === today ? (parsed.moodUsedToday || 0) : 0,
-            moodDate: parsed.moodDate || today,
-          };
-          setProfile(corrected);
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(corrected));
-        }
-      }
+      const storageKey = getProfileKey(avatarId);
+      const saved = localStorage.getItem(storageKey);
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
     }
   }, []);
-
-  const avatar = STAR_AVATARS.find(a => a.id === profile.avatarId) || STAR_AVATARS[0];
-
-  const updateProfile = (newProfile: Partial<UserProfile>) => {
-    const updated = { ...profile, ...newProfile };
-    setProfile(updated);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-  };
-
-  // 增加亲密度 - 上限100，每天最多+10
-  const incrementIntimacy = () => {
+  
+  // 持久化保存
+  useEffect(() => {
+    saveProfile(profile);
+  }, [profile]);
+  
+  // 更新数据
+  const updateProfile = useCallback((updates: Partial<UserProfile>) => {
+    setProfile(prev => ({ ...prev, ...updates }));
+  }, []);
+  
+  // 增加亲密度
+  const incrementIntimacy = useCallback(() => {
     const today = new Date().toISOString().split('T')[0];
-    
-    // 如果亲密度已满，不再增加
-    if (profile.intimacy >= 100) return;
-    
-    // 获取今天的实际使用次数（跨天重置）
-    const todayUsed = profile.lastLoginDate === today ? profile.todayIntimacyAdded : 0;
-    
-    // 如果今天已增加10次，不再增加
-    if (todayUsed >= 10) return;
-    
-    updateProfile({ 
-      intimacy: Math.min(profile.intimacy + 1, 100),
-      todayIntimacyAdded: todayUsed + 1,
-      lastLoginDate: today
+    setProfile(prev => {
+      if (prev.todayIntimacyAdded >= 5) return prev;
+      return {
+        ...prev,
+        intimacy: Math.min(100, prev.intimacy + 1),
+        todayIntimacyAdded: prev.todayIntimacyAdded + 1,
+        lastLoginDate: today,
+      };
     });
-  };
-
-  // 使用食物道具 - 每天最多使用3次，每次+4饱腹值
-  const useFood = () => {
-    const today = new Date().toISOString().split('T')[0];
-    
-    // 检查是否有食物道具
-    if (profile.foods <= 0) return false;
-    // 检查饱腹值是否已满
-    if (profile.fullness >= 100) return false;
-    // 检查今天是否已用完3次
-    if (profile.fullnessDate === today && profile.fullnessUsedToday >= 3) return false;
-    
-    // 检查是否跨天，重置计数
-    const usedToday = profile.fullnessDate === today ? profile.fullnessUsedToday : 0;
-    
-    updateProfile({
-      foods: profile.foods - 1,
-      fullness: Math.min(profile.fullness + 4, 100),
-      fullnessUsedToday: usedToday + 1,
-      fullnessDate: today
+  }, []);
+  
+  // 使用食物
+  const useFood = useCallback(() => {
+    setProfile(prev => {
+      if (prev.fullnessUsedToday >= 3) return prev;
+      const today = new Date().toISOString().split('T')[0];
+      return {
+        ...prev,
+        fullness: Math.min(100, prev.fullness + 20),
+        fullnessUsedToday: prev.fullnessUsedToday + 1,
+        fullnessDate: today,
+      };
     });
     return true;
-  };
-
-  // 使用玩具道具 - 每天最多使用3次，每次+4心情值
-  const useToy = () => {
-    const today = new Date().toISOString().split('T')[0];
-    
-    // 检查是否有玩具道具
-    if (profile.toys <= 0) return false;
-    // 检查心情值是否已满
-    if (profile.mood >= 100) return false;
-    // 检查今天是否已用完3次
-    if (profile.moodDate === today && profile.moodUsedToday >= 3) return false;
-    
-    // 检查是否跨天，重置计数
-    const usedToday = profile.moodDate === today ? profile.moodUsedToday : 0;
-    
-    updateProfile({
-      toys: profile.toys - 1,
-      mood: Math.min(profile.mood + 4, 100),
-      moodUsedToday: usedToday + 1,
-      moodDate: today
+  }, []);
+  
+  // 使用玩具
+  const useToy = useCallback(() => {
+    setProfile(prev => {
+      if (prev.moodUsedToday >= 3) return prev;
+      const today = new Date().toISOString().split('T')[0];
+      return {
+        ...prev,
+        mood: Math.min(100, prev.mood + 20),
+        moodUsedToday: prev.moodUsedToday + 1,
+        moodDate: today,
+      };
     });
     return true;
-  };
-
+  }, []);
+  
   // 洗澡
-  const takeBath = () => {
-    if (profile.cleanliness >= 100) return;
-    updateProfile({
-      cleanliness: Math.min(profile.cleanliness + 5, 100),
-      lastBathDate: new Date().toISOString().split('T')[0]
-    });
-  };
-
-  // 增加食物（通关奖励）- 返回获得的食物表情
-  const addFood = (): string | null => {
-    const food = getRandomFood();
-    updateProfile({ foods: profile.foods + 1 });
-    return food.emoji;
-  };
-
-  // 检查并增加玩具 - 根据累计通关次数判断
-  // 条件：3题获得第一个，7题获得第二个，全部通关(13题)获得第三个
-  const checkAndAddToy = (currentPassCount: number): string | null => {
-    const prevTotal = profile.totalGamePassed;
-    const thresholds = [3, 7, 13]; // 获得玩具的门槛
-    const toyCount = profile.toys;
-    
-    // 如果已经有3个玩具，不再获得
-    if (toyCount >= 3) return null;
-    
-    // 检查是否达到新的门槛
-    let newThreshold = null;
-    for (let i = toyCount; i < thresholds.length; i++) {
-      if (currentPassCount >= thresholds[i] && prevTotal < thresholds[i]) {
-        newThreshold = thresholds[i];
-        break;
-      }
-    }
-    
-    if (newThreshold !== null) {
-      const toy = getRandomToy();
-      updateProfile({ 
-        toys: profile.toys + 1,
-        totalGamePassed: currentPassCount
-      });
-      return toy.emoji;
-    }
-    
-    // 更新累计通关次数
-    if (currentPassCount > prevTotal) {
-      updateProfile({ totalGamePassed: currentPassCount });
-    }
-    
-    return null;
-  };
-
-  // 增加玩具（旧方法，保留兼容性）
-  const addToy = (): string | null => {
+  const takeBath = useCallback(() => {
+    const today = new Date().toISOString().split('T')[0];
+    setProfile(prev => ({
+      ...prev,
+      cleanliness: 100,
+      lastBathDate: today,
+    }));
+  }, []);
+  
+  // 添加玩具
+  const addToy = useCallback(() => {
     const toy = getRandomToy();
-    updateProfile({ toys: profile.toys + 1 });
+    setProfile(prev => ({
+      ...prev,
+      toys: prev.toys + 1,
+    }));
     return toy.emoji;
-  };
-
-  // 检查并增加食物（绘本通关奖励）
-  const checkAndAddFood = (): string | null => {
+  }, []);
+  
+  // 添加食物
+  const addFood = useCallback(() => {
     const food = getRandomFood();
-    updateProfile({ foods: profile.foods + 1 });
+    setProfile(prev => ({
+      ...prev,
+      foods: prev.foods + 1,
+    }));
     return food.emoji;
-  };
-
+  }, []);
+  
+  // 检查并添加玩具（趣味闯关用）
+  const checkAndAddToy = useCallback((currentPassCount: number): string | null => {
+    const PASSES_NEEDED = 4;
+    if (currentPassCount > 0 && currentPassCount % PASSES_NEEDED === 0) {
+      return addToy();
+    }
+    return null;
+  }, [addToy]);
+  
+  // 检查并添加食物（绘本闯关用）
+  const checkAndAddFood = useCallback((): string | null => {
+    return addFood();
+  }, [addFood]);
+  
   return (
-    <UserContext.Provider value={{ 
-      profile, 
-      avatar, 
-      updateProfile, 
-      incrementIntimacy,
-      useFood,
-      useToy,
-      takeBath,
-      addToy,
-      addFood,
-      checkAndAddToy,
-      checkAndAddFood
-    }}>
+    <UserContext.Provider
+      value={{
+        profile,
+        avatar,
+        updateProfile,
+        incrementIntimacy,
+        useFood,
+        useToy,
+        takeBath,
+        addToy,
+        addFood,
+        checkAndAddToy,
+        checkAndAddFood,
+        switchAvatar,
+        getAvatarProfile,
+      }}
+    >
       {children}
     </UserContext.Provider>
   );
