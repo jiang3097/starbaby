@@ -116,6 +116,8 @@ const loadProfile = (avatarId: number): UserProfile => {
         const migrated = createDefaultProfile(avatarId);
         migrated.toys = parsed.toys ?? 0;
         migrated.foods = parsed.foods ?? 0;
+        // 保留用户自定义的名字
+        migrated.name = parsed.name || migrated.name;
         localStorage.setItem(storageKey, JSON.stringify(migrated));
         return migrated;
       }
