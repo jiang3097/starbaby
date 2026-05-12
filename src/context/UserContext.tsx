@@ -57,6 +57,7 @@ export interface UserProfile {
   // 道具
   toys: number;
   foods: number;
+  stars: number; // 星星数（绘本闯关获得）
   
   // 累计通关次数
   totalGamePassed: number;
@@ -98,6 +99,7 @@ const createDefaultProfile = (avatarId: number): UserProfile => {
     moodDate: today,
     toys: 0,
     foods: 0,
+    stars: 0,
     totalGamePassed: 0,
   };
 };
@@ -117,6 +119,7 @@ const loadProfile = (avatarId: number): UserProfile => {
         migrated.intimacy = parsed.intimacy ?? 60;
         migrated.toys = parsed.toys ?? 0;
         migrated.foods = parsed.foods ?? 0;
+        migrated.stars = parsed.stars ?? 0;
         migrated.fullness = parsed.fullness ?? 60;
         migrated.cleanliness = parsed.cleanliness ?? 60;
         migrated.mood = parsed.mood ?? 60;
@@ -152,6 +155,7 @@ const loadProfile = (avatarId: number): UserProfile => {
         moodDate: parsed.moodDate || today,
         toys: parsed.toys ?? 0,
         foods: parsed.foods ?? 0,
+        stars: parsed.stars ?? 0,
         totalGamePassed: parsed.totalGamePassed ?? 0,
       };
     }

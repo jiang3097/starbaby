@@ -148,7 +148,7 @@ const BOOKS_DATA: Record<number, {
 const BookInteraction = () => {
   const { bookId } = useParams<{ bookId: string }>();
   const navigate = useNavigate();
-  const { profile, avatar, addFood } = useUser();
+  const { profile, avatar, addFood, updateProfile } = useUser();
   const { startTraining, incrementExpression, incrementBookCompleted, incrementGamePass, dailyStats } = useApp();
   const hasStartedTraining = useRef(false);
   const hasGivenStarRef = useRef<Set<number>>(new Set()); // 防止重复奖励
@@ -319,6 +319,7 @@ const BookInteraction = () => {
           incrementBookCompleted();
           console.log('首次通过！增加星星');
           setEarnedStars(prev => prev + 1);
+          updateProfile({ stars: profile.stars + 1 }); // 保存星星到存储
           incrementGamePass(); // 实时更新通关次数
           try { speakText("太棒了！回答正确！获得一颗星星！"); } catch {}
         } else {
