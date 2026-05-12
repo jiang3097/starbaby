@@ -24,6 +24,7 @@ const Settings = () => {
   const [selectedMinutes, setSelectedMinutes] = useState(timeLimit.minutes);
   const [customMinutes, setCustomMinutes] = useState('');
   const [showCustomInput, setShowCustomInput] = useState(false);
+  const [showRechooseModal, setShowRechooseModal] = useState(false);
   
   // 修改密码状态
   const [currentPin, setCurrentPin] = useState('');
@@ -369,7 +370,7 @@ const Settings = () => {
               className="mt-6"
             >
               <button
-                onClick={() => navigate('/?rechoose=1')}
+                onClick={() => setShowRechooseModal(true)}
                 className="w-full p-5 bg-gradient-to-r from-amber-50 to-orange-50 rounded-[24px] shadow-md border-2 border-amber-200 flex items-center justify-center gap-3 hover:from-amber-100 hover:to-orange-100 transition-colors"
               >
                 <Sparkles size={22} className="text-amber-500" />
@@ -388,6 +389,64 @@ const Settings = () => {
               <p className="text-amber-300 text-xs mt-2">陪伴星宝健康成长 💕</p>
             </div>
           </div>
+
+          {/* 重新选择形象确认弹窗 */}
+          <AnimatePresence>
+            {showRechooseModal && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-6"
+                onClick={() => setShowRechooseModal(false)}
+              >
+                <motion.div
+                  initial={{ scale: 0.9, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  exit={{ scale: 0.9, opacity: 0 }}
+                  className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="text-center mb-6">
+                    <motion.div
+                      animate={{ 
+                        scale: [1, 1.1, 1],
+                        rotate: [0, 5, -5, 0]
+                      }}
+                      transition={{ duration: 0.5, repeat: Infinity }}
+                      className="text-5xl mb-4"
+                    >
+                      ⚠️
+                    </motion.div>
+                    <h3 className="text-xl font-bold text-slate-800 mb-2">更换星小宝形象</h3>
+                    <p className="text-slate-500 text-sm">
+                      更换形象时也会更新使用数据，是否确认更换？
+                    </p>
+                  </div>
+                  
+                  <div className="flex gap-3">
+                    <motion.button
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => setShowRechooseModal(false)}
+                      className="flex-1 py-3 rounded-full bg-slate-100 text-slate-600 font-bold"
+                    >
+                      放弃
+                    </motion.button>
+                    <motion.button
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => {
+                        setShowRechooseModal(false);
+                        navigate('/?rechoose=1');
+                      }}
+                      className="flex-1 py-3 rounded-full bg-gradient-to-r from-blue-400 to-purple-400 text-white font-bold"
+                    >
+                      继续
+                    </motion.button>
+                  </div>
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           <Navigation />
         </>
