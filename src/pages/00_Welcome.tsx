@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, ChevronRight, Edit3, User, RefreshCw } from 'lucide-react';
 import MobileShell from '../components/MobileShell';
@@ -9,7 +9,9 @@ import { STAR_AVATARS } from '../context/UserContext';
 
 const WelcomePage = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { profile: savedProfile, updateProfile, switchAvatar } = useUser();
+  const rechooseMode = searchParams.get('rechoose') === '1';
   const [selectedAvatar, setSelectedAvatar] = useState(STAR_AVATARS.find((a) => a.id === savedProfile.avatarId) || STAR_AVATARS[0]);
   const [nickname, setNickname] = useState(savedProfile.name || '');
   const [isEditing, setIsEditing] = useState(false);
@@ -20,9 +22,15 @@ const WelcomePage = () => {
 
   // 初始动画
   useEffect(() => {
-    const timer = setTimeout(() => setShowContent(true), 600);
+    const timer = setTimeout(() => {
+      setShowContent(true);
+      // 如果是重新选择模式，直接显示形象列表
+      if (rechooseMode) {
+        setShowAvatarList(true);
+      }
+    }, 600);
     return () => clearTimeout(timer);
-  }, []);
+  }, [rechooseMode]);
 
   const handleSelectAvatar = (avatar: typeof STAR_AVATARS[0]) => {
     setSelectedAvatar(avatar);

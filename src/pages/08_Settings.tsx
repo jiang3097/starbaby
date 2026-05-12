@@ -369,7 +369,7 @@ const Settings = () => {
               className="mt-6"
             >
               <button
-                onClick={() => navigate('/')}
+                onClick={() => navigate('/?rechoose=1')}
                 className="w-full p-5 bg-gradient-to-r from-amber-50 to-orange-50 rounded-[24px] shadow-md border-2 border-amber-200 flex items-center justify-center gap-3 hover:from-amber-100 hover:to-orange-100 transition-colors"
               >
                 <Sparkles size={22} className="text-amber-500" />
