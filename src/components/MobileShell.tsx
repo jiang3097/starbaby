@@ -11,7 +11,7 @@ const MobileShell: React.FC<MobileShellProps> = ({ children, className, showNav 
   return (
     <div className="flex items-center justify-center min-h-screen bg-slate-100 p-4 font-sans selection:bg-sky-100">
       <div className={cn(
-        "relative w-full max-w-[414px] h-[896px] bg-white rounded-[48px] shadow-2xl overflow-hidden border-[8px] border-slate-900 flex flex-col",
+        "relative w-full max-w-[414px] h-[100dvh] max-h-[100dvh] bg-white rounded-[48px] shadow-2xl overflow-hidden border-[8px] border-slate-900 flex flex-col",
         className
       )}>
         {/* Notch / Status Bar Area */}
