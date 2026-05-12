@@ -122,34 +122,6 @@ const BookList = () => {
           </div>
         </div>
 
-        {/* Stats Row */}
-        <div className="grid grid-cols-2 gap-4 mb-6">
-          <motion.div 
-            whileHover={{ scale: 1.02 }}
-            className="bg-gradient-to-br from-amber-100 to-yellow-100 p-4 rounded-3xl shadow-md border-2 border-amber-200 flex items-center gap-3"
-          >
-            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-amber-300 to-yellow-400 flex items-center justify-center shadow-md">
-              <Star size={24} className="text-white" fill="currentColor" />
-            </div>
-            <div>
-              <div className="text-2xl font-bold text-slate-800">{dailyStats.gamePassCount}</div>
-              <div className="text-xs text-amber-600 font-bold">获得星星</div>
-            </div>
-          </motion.div>
-          <motion.div 
-            whileHover={{ scale: 1.02 }}
-            className="bg-gradient-to-br from-emerald-100 to-teal-100 p-4 rounded-3xl shadow-md border-2 border-emerald-200 flex items-center gap-3"
-          >
-            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center shadow-md">
-              <CheckCircle2 size={24} className="text-white" />
-            </div>
-            <div>
-              <div className="text-2xl font-bold text-slate-800">{booksCompleted}/3</div>
-              <div className="text-xs text-emerald-600 font-bold">已通关</div>
-            </div>
-          </motion.div>
-        </div>
-
         {/* List */}
         <div className="space-y-5">
           {books.map((book, index) => (
