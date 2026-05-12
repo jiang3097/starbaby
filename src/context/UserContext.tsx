@@ -271,12 +271,14 @@ export const UserProvider = ({ children }: UserProviderProps) => {
   const useFood = useCallback(() => {
     setProfile(prev => {
       if (prev.fullnessUsedToday >= 3) return prev;
+      if (prev.foods <= 0) return prev;
       const today = new Date().toISOString().split('T')[0];
       return {
         ...prev,
         fullness: Math.min(100, prev.fullness + 20),
         fullnessUsedToday: prev.fullnessUsedToday + 1,
         fullnessDate: today,
+        foods: prev.foods - 1, // 使用后减一个
       };
     });
     return true;
@@ -286,12 +288,14 @@ export const UserProvider = ({ children }: UserProviderProps) => {
   const useToy = useCallback(() => {
     setProfile(prev => {
       if (prev.moodUsedToday >= 3) return prev;
+      if (prev.toys <= 0) return prev;
       const today = new Date().toISOString().split('T')[0];
       return {
         ...prev,
         mood: Math.min(100, prev.mood + 20),
         moodUsedToday: prev.moodUsedToday + 1,
         moodDate: today,
+        toys: prev.toys - 1, // 使用后减一个
       };
     });
     return true;
