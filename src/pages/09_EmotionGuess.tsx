@@ -377,7 +377,7 @@ const EmotionGuess = () => {
 
               {/* Question */}
               <div className="text-center px-4">
-                <h2 className="text-base font-bold text-slate-800">{question.question}</h2>
+                <h2 className="text-lg font-bold text-slate-800">{question.question}</h2>
               </div>
 
               {/* Options - 2x2 Grid */}
@@ -414,7 +414,7 @@ const EmotionGuess = () => {
                         !showResult && "hover:border-purple-300 hover:bg-purple-50"
                       )}
                     >
-                      <span className={cn("text-sm font-bold", textClass)}>
+                      <span className={cn("text-base font-bold", textClass)}>
                         {option.id}. {option.name}
                       </span>
                       
