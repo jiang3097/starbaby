@@ -4,7 +4,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, Mic, Volume2, Send, Square, Keyboard } from 'lucide-react';
 import MobileShell from '../components/MobileShell';
 import { cn } from '../lib/utils';
-import { speakText, stopSpeaking, isTTSAvailable, isSpeechRecognitionSupported, startListening, stopListening } from '../lib/useSpeech';
+import { speakText, stopSpeaking, isTTSAvailable, isSpeechRecognitionSupported } from '../lib/useSpeech';
+import { useSpeech } from '../lib/useSpeech';
 import { useUser } from '../context/UserContext';
 import { useApp } from '../context/AppContext';
 import { getAIReply } from '../lib/cozeChat';
@@ -19,6 +20,7 @@ const AIChat = () => {
   const navigate = useNavigate();
   const { profile, avatar, incrementIntimacy } = useUser();
   const { startTraining, incrementExpression, incrementChatMessage } = useApp();
+  const speech = useSpeech();
   const [messages, setMessages] = useState<Message[]>([
     { id: 1, type: 'bot', text: `你好呀！我是${profile.name}！今天心情怎么样？` },
   ]);
@@ -218,7 +220,7 @@ const AIChat = () => {
   const handleMicClick = async () => {
     if (isListening) {
       // 停止录音
-      stopListening();
+      speech.stopListening();
       setIsListening(false);
     } else {
       // 开始录音
@@ -226,11 +228,11 @@ const AIChat = () => {
       setTempTranscript('');
 
       try {
-        await startListening((text) => {
+        speech.startListening((text: string) => {
           setTempTranscript(text);
           setIsListening(false);
           handleSend(text);
-        }, (error) => {
+        }, (error: string) => {
           console.error('[AIChat] 语音识别错误:', error);
           setIsListening(false);
           setMicError('语音识别出错');

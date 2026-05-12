@@ -5,7 +5,8 @@ import { ChevronLeft, Volume2, Mic, Check, ArrowRight, Trophy, RefreshCw, Sparkl
 import MobileShell from '../components/MobileShell';
 import { Button } from '../components/ui/button';
 import { cn } from '../lib/utils';
-import { speakText, startListening, stopListening, stopSpeaking, isSpeechSupport } from '../lib/useSpeech';
+import { speakText, stopSpeaking } from '../lib/useSpeech';
+import { useSpeech } from '../lib/useSpeech';
 
 // 移除 emoji，只保留文字
 const removeEmoji = (text: string): string => {
@@ -149,6 +150,7 @@ const BookInteraction = () => {
   const { bookId } = useParams<{ bookId: string }>();
   const navigate = useNavigate();
   const { profile, avatar, addFood, updateProfile } = useUser();
+  const speech = useSpeech();
   const { startTraining, incrementExpression, incrementBookCompleted, incrementGamePass, dailyStats } = useApp();
   const hasStartedTraining = useRef(false);
   const hasGivenStarRef = useRef<Set<number>>(new Set()); // 防止重复奖励
@@ -247,7 +249,7 @@ const BookInteraction = () => {
     setIsCorrect(false);
     setShowResult(false);
     setEarnedStars(0); // 重置星星
-    stopListening();
+    speech.stopListening();
   }, []);
 
   // 开始阅读
@@ -272,12 +274,12 @@ const BookInteraction = () => {
     setPhase('answering');
     setIsListening(true);
     setUserAnswer('');
-    startListening((text) => {
+    speech.startListening((text: string) => {
       console.log('[Book] Recognition result:', text);
       setUserAnswer(text);
       // 识别完成后自动提交
       stopCurrentListening(text);
-    }, (error) => {
+    }, (error: string) => {
       console.error('[Book] 语音识别错误:', error);
       setIsListening(false);
     });
@@ -285,7 +287,7 @@ const BookInteraction = () => {
 
   // 停止录音并提交答案
   const stopCurrentListening = useCallback((recognizedText?: string) => {
-    stopListening();
+    speech.stopListening();
     setIsListening(false);
     
     // 如果有识别的文本，优先使用
