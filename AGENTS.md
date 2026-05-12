@@ -112,7 +112,7 @@ const reply = await getAIReply('你好');
 
 ## 语音功能
 
-基于 Web Speech API（浏览器）和 @capacitor-community/speech-recognition（Android）实现，支持多种声音包选择。
+基于 Web Speech API 实现，支持多种声音包选择。
 
 ### 核心模块
 - `src/lib/useSpeech.ts` - 语音工具（朗读、语音识别、跟读）
@@ -130,16 +130,10 @@ const reply = await getAIReply('你好');
    - 用户跟随朗读后，可点击"完成跟读"确认
 
 ### 技术实现
-#### 浏览器环境
 - SpeechRecognition API: 语音识别（Chrome/Safari/Edge 支持）
 - SpeechSynthesis API: 语音合成（TTS）
-- 先请求麦克风权限再启动识别
-
-#### Android APP 环境
-- `@capacitor-community/speech-recognition`: 原生语音识别插件
-- `@capacitor-community/text-to-speech`: 原生 TTS 插件
-- 使用 `isCapacitor()` 检测运行环境
-- 语音识别通过 `SpeechRecognition.start()` 返回 Promise 结果
+- 中文优先语音选择
+- 支持的回调: `onTranscript` 获取识别结果
 
 ## 绘本闯关功能
 - `src/pages/05_BookInteraction.tsx` - 绘本互动页面
