@@ -232,6 +232,9 @@ export const startListening = async (
   
   recognition.onerror = (event: any) => {
     console.error('[Speech] Error:', event.error, event);
+    if (isHandled) return;
+    isHandled = true;
+    
     isCurrentlyListening = false;
     if (recognitionTimeout) {
       clearTimeout(recognitionTimeout);
@@ -251,8 +254,14 @@ export const startListening = async (
     }
   };
   
+  // 标志位，防止重复处理
+  let isHandled = false;
+  
   recognition.onend = () => {
-    console.log('[Speech] Ended, hasResult:', hasResult, 'final:', finalText);
+    console.log('[Speech] Ended, hasResult:', hasResult, 'final:', finalText, 'isHandled:', isHandled);
+    if (isHandled) return;
+    isHandled = true;
+    
     isCurrentlyListening = false;
     if (recognitionTimeout) {
       clearTimeout(recognitionTimeout);
@@ -262,7 +271,6 @@ export const startListening = async (
     if (hasResult && finalText.trim()) {
       onResult(finalText.trim());
     }
-    // 没有结果时不调用 onError，用户可以重新点击开始录音
   };
   
   try {
