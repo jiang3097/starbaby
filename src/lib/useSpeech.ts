@@ -69,15 +69,10 @@ export const speakText = async (text: string): Promise<void> => {
   // 优先用 Capacitor 原生 TTS
   if (isCapacitor()) {
     try {
-      await SpeechRecognition.requestPermissions();
-    } catch (e) {
-      console.log("Permission request skipped");
-    }
-    try {
       await speakWithCapacitor(cleanText);
       return;
     } catch (e) {
-      console.warn('[TTS] Capacitor TTS 失败，尝试浏览器:', e);
+      console.warn('[TTS] Capacitor TTS 失败:', e);
     }
   }
   
@@ -93,11 +88,6 @@ export const speakText = async (text: string): Promise<void> => {
 // 停止
 export const stopSpeaking = async (): Promise<void> => {
   if (isCapacitor()) {
-    try {
-      await SpeechRecognition.requestPermissions();
-    } catch (e) {
-      console.log("Permission request skipped");
-    }
     await stopCapacitor();
   } else if (isBrowserTTS()) {
     window.speechSynthesis.cancel();
@@ -110,34 +100,60 @@ export const isTTSAvailable = () => isCapacitor() || isBrowserTTS();
 // ==================== 语音识别 ====================
 import { SpeechRecognition } from '@capacitor-community/speech-recognition';
 
-// 请求麦克风权限
-const requestMicrophonePermission = async (): Promise<boolean> => {
-  if (isCapacitor()) {
-    try {
-      await SpeechRecognition.requestPermissions();
-    } catch (e) {
-      console.log("Permission request skipped");
-    }
-    // Capacitor 插件会自动请求权限，这里直接返回 true
-    return true;
-  }
-  return true;
-};
-
 // 检测语音识别支持
 export const isSpeechRecognitionSupported = (): boolean => {
-  if (typeof window !== 'undefined' && !isCapacitor()) {
-    return 'SpeechRecognition' in window || 'webkitSpeechRecognition' in window;
+  if (isCapacitor()) {
+    return true;
   }
-  return true;
+  return 'SpeechRecognition' in window || 'webkitSpeechRecognition' in window;
 };
 
 let webRecognition: any = null;
+let recognitionTimeout: any = null;
 
 export const startListening = async (
   onResult: (text: string) => void,
   onError?: (error: string) => void
 ): Promise<void> => {
+  // 清除之前的超时
+  if (recognitionTimeout) {
+    clearTimeout(recognitionTimeout);
+    recognitionTimeout = null;
+  }
+  
+  // Capacitor 环境使用原生插件
+  if (isCapacitor()) {
+    try {
+      try {
+        await SpeechRecognition.requestPermissions();
+      } catch (e) {
+        console.log('Permission request skipped');
+      }
+      
+      const result = await SpeechRecognition.start({
+        language: 'zh-CN',
+        maxResults: 1,
+        popup: true,
+      });
+      
+      console.log('Recognition result:', result);
+      if (result.matches && result.matches.length > 0) {
+        onResult(result.matches[0]);
+      } else {
+        onError?.('未识别到语音');
+      }
+      
+    } catch (e: any) {
+      console.error('Capacitor speech start error:', e);
+      if (e?.message?.includes('cancel') || e?.message?.includes('用户取消')) {
+        onError?.('用户取消');
+      } else {
+        onError?.(e?.message || '启动失败');
+      }
+    }
+    return;
+  }
+  
   // 浏览器环境使用 Web Speech API
   const SpeechRecognitionAPI = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
   if (!SpeechRecognitionAPI) {
@@ -145,15 +161,13 @@ export const startListening = async (
     return;
   }
   
-  // 先请求麦克风权限
-  try {
-    const stream = await navigator.mediaDevices?.getUserMedia({ audio: true });
-    if (stream) {
-      stream.getTracks().forEach((track: any) => track.stop());
-    }
-  } catch (e) {
-    onError?.('请允许使用麦克风');
-    return;
+  // 如果已经在识别，先停止
+  if (webRecognition) {
+    try {
+      webRecognition.onend = null;
+      webRecognition.abort();
+    } catch {}
+    webRecognition = null;
   }
   
   // 创建识别实例
@@ -163,53 +177,100 @@ export const startListening = async (
   recognition.lang = 'zh-CN';
   
   let finalText = '';
+  let hasResult = false;
+  
+  recognition.onstart = () => {
+    console.log('[Speech] Started');
+    // 设置10秒超时
+    recognitionTimeout = setTimeout(() => {
+      if (!hasResult) {
+        console.log('[Speech] Timeout');
+        try {
+          recognition.stop();
+        } catch {}
+      }
+    }, 10000);
+  };
   
   recognition.onresult = (event: any) => {
+    console.log('[Speech] Result:', event);
     for (let i = event.resultIndex; i < event.results.length; i++) {
+      const transcript = event.results[i][0].transcript;
       if (event.results[i].isFinal) {
-        finalText += event.results[i][0].transcript;
+        finalText += transcript;
+        hasResult = true;
       }
+    }
+    // 如果有最终结果，停止识别
+    if (hasResult) {
+      console.log('[Speech] Final:', finalText);
+      if (recognitionTimeout) {
+        clearTimeout(recognitionTimeout);
+        recognitionTimeout = null;
+      }
+      try {
+        recognition.stop();
+      } catch {}
     }
   };
   
   recognition.onerror = (event: any) => {
+    console.error('[Speech] Error:', event.error);
+    if (recognitionTimeout) {
+      clearTimeout(recognitionTimeout);
+      recognitionTimeout = null;
+    }
     if (event.error === 'no-speech') {
-      onError?.('未识别到语音');
-    } else if (event.error === 'not-allowed') {
+      onError?.('未识别到语音，请再说一遍');
+    } else if (event.error === 'not-allowed' || event.error === 'permission-denied') {
       onError?.('请允许使用麦克风');
+    } else if (event.error === 'network') {
+      onError?.('网络错误，请检查网络');
+    } else if (event.error === 'aborted') {
+      // 忽略
     } else {
-      onError?.(event.error || '语音识别出错');
+      onError?.('语音识别出错');
     }
   };
   
   recognition.onend = () => {
-    if (finalText) {
-      onResult(finalText);
+    console.log('[Speech] Ended, final:', finalText);
+    if (recognitionTimeout) {
+      clearTimeout(recognitionTimeout);
+      recognitionTimeout = null;
+    }
+    if (hasResult && finalText.trim()) {
+      onResult(finalText.trim());
     } else {
-      onError?.('未识别到语音');
+      onError?.('未识别到语音，请再说一遍');
     }
   };
   
   try {
     recognition.start();
-  } catch (e) {
+    webRecognition = recognition;
+  } catch (e: any) {
+    console.error('[Speech] Start failed:', e);
     onError?.('启动失败');
   }
 };
 
 export const stopListening = async (): Promise<void> => {
+  if (recognitionTimeout) {
+    clearTimeout(recognitionTimeout);
+    recognitionTimeout = null;
+  }
   if (isCapacitor()) {
     try {
-      await SpeechRecognition.requestPermissions();
-    } catch (e) {
-      console.log("Permission request skipped");
-    }
-    try {
       await SpeechRecognition.stop();
-    } catch {}
+    } catch (e) {
+      console.log('Stop error:', e);
+    }
   } else if (webRecognition) {
     try {
-      webRecognition.stop();
+      webRecognition.onend = null;
+      webRecognition.abort();
     } catch {}
+    webRecognition = null;
   }
 };
