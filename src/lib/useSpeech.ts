@@ -138,103 +138,63 @@ export const startListening = async (
   onResult: (text: string) => void,
   onError?: (error: string) => void
 ): Promise<void> => {
-  // Capacitor 环境先请求权限
-  if (isCapacitor()) {
-    try {
-      await SpeechRecognition.requestPermissions();
-    } catch (e) {
-      console.log("Permission request skipped");
-    }
-    const hasPermission = await requestMicrophonePermission();
-    if (!hasPermission) {
-      onError?.('请在设置中允许使用麦克风');
-      return;
-    }
-    
-    try {
-      const result = await SpeechRecognition.start({
-        language: 'zh-CN'
-      });
-      
-      if (result.matches && result.matches.length > 0) {
-        onResult(result.matches[0]);
-      }
-      return;
-    } catch (e: any) {
-      onError?.(e.message || '语音识别失败');
-      throw e;
-    }
+  // 浏览器环境使用 Web Speech API
+  const SpeechRecognitionAPI = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+  if (!SpeechRecognitionAPI) {
+    onError?.('浏览器不支持语音识别');
+    return;
   }
   
-  // 浏览器环境使用 Web Speech API
-  return new Promise<void>(async (resolve, reject) => {
-    const SpeechRecognitionAPI = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SpeechRecognitionAPI) {
-      const err = '不支持语音识别';
-      onError?.(err);
-      reject(new Error(err));
-      return;
+  // 先请求麦克风权限
+  try {
+    const stream = await navigator.mediaDevices?.getUserMedia({ audio: true });
+    if (stream) {
+      stream.getTracks().forEach((track: any) => track.stop());
     }
-    
-    if (!webRecognition) {
-      webRecognition = new SpeechRecognitionAPI();
-      webRecognition.continuous = false;
-      webRecognition.interimResults = true;
-      webRecognition.lang = 'zh-CN';
+  } catch (e) {
+    onError?.('请允许使用麦克风');
+    return;
+  }
+  
+  // 创建识别实例
+  const recognition = new SpeechRecognitionAPI();
+  recognition.continuous = false;
+  recognition.interimResults = true;
+  recognition.lang = 'zh-CN';
+  
+  let finalText = '';
+  
+  recognition.onresult = (event: any) => {
+    for (let i = event.resultIndex; i < event.results.length; i++) {
+      if (event.results[i].isFinal) {
+        finalText += event.results[i][0].transcript;
+      }
     }
-    
-    let finalText = '';
-    
-    webRecognition.onresult = (event: any) => {
-      for (let i = event.resultIndex; i < event.results.length; i++) {
-        if (event.results[i].isFinal) {
-          finalText += event.results[i][0].transcript;
-        }
-      }
-    };
-    
-    webRecognition.onerror = (event: any) => {
-      onError?.(event.error || '错误');
-      reject(new Error(event.error));
-    };
-    
-    webRecognition.onend = () => {
-      if (finalText) {
-        onResult(finalText);
-        resolve();
-      } else {
-        onError?.('未识别到语音');
-        reject(new Error('no-speech'));
-      }
-    };
-    
-    // 浏览器环境先请求麦克风权限
-    let micPermissionGranted = false;
-    try {
-      const stream = await navigator.mediaDevices?.getUserMedia({ audio: true });
-      if (stream) {
-        stream.getTracks().forEach((track: any) => track.stop());
-        micPermissionGranted = true;
-      }
-    } catch (e) {
+  };
+  
+  recognition.onerror = (event: any) => {
+    if (event.error === 'no-speech') {
+      onError?.('未识别到语音');
+    } else if (event.error === 'not-allowed') {
       onError?.('请允许使用麦克风');
-      reject(new Error('permission-denied'));
-      return;
+    } else {
+      onError?.(event.error || '语音识别出错');
     }
-    
-    if (!micPermissionGranted) {
-      onError?.('请允许使用麦克风');
-      reject(new Error('permission-denied'));
-      return;
+  };
+  
+  recognition.onend = () => {
+    if (finalText) {
+      onResult(finalText);
+    } else {
+      onError?.('未识别到语音');
     }
-    
-    try {
-      webRecognition.start();
-    } catch (e) {
-      onError?.('启动失败');
-      reject(e);
-    }
-  });
+  };
+  
+  try {
+    recognition.start();
+  } catch (e) {
+    onError?.('启动失败');
+  }
 };
 
 export const stopListening = async (): Promise<void> => {
