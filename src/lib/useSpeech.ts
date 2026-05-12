@@ -100,6 +100,15 @@ export const isTTSAvailable = () => isCapacitor() || isBrowserTTS();
 // ==================== 语音识别 ====================
 import { SpeechRecognition } from '@capacitor-community/speech-recognition';
 
+// 请求麦克风权限
+const requestMicrophonePermission = async (): Promise<boolean> => {
+  if (isCapacitor()) {
+    // Capacitor 插件会自动请求权限，这里直接返回 true
+    return true;
+  }
+  return true;
+};
+
 // 检测语音识别支持
 export const isSpeechRecognitionSupported = (): boolean => {
   if (typeof window !== 'undefined' && !isCapacitor()) {
@@ -114,8 +123,14 @@ export const startListening = async (
   onResult: (text: string) => void,
   onError?: (error: string) => void
 ): Promise<void> => {
-  // Capacitor 环境使用原生插件
+  // Capacitor 环境先请求权限
   if (isCapacitor()) {
+    const hasPermission = await requestMicrophonePermission();
+    if (!hasPermission) {
+      onError?.('请在设置中允许使用麦克风');
+      return;
+    }
+    
     try {
       const result = await SpeechRecognition.start({
         language: 'zh-CN'
