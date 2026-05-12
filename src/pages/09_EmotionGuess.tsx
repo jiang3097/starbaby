@@ -318,9 +318,9 @@ const EmotionGuess = () => {
             <div className="px-4 pt-3 pb-3 flex items-center justify-between">
               <button
                 onClick={() => navigate('/training')}
-                className="w-12 h-12 bg-white rounded-full flex items-center justify-center text-slate-400 shadow-sm"
+                className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-slate-400 shadow-sm"
               >
-                <ChevronLeft size={28} />
+                <ChevronLeft size={24} />
               </button>
               <div className="flex flex-col items-center">
                 <span className="text-sm font-bold text-purple-600">表情猜猜看</span>
@@ -333,13 +333,13 @@ const EmotionGuess = () => {
                 onClick={handleSkip}
                 className="w-12 h-12 bg-white rounded-full flex items-center justify-center text-slate-400 shadow-sm hover:bg-purple-50 hover:text-purple-500 transition-colors"
               >
-                <SkipForward size={22} />
+                <SkipForward size={20} />
               </button>
             </div>
 
             {/* Progress bar */}
-            <div className="px-4 mb-3">
-              <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+            <div className="px-4">
+              <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
                 <motion.div
                   initial={{ width: 0 }}
                   animate={{ width: `${((currentQuestion + 1) / questions.length) * 100}%` }}
@@ -349,7 +349,7 @@ const EmotionGuess = () => {
             </div>
 
             {/* Game Area */}
-            <div className="flex-1 p-4 flex flex-col items-center justify-center gap-4">
+            <div className="flex-1 px-4 pb-4 flex flex-col items-center justify-center gap-3">
               {/* 难度标签 */}
               <div className={cn(
                 "px-4 py-1.5 rounded-full text-sm font-bold",
@@ -366,7 +366,7 @@ const EmotionGuess = () => {
                 initial={{ scale: 0.8, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ type: 'spring', damping: 15 }}
-                className="w-full max-w-xs aspect-square rounded-2xl overflow-hidden shadow-2xl border-4 border-white bg-slate-100 flex items-center justify-center"
+                className="w-48 h-48 rounded-xl overflow-hidden shadow-xl border-2 border-white bg-slate-100 flex items-center justify-center"
               >
                 <img
                   src={question.image}
@@ -377,7 +377,7 @@ const EmotionGuess = () => {
 
               {/* Question */}
               <div className="text-center px-4">
-                <h2 className="text-xl font-bold text-slate-800">{question.question}</h2>
+                <h2 className="text-base font-bold text-slate-800">{question.question}</h2>
               </div>
 
               {/* Options - 2x2 Grid */}
@@ -409,12 +409,12 @@ const EmotionGuess = () => {
                       onClick={() => handleSelect(option.id)}
                       disabled={showResult}
                       className={cn(
-                        "relative p-3 rounded-xl transition-all text-center",
+                        "relative p-2 rounded-lg transition-all text-center",
                         bgClass,
                         !showResult && "hover:border-purple-300 hover:bg-purple-50"
                       )}
                     >
-                      <span className={cn("text-lg font-bold", textClass)}>
+                      <span className={cn("text-sm font-bold", textClass)}>
                         {option.id}. {option.name}
                       </span>
                       
