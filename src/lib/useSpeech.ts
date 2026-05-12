@@ -69,6 +69,11 @@ export const speakText = async (text: string): Promise<void> => {
   // 优先用 Capacitor 原生 TTS
   if (isCapacitor()) {
     try {
+      await SpeechRecognition.requestPermissions();
+    } catch (e) {
+      console.log("Permission request skipped");
+    }
+    try {
       await speakWithCapacitor(cleanText);
       return;
     } catch (e) {
@@ -88,6 +93,11 @@ export const speakText = async (text: string): Promise<void> => {
 // 停止
 export const stopSpeaking = async (): Promise<void> => {
   if (isCapacitor()) {
+    try {
+      await SpeechRecognition.requestPermissions();
+    } catch (e) {
+      console.log("Permission request skipped");
+    }
     await stopCapacitor();
   } else if (isBrowserTTS()) {
     window.speechSynthesis.cancel();
@@ -103,6 +113,11 @@ import { SpeechRecognition } from '@capacitor-community/speech-recognition';
 // 请求麦克风权限
 const requestMicrophonePermission = async (): Promise<boolean> => {
   if (isCapacitor()) {
+    try {
+      await SpeechRecognition.requestPermissions();
+    } catch (e) {
+      console.log("Permission request skipped");
+    }
     // Capacitor 插件会自动请求权限，这里直接返回 true
     return true;
   }
@@ -125,6 +140,11 @@ export const startListening = async (
 ): Promise<void> => {
   // Capacitor 环境先请求权限
   if (isCapacitor()) {
+    try {
+      await SpeechRecognition.requestPermissions();
+    } catch (e) {
+      console.log("Permission request skipped");
+    }
     const hasPermission = await requestMicrophonePermission();
     if (!hasPermission) {
       onError?.('请在设置中允许使用麦克风');
@@ -199,6 +219,11 @@ export const startListening = async (
 
 export const stopListening = async (): Promise<void> => {
   if (isCapacitor()) {
+    try {
+      await SpeechRecognition.requestPermissions();
+    } catch (e) {
+      console.log("Permission request skipped");
+    }
     try {
       await SpeechRecognition.stop();
     } catch {}
