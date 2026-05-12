@@ -225,20 +225,21 @@ export const startListening = async (
   };
   
   recognition.onerror = (event: any) => {
-    console.error('[Speech] Error:', event.error);
+    console.error('[Speech] Error:', event.error, event);
     isCurrentlyListening = false;
     if (recognitionTimeout) {
       clearTimeout(recognitionTimeout);
       recognitionTimeout = null;
     }
+    // no-speech 不显示错误，让用户重新录音
     if (event.error === 'no-speech') {
-      onError?.('未识别到语音，请再说一遍');
+      console.log('[Speech] No speech detected, waiting for retry');
     } else if (event.error === 'not-allowed' || event.error === 'permission-denied') {
       onError?.('请允许使用麦克风');
     } else if (event.error === 'network') {
       onError?.('网络错误，请检查网络');
     } else if (event.error === 'aborted') {
-      // 忽略
+      // 用户主动停止，忽略
     } else {
       onError?.('语音识别出错');
     }
