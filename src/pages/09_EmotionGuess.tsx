@@ -315,31 +315,31 @@ const EmotionGuess = () => {
             className="h-full flex flex-col relative"
           >
             {/* Header */}
-            <div className="px-6 pt-4 flex items-center justify-between pb-4">
+            <div className="px-4 pt-3 flex items-center justify-between pb-3">
               <button
                 onClick={() => navigate('/training')}
-                className="w-12 h-12 bg-white rounded-full flex items-center justify-center text-slate-400 shadow-sm"
+                className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-slate-400 shadow-sm"
               >
-                <ChevronLeft size={28} />
+                <ChevronLeft size={24} />
               </button>
               <div className="flex flex-col items-center">
                 <span className="text-sm font-bold text-purple-600">表情猜猜看</span>
-                <div className="flex items-center gap-2 mt-1">
+                <div className="flex items-center gap-2 mt-0.5">
                   <span className="text-xs text-slate-400">{currentQuestion + 1}/{questions.length}</span>
                   <span className="text-xs text-amber-500 font-medium">得分: {score}</span>
                 </div>
               </div>
               <button
                 onClick={handleSkip}
-                className="w-12 h-12 bg-white rounded-full flex items-center justify-center text-slate-400 shadow-sm hover:bg-purple-50 hover:text-purple-500 transition-colors"
+                className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-slate-400 shadow-sm hover:bg-purple-50 hover:text-purple-500 transition-colors"
               >
-                <SkipForward size={22} />
+                <SkipForward size={20} />
               </button>
             </div>
 
             {/* Progress bar */}
-            <div className="px-6 mb-4">
-              <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+            <div className="px-4 mb-3">
+              <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
                 <motion.div
                   initial={{ width: 0 }}
                   animate={{ width: `${((currentQuestion + 1) / questions.length) * 100}%` }}
@@ -349,10 +349,10 @@ const EmotionGuess = () => {
             </div>
 
             {/* Game Area */}
-            <div className="flex-1 p-6 flex flex-col items-center justify-center gap-5">
+            <div className="flex-1 p-4 flex flex-col items-center justify-center gap-3">
               {/* 难度标签 */}
               <div className={cn(
-                "px-4 py-1.5 rounded-full text-sm font-bold",
+                "px-3 py-1 rounded-full text-xs font-bold",
                 question.difficulty === '基础' && "bg-emerald-100 text-emerald-600",
                 question.difficulty === '进阶' && "bg-amber-100 text-amber-600",
                 question.difficulty === '挑战' && "bg-rose-100 text-rose-600"
@@ -366,7 +366,7 @@ const EmotionGuess = () => {
                 initial={{ scale: 0.8, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ type: 'spring', damping: 15 }}
-                className="w-full max-w-sm aspect-square rounded-3xl overflow-hidden shadow-2xl border-4 border-white bg-slate-100 flex items-center justify-center"
+                className="w-full max-w-xs aspect-square rounded-2xl overflow-hidden shadow-xl border-2 border-white bg-slate-100 flex items-center justify-center"
               >
                 <img
                   src={question.image}
@@ -376,12 +376,12 @@ const EmotionGuess = () => {
               </motion.div>
 
               {/* Question */}
-              <div className="text-center px-4">
-                <h2 className="text-xl font-bold text-slate-800">{question.question}</h2>
+              <div className="text-center px-2">
+                <h2 className="text-lg font-bold text-slate-800">{question.question}</h2>
               </div>
 
               {/* Options - 2x2 Grid */}
-              <div className="w-full grid grid-cols-2 gap-3 max-w-sm">
+              <div className="w-full grid grid-cols-2 gap-2 max-w-xs">
                 {question.options.map((option) => {
                   const isSelected = selectedOption === option.id;
                   const isThisCorrect = option.id === question.answer;
@@ -409,18 +409,18 @@ const EmotionGuess = () => {
                       onClick={() => handleSelect(option.id)}
                       disabled={showResult}
                       className={cn(
-                        "relative p-4 rounded-2xl transition-all text-center",
+                        "relative p-3 rounded-xl transition-all text-center",
                         bgClass,
                         !showResult && "hover:border-purple-300 hover:bg-purple-50"
                       )}
                     >
-                      <span className={cn("text-lg font-bold", textClass)}>
+                      <span className={cn("text-sm font-bold", textClass)}>
                         {option.id}. {option.name}
                       </span>
                       
                       {showResult && isThisCorrect && (
-                        <div className="absolute -top-2 -right-2 w-7 h-7 bg-emerald-400 rounded-full flex items-center justify-center shadow-lg">
-                          <CheckCircle2 size={18} className="text-white" />
+                        <div className="absolute -top-1 -right-1 w-5 h-5 bg-emerald-400 rounded-full flex items-center justify-center shadow-md">
+                          <CheckCircle2 size={14} className="text-white" />
                         </div>
                       )}
                       {showResult && isSelected && !isThisCorrect && (

@@ -421,11 +421,11 @@ const BookInteraction = () => {
                 initial={{ scale: 0.8 }}
                 animate={{ scale: 1 }}
                 className={cn(
-                  "w-40 h-40 rounded-3xl bg-gradient-to-br flex items-center justify-center shadow-2xl mb-6",
+                  "w-32 h-32 rounded-2xl bg-gradient-to-br flex items-center justify-center shadow-2xl mb-4",
                   bookData.gradient
                 )}
               >
-                <span className="text-7xl">📖</span>
+                <span className="text-5xl">📖</span>
               </motion.div>
               
               <motion.div
@@ -457,13 +457,13 @@ const BookInteraction = () => {
                 <Button
                   onClick={startReading}
                   className={cn(
-                    "h-16 px-12 rounded-full font-bold text-xl shadow-xl border-none bg-gradient-to-r",
+                    "h-14 px-10 rounded-full font-bold text-lg shadow-xl border-none bg-gradient-to-r",
                     bookData.gradient,
                     "text-white"
                   )}
                 >
                   开始阅读
-                  <ArrowRight size={24} className="ml-2" />
+                  <ArrowRight size={20} className="ml-2" />
                 </Button>
               </motion.div>
             </div>
@@ -479,24 +479,15 @@ const BookInteraction = () => {
             className="h-full flex flex-col"
           >
             {/* Header */}
-            <div className="px-6 pt-4 flex items-center justify-between">
+            <div className="px-4 pt-3 flex items-center justify-between">
               <button
                 onClick={() => { resetState(); setCurrentStory(0); }}
-                className="w-12 h-12 bg-white rounded-full flex items-center justify-center text-slate-400 shadow-lg"
+                className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-slate-400 shadow-lg"
               >
-                <Home size={22} />
+                <Home size={20} />
               </button>
-              {/* 星星和通关次数显示 */}
-              <div className="flex flex-col items-center gap-1">
-                <div className="flex items-center gap-1 bg-gradient-to-r from-amber-100 to-yellow-100 px-3 py-1.5 rounded-full shadow-md">
-                  <span className="text-lg">⭐</span>
-                  <span className="font-bold text-amber-600">{dailyStats.gamePassCount}</span>
-                  <span className="text-xs text-amber-500">颗星星</span>
-                </div>
-                <span className="text-[10px] text-slate-400">本次获得: {earnedStars} ⭐</span>
-              </div>
               <div className={cn(
-                "px-4 py-1.5 rounded-full text-sm font-bold",
+                "px-3 py-1 rounded-full text-xs font-bold",
                 bookData.color,
                 "bg-white shadow-md"
               )}>
@@ -507,7 +498,7 @@ const BookInteraction = () => {
             {/* 图片 */}
             <motion.div
               layoutId={`story-image-${currentStory}`}
-              className="mx-6 mt-4 rounded-3xl overflow-hidden shadow-2xl border-4 border-white"
+              className="mx-4 mt-3 rounded-2xl overflow-hidden shadow-2xl border-2 border-white"
             >
               <img 
                 src={story.image} 
@@ -521,10 +512,10 @@ const BookInteraction = () => {
               key={currentStory}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="flex-1 p-6 flex flex-col items-center justify-center"
+              className="flex-1 p-4 flex flex-col items-center justify-center"
             >
-              <div className="bg-white rounded-3xl p-6 shadow-lg border-2 border-amber-100 max-w-sm text-center">
-                <p className="text-xl font-bold text-slate-700 leading-relaxed">
+              <div className="bg-white rounded-2xl p-4 shadow-lg border-2 border-amber-100 max-w-sm text-center">
+                <p className="text-lg font-bold text-slate-700 leading-relaxed">
                   "{story.text}"
                 </p>
               </div>

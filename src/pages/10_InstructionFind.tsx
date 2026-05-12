@@ -366,7 +366,7 @@ const InstructionFind = () => {
                 initial={{ scale: 0.9, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ type: 'spring', damping: 15 }}
-                className="w-full max-w-md aspect-[4/3] rounded-[24px] overflow-hidden shadow-2xl shadow-teal-200 border-4 border-white bg-slate-100 flex items-center justify-center"
+                className="w-full max-w-xs aspect-[4/3] rounded-[20px] overflow-hidden shadow-xl shadow-teal-200 border-4 border-white bg-slate-100 flex items-center justify-center"
               >
                 <img
                   src={question.image}
@@ -377,7 +377,7 @@ const InstructionFind = () => {
 
               {/* Question */}
               <div className={cn(
-                "w-full rounded-2xl p-4 text-center",
+                "w-full rounded-xl p-3 text-center",
                 showResult 
                   ? isCorrect 
                     ? "bg-emerald-50 border-2 border-emerald-200" 
@@ -385,20 +385,20 @@ const InstructionFind = () => {
                   : "bg-teal-50 border-2 border-teal-200"
               )}>
                 <p className={cn(
-                  "text-xl font-bold",
+                  "text-base font-bold",
                   showResult 
                     ? isCorrect ? "text-emerald-700" : "text-amber-700"
                     : "text-teal-700"
                 )}>
                   {showResult && (
-                    <span className="mr-2">{isCorrect ? '✓ 正确！' : '✗ '}</span>
+                    <span className="mr-2">{isCorrect ? '✓ ' : '✗ '}</span>
                   )}
                   {question.question}
                 </p>
               </div>
 
               {/* Options */}
-              <div className="w-full flex flex-col gap-3">
+              <div className="w-full flex flex-col gap-2">
                 {question.options.map((option, index) => {
                   const isSelected = selectedOption === option;
                   const isThisCorrect = option === question.answer;
@@ -426,12 +426,12 @@ const InstructionFind = () => {
                       onClick={() => handleSelect(option)}
                       disabled={showResult}
                       className={cn(
-                        "relative p-4 rounded-2xl transition-all text-center",
+                        "relative p-3 rounded-xl transition-all text-center",
                         bgClass,
                         !showResult && "hover:border-teal-300 hover:bg-teal-50"
                       )}
                     >
-                      <span className={cn("text-lg font-bold", textClass)}>{option}</span>
+                      <span className={cn("text-base font-bold", textClass)}>{option}</span>
                       
                       {showResult && isThisCorrect && (
                         <div className="absolute top-1/2 -translate-y-1/2 right-4">
