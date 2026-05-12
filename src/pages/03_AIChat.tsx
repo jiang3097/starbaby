@@ -254,7 +254,7 @@ const AIChat = () => {
   };
 
   return (
-    <MobileShell className="bg-gradient-to-b from-amber-50 via-yellow-50 to-white">
+    <MobileShell className="bg-gradient-to-b from-amber-50 via-yellow-50 to-white" enableScroll={true}>
       {/* 背景装饰 */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         {/* 云朵装饰 */}
