@@ -46,6 +46,7 @@ const PuzzleExpress = () => {
   const [completedLevels, setCompletedLevels] = useState(0);
   const [showToyReward, setShowToyReward] = useState(false);
   const [toyEmoji, setToyEmoji] = useState('');
+  const [allCompleted, setAllCompleted] = useState(false);
   
   const containerRef = useRef<HTMLDivElement>(null);
   const gridSize = 280;
@@ -227,6 +228,13 @@ const PuzzleExpress = () => {
 
   // 下一关
   const handleNextImage = () => {
+    // 检查是否所有关卡都完成
+    if (completedLevels >= PUZZLE_IMAGES.length - 1) {
+      // 已全部通关
+      setAllCompleted(true);
+      return;
+    }
+    
     const idx = PUZZLE_IMAGES.findIndex(img => img.id === currentImage.id);
     const nextImage = PUZZLE_IMAGES[(idx + 1) % PUZZLE_IMAGES.length];
     setCurrentImage(nextImage);
@@ -407,7 +415,7 @@ const PuzzleExpress = () => {
         )}
 
         {/* ========== 成功界面 ========== */}
-        {showSuccess && (
+        {showSuccess && !allCompleted && (
           <motion.div key="success" initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="h-full flex flex-col items-center justify-center p-8 text-center">
             <motion.div animate={{ scale: [1, 1.1, 1], rotate: [0, 5, -5, 0] }} transition={{ repeat: Infinity, duration: 1.5 }} className="relative mb-8">
               <div className="w-48 h-48 bg-gradient-to-br from-amber-200 to-amber-400 rounded-full flex items-center justify-center shadow-2xl">
@@ -434,6 +442,49 @@ const PuzzleExpress = () => {
               </button>
               <button onClick={handleNextImage} className="flex-1 py-4 bg-gradient-to-r from-orange-400 to-amber-400 rounded-full text-white font-bold shadow-md">
                 下一关
+              </button>
+            </div>
+          </motion.div>
+        )}
+
+        {/* ========== 全部通关界面 ========== */}
+        {allCompleted && (
+          <motion.div key="all-completed" initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="h-full flex flex-col relative">
+            {/* 返回按钮 */}
+            <div className="px-6 pt-4 flex items-center justify-between">
+              <button onClick={() => navigate('/training')} className="w-12 h-12 bg-white rounded-full flex items-center justify-center text-slate-400 shadow-sm">
+                <ChevronLeft size={28} />
+              </button>
+              <span className="text-sm font-bold text-orange-600">拼图表达</span>
+              <div className="w-12" />
+            </div>
+
+            <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
+              <motion.div animate={{ scale: [1, 1.1, 1], rotate: [0, 5, -5, 0] }} transition={{ repeat: Infinity, duration: 1.5 }} className="relative mb-8">
+                <div className="w-56 h-56 bg-gradient-to-br from-yellow-200 to-amber-400 rounded-full flex items-center justify-center shadow-2xl">
+                  <Trophy size={100} className="text-white" />
+                </div>
+                <div className="absolute -top-2 -right-2 w-24 h-24 bg-pink-400 rounded-full flex items-center justify-center shadow-lg">
+                  <Star size={50} className="text-white" fill="currentColor" />
+                </div>
+              </motion.div>
+
+              <h1 className="text-4xl font-bold text-slate-800 mb-2">已全部通关！</h1>
+              <p className="text-xl text-slate-500 mb-2">太棒了！你是拼图大师！</p>
+              
+              {/* 玩具奖励 */}
+              {toyEmoji && (
+                <div className="mt-6 p-6 bg-gradient-to-br from-pink-50 to-purple-50 rounded-3xl border-2 border-pink-200">
+                  <p className="text-lg text-pink-600 font-bold mb-3">恭喜获得奖励！</p>
+                  <span className="text-6xl">{toyEmoji}</span>
+                </div>
+              )}
+
+              <button 
+                onClick={() => navigate('/training')} 
+                className="mt-8 px-12 py-4 bg-gradient-to-r from-orange-400 to-amber-400 rounded-full text-white font-bold shadow-md"
+              >
+                返回训练中心
               </button>
             </div>
           </motion.div>
