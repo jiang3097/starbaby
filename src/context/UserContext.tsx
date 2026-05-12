@@ -127,21 +127,28 @@ const loadProfile = (avatarId: number): UserProfile => {
         return migrated;
       }
       
-      // 新一天重置每日计数，保留其他数据
-      const lastLogin = parsed.lastLoginDate || today;
+      // 获取保存的日期
+      const savedDate = parsed.lastLoginDate || '';
+      
+      // 只有真正到了新的一天才重置每日计数
+      const isNewDay = savedDate !== today;
+      
       return {
         avatarId: parsed.avatarId ?? avatarId,
         name: parsed.name || STAR_AVATARS.find(a => a.id === avatarId)?.name || '星小宝',
         intimacy: parsed.intimacy ?? 60,
         lastLoginDate: today,
-        todayIntimacyAdded: lastLogin === today ? (parsed.todayIntimacyAdded || 0) : 0,
+        // 只有新的一天才重置今日亲密度增加次数
+        todayIntimacyAdded: isNewDay ? 0 : (parsed.todayIntimacyAdded ?? 0),
         fullness: parsed.fullness ?? 60,
-        fullnessUsedToday: parsed.fullnessDate === today ? (parsed.fullnessUsedToday || 0) : 0,
+        // 只有新的一天才重置食物使用次数
+        fullnessUsedToday: isNewDay ? 0 : (parsed.fullnessUsedToday ?? 0),
         fullnessDate: parsed.fullnessDate || today,
         cleanliness: parsed.cleanliness ?? 60,
         lastBathDate: parsed.lastBathDate || today,
         mood: parsed.mood ?? 60,
-        moodUsedToday: parsed.moodDate === today ? (parsed.moodUsedToday || 0) : 0,
+        // 只有新的一天才重置玩具使用次数
+        moodUsedToday: isNewDay ? 0 : (parsed.moodUsedToday ?? 0),
         moodDate: parsed.moodDate || today,
         toys: parsed.toys ?? 0,
         foods: parsed.foods ?? 0,
