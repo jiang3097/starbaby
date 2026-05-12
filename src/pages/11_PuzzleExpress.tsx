@@ -29,7 +29,7 @@ interface Piece {
 const PuzzleExpress = () => {
   const navigate = useNavigate();
   const { startTraining, incrementGamePass, incrementTrainingGame } = useApp();
-  const { checkAndAddToy } = useUser();
+  const { checkAndAddToy, addToy, profile } = useUser();
   const hasStartedTraining = useRef(false);
   const hasGivenReward = useRef(false);
   const hasAddedStats = useRef(false);
@@ -77,11 +77,14 @@ const PuzzleExpress = () => {
       const newCompletedLevels = completedLevels + 1;
       setCompletedLevels(newCompletedLevels);
       
-      // 检查是否获得新玩具（每关算1题，累计4题通关）
-      const newToy = checkAndAddToy(newCompletedLevels);
-      if (newToy) {
-        setToyEmoji(newToy);
-        setTimeout(() => setShowToyReward(true), 300);
+      // 基于 profile.toys 判断是否应该给玩具（避免刷新后重复给）
+      const expectedToys = Math.floor(newCompletedLevels / 4);
+      if (expectedToys > profile.toys) {
+        const toy = addToy();
+        if (toy) {
+          setToyEmoji(toy);
+          setTimeout(() => setShowToyReward(true), 300);
+        }
       }
     }
   }, [showSuccess]);

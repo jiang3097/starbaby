@@ -146,7 +146,7 @@ function shuffleArray<T>(array: T[]): T[] {
 const InstructionFind = () => {
   const navigate = useNavigate();
   const { startTraining, incrementGamePass, incrementTrainingGame } = useApp();
-  const { checkAndAddToy } = useUser();
+  const { checkAndAddToy, addToy, profile } = useUser();
   const hasStartedTraining = useRef(false);
   const hasGivenReward = useRef(false);
   
@@ -192,11 +192,14 @@ const InstructionFind = () => {
     if (isFinished && !hasGivenReward.current) {
       hasGivenReward.current = true;
       incrementTrainingGame();
-      // 检查是否获得新玩具（根据累计答对题数判断）
-      const newToy = checkAndAddToy(totalCorrect);
-      if (newToy) {
-        setToyEmoji(newToy);
-        setTimeout(() => setShowToyReward(true), 300);
+      // 基于 profile.toys 判断是否应该给玩具（避免刷新后重复给）
+      const expectedToys = Math.floor(totalCorrect / 4);
+      if (expectedToys > profile.toys) {
+        const toy = addToy();
+        if (toy) {
+          setToyEmoji(toy);
+          setTimeout(() => setShowToyReward(true), 300);
+        }
       }
     }
   }, [isFinished, totalCorrect]);
