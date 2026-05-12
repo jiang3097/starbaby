@@ -31,7 +31,7 @@ const MobileShell: React.FC<MobileShellProps> = ({ children, className, showNav 
         </div>
 
         {/* Content */}
-        <div className={cn("flex-1 mt-10", showNav ? "mb-20" : "", enableScroll ? "overflow-y-auto scrollbar-hide" : "overflow-hidden")}>
+        <div className={cn("flex-1 mt-10", showNav ? "mb-20" : "", enableScroll ? "overflow-y-auto scrollbar-hide touch-pan-y" : "overflow-hidden")}>
           {children}
         </div>
 
