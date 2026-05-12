@@ -377,7 +377,7 @@ const EmotionGuess = () => {
 
               {/* Question */}
               <div className="text-center px-4">
-                <h2 className="text-lg font-bold text-slate-800">{question.question}</h2>
+                <h2 className="text-xl font-bold text-slate-800">{question.question}</h2>
               </div>
 
               {/* Options - 2x2 Grid */}
