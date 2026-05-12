@@ -236,6 +236,7 @@ export const startListening = async (
     isHandled = true;
     
     isCurrentlyListening = false;
+    webRecognition = null; // 清理识别实例
     if (recognitionTimeout) {
       clearTimeout(recognitionTimeout);
       recognitionTimeout = null;
@@ -267,6 +268,7 @@ export const startListening = async (
       clearTimeout(recognitionTimeout);
       recognitionTimeout = null;
     }
+    webRecognition = null; // 清理识别实例
     // 如果有结果，返回结果；没有结果时不显示错误，让用户重新录音
     if (hasResult && finalText.trim()) {
       onResult(finalText.trim());
