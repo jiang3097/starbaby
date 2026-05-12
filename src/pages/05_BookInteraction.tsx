@@ -268,10 +268,12 @@ const BookInteraction = () => {
 
   // 开始回答
   const startAnswering = useCallback(() => {
+    console.log('[Book] startAnswering called');
     setPhase('answering');
     setIsListening(true);
     setUserAnswer('');
     startListening((text) => {
+      console.log('[Book] Recognition result:', text);
       setUserAnswer(text);
       // 识别完成后自动提交
       stopCurrentListening(text);

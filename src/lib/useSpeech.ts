@@ -167,6 +167,7 @@ export const startListening = async (
   // 浏览器环境使用 Web Speech API
   const SpeechRecognitionAPI = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
   if (!SpeechRecognitionAPI) {
+    isCurrentlyListening = false;
     onError?.('浏览器不支持语音识别');
     return;
   }
