@@ -110,6 +110,7 @@ export const isSpeechRecognitionSupported = (): boolean => {
 };
 
 let webRecognition: any = null;
+let isWebListening = false;
 
 export const startListening = async (
   onResult: (text: string) => void,
@@ -161,60 +162,76 @@ export const startListening = async (
   // 如果已经在识别，先停止
   if (webRecognition) {
     try {
+      webRecognition.onend = null;
       webRecognition.abort();
-    } catch {}
+    } catch (e) {
+      console.log('Abort error:', e);
+    }
     webRecognition = null;
   }
   
   // 创建识别实例
   const recognition = new SpeechRecognitionAPI();
-  recognition.continuous = false; // 单次识别
-  recognition.interimResults = false; // 只返回最终结果
+  recognition.continuous = false;
+  recognition.interimResults = true; // 启用中间结果
   recognition.lang = 'zh-CN';
   
-  let finalText = '';
-  let hasResult = false;
+  let finalTranscript = '';
   
   recognition.onresult = (event: any) => {
-    hasResult = true;
+    let interimTranscript = '';
+    
     for (let i = event.resultIndex; i < event.results.length; i++) {
+      const transcript = event.results[i][0].transcript;
       if (event.results[i].isFinal) {
-        finalText += event.results[i][0].transcript;
+        finalTranscript += transcript;
+      } else {
+        interimTranscript = transcript;
       }
     }
+    
+    console.log('[Speech] Final:', finalTranscript, 'Interim:', interimTranscript);
   };
   
   recognition.onerror = (event: any) => {
-    console.error('Speech recognition error:', event.error);
+    console.error('[Speech] Error:', event.error);
+    isWebListening = false;
+    
     if (event.error === 'no-speech') {
       onError?.('未识别到语音');
     } else if (event.error === 'not-allowed' || event.error === 'permission-denied') {
       onError?.('请允许使用麦克风');
+    } else if (event.error === 'network') {
+      onError?.('网络错误，请检查网络连接');
     } else if (event.error === 'aborted') {
-      // 用户主动停止，忽略
+      // 忽略
     } else {
       onError?.('语音识别出错');
     }
   };
   
   recognition.onend = () => {
+    console.log('[Speech] Recognition ended');
+    isWebListening = false;
     webRecognition = null;
-    if (hasResult && finalText) {
-      onResult(finalText);
-    } else if (!hasResult) {
+    
+    if (finalTranscript.trim()) {
+      onResult(finalTranscript.trim());
+    } else {
       onError?.('未识别到语音');
     }
   };
   
   recognition.onstart = () => {
-    console.log('Speech recognition started');
+    console.log('[Speech] Recognition started');
+    isWebListening = true;
   };
   
   try {
     recognition.start();
     webRecognition = recognition;
   } catch (e: any) {
-    console.error('Start recognition failed:', e);
+    console.error('[Speech] Start error:', e);
     onError?.('启动失败');
   }
 };
@@ -228,8 +245,10 @@ export const stopListening = async (): Promise<void> => {
     }
   } else if (webRecognition) {
     try {
+      webRecognition.onend = null;
       webRecognition.abort();
     } catch {}
     webRecognition = null;
+    isWebListening = false;
   }
 };
