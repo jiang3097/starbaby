@@ -393,7 +393,7 @@ const BookInteraction = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="h-full flex flex-col relative overflow-hidden"
+            className="h-full flex flex-col relative overflow-y-auto"
           >
             {/* 顶部标题栏 */}
             <div className="px-4 pt-2 pb-2 flex items-center justify-between relative z-10">
