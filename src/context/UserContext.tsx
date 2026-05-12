@@ -15,6 +15,18 @@ export const TOY_TYPES = [
   { id: 8, name: '皮球', emoji: '⚽', color: 'from-yellow-300 to-amber-400' },
 ];
 
+// 食物类型定义
+export const FOOD_TYPES = [
+  { id: 1, name: '苹果', emoji: '🍎', color: 'from-red-300 to-pink-400' },
+  { id: 2, name: '胡萝卜', emoji: '🥕', color: 'from-orange-300 to-amber-400' },
+  { id: 3, name: '米饭', emoji: '🍚', color: 'from-yellow-200 to-amber-300' },
+  { id: 4, name: '面包', emoji: '🍞', color: 'from-amber-200 to-yellow-300' },
+  { id: 5, name: '牛奶', emoji: '🥛', color: 'from-slate-200 to-blue-200' },
+  { id: 6, name: '鸡蛋', emoji: '🥚', color: 'from-yellow-100 to-amber-200' },
+  { id: 7, name: '蔬菜', emoji: '🥦', color: 'from-green-300 to-emerald-400' },
+  { id: 8, name: '水果', emoji: '🍇', color: 'from-purple-300 to-violet-400' },
+];
+
 export interface UserProfile {
   avatarId: number;
   name: string;
@@ -55,8 +67,9 @@ interface UserContextType {
   useToy: () => boolean;
   takeBath: () => void;
   addToy: () => string | null;
-  addFood: () => void;
+  addFood: () => string | null;
   checkAndAddToy: (currentPassCount: number) => string | null;
+  checkAndAddFood: () => string | null;
 }
 
 const defaultProfile: UserProfile = {
@@ -87,8 +100,9 @@ const UserContext = createContext<UserContextType>({
   useToy: () => false,
   takeBath: () => {},
   addToy: () => null,
-  addFood: () => {},
+  addFood: () => null,
   checkAndAddToy: () => null,
+  checkAndAddFood: () => null,
 });
 
 export const useUser = () => useContext(UserContext);
@@ -101,6 +115,12 @@ interface UserProviderProps {
 const getRandomToy = () => {
   const index = Math.floor(Math.random() * TOY_TYPES.length);
   return TOY_TYPES[index];
+};
+
+// 随机获取一个食物
+const getRandomFood = () => {
+  const index = Math.floor(Math.random() * FOOD_TYPES.length);
+  return FOOD_TYPES[index];
 };
 
 export const UserProvider = ({ children }: UserProviderProps) => {
@@ -299,9 +319,11 @@ export const UserProvider = ({ children }: UserProviderProps) => {
     });
   };
 
-  // 增加食物（通关奖励）
-  const addFood = () => {
+  // 增加食物（通关奖励）- 返回获得的食物表情
+  const addFood = (): string | null => {
+    const food = getRandomFood();
     updateProfile({ foods: profile.foods + 1 });
+    return food.emoji;
   };
 
   // 检查并增加玩具 - 根据累计通关次数判断
@@ -347,6 +369,13 @@ export const UserProvider = ({ children }: UserProviderProps) => {
     return toy.emoji;
   };
 
+  // 检查并增加食物（绘本通关奖励）
+  const checkAndAddFood = (): string | null => {
+    const food = getRandomFood();
+    updateProfile({ foods: profile.foods + 1 });
+    return food.emoji;
+  };
+
   return (
     <UserContext.Provider value={{ 
       profile, 
@@ -358,7 +387,8 @@ export const UserProvider = ({ children }: UserProviderProps) => {
       takeBath,
       addToy,
       addFood,
-      checkAndAddToy
+      checkAndAddToy,
+      checkAndAddFood
     }}>
       {children}
     </UserContext.Provider>

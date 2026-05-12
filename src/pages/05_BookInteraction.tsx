@@ -14,6 +14,7 @@ const removeEmoji = (text: string): string => {
 
 import { useUser } from '../context/UserContext';
 import { useApp } from '../context/AppContext';
+import FoodRewardEffect from '../components/FoodRewardEffect';
 
 type BookTheme = 'emotion' | 'help' | 'daily';
 type GamePhase = 'intro' | 'reading' | 'follow-up' | 'question' | 'answering' | 'feedback' | 'complete';
@@ -147,7 +148,7 @@ const BOOKS_DATA: Record<number, {
 const BookInteraction = () => {
   const { bookId } = useParams<{ bookId: string }>();
   const navigate = useNavigate();
-  const { profile, avatar } = useUser();
+  const { profile, avatar, addFood } = useUser();
   const { startTraining, incrementExpression, incrementBookCompleted, incrementGamePass, dailyStats } = useApp();
   const hasStartedTraining = useRef(false);
   const hasGivenStarRef = useRef<Set<number>>(new Set()); // 防止重复奖励
@@ -162,6 +163,8 @@ const BookInteraction = () => {
   const [earnedStars, setEarnedStars] = useState(0); // 本次获得星星数
   const [passedLevels, setPassedLevels] = useState<Set<number>>(new Set()); // 本次会话已通过关卡
   const [ttsAvailable, setTtsAvailable] = useState(true); // TTS 是否可用
+  const [showFoodReward, setShowFoodReward] = useState(false); // 显示食物奖励
+  const [earnedFood, setEarnedFood] = useState(''); // 本次获得食物
 
   // 检测 TTS 是否可用
   useEffect(() => {
@@ -336,6 +339,14 @@ const BookInteraction = () => {
     } else {
       // 全部完成，增加闯关次数
       incrementGamePass();
+      // 获得食物奖励
+      if (addFood) {
+        const foodEmoji = addFood();
+        if (foodEmoji) {
+          setEarnedFood(foodEmoji);
+          setShowFoodReward(true);
+        }
+      }
       setPhase('complete');
     }
   };
@@ -898,6 +909,13 @@ const BookInteraction = () => {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* 食物奖励特效 */}
+      <FoodRewardEffect
+        show={showFoodReward}
+        foodEmoji={earnedFood}
+        onClose={() => setShowFoodReward(false)}
+      />
     </MobileShell>
   );
 };
