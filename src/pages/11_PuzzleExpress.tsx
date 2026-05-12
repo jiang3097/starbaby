@@ -249,15 +249,13 @@ const PuzzleExpress = () => {
       {/* 背景装饰 */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         {[...Array(10)].map((_, i) => (
-          <motion.div
+          <div
             key={i}
             className="absolute text-orange-200"
             style={{ left: `${8 + i * 10}%`, top: `${5 + (i % 4) * 5}%` }}
-            animate={{ opacity: [0.3, 0.5, 0.3], y: [0, -5, 0] }}
-            transition={{ repeat: Infinity, duration: 3 + i * 0.5 }}
           >
             ⭐
-          </motion.div>
+          </div>
         ))}
       </div>
 
@@ -416,15 +414,15 @@ const PuzzleExpress = () => {
 
         {/* ========== 成功界面 ========== */}
         {showSuccess && !allCompleted && (
-          <motion.div key="success" initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="h-full flex flex-col items-center justify-center p-8 text-center">
-            <motion.div animate={{ scale: [1, 1.05, 1] }} transition={{ repeat: Infinity, duration: 2 }} className="relative mb-8">
+          <div className="h-full flex flex-col items-center justify-center p-8 text-center">
+            <div className="relative mb-8">
               <div className="w-48 h-48 bg-gradient-to-br from-amber-200 to-amber-400 rounded-full flex items-center justify-center shadow-2xl">
                 <Trophy size={80} className="text-white" />
               </div>
               <div className="absolute -top-4 -right-4 w-20 h-20 bg-pink-400 rounded-full flex items-center justify-center shadow-lg">
                 <Star size={40} className="text-white" fill="currentColor" />
               </div>
-            </motion.div>
+            </div>
 
             <h1 className="text-4xl font-bold text-slate-800 mb-2">通关啦！</h1>
             <p className="text-xl text-slate-500 mb-2">真棒！你太厉害了！</p>
@@ -444,12 +442,12 @@ const PuzzleExpress = () => {
                 下一关
               </button>
             </div>
-          </motion.div>
+          </div>
         )}
 
         {/* ========== 全部通关界面 ========== */}
         {allCompleted && (
-          <motion.div key="all-completed" initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="h-full flex flex-col relative">
+          <div className="h-full flex flex-col relative">
             {/* 返回按钮 */}
             <div className="px-6 pt-4 flex items-center justify-between">
               <button onClick={() => navigate('/training')} className="w-12 h-12 bg-white rounded-full flex items-center justify-center text-slate-400 shadow-sm">
@@ -460,14 +458,14 @@ const PuzzleExpress = () => {
             </div>
 
             <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
-              <motion.div animate={{ scale: [1, 1.05, 1] }} transition={{ repeat: Infinity, duration: 2 }} className="relative mb-8">
+              <div className="relative mb-8">
                 <div className="w-56 h-56 bg-gradient-to-br from-yellow-200 to-amber-400 rounded-full flex items-center justify-center shadow-2xl">
                   <Trophy size={100} className="text-white" />
                 </div>
                 <div className="absolute -top-2 -right-2 w-24 h-24 bg-pink-400 rounded-full flex items-center justify-center shadow-lg">
                   <Star size={50} className="text-white" fill="currentColor" />
                 </div>
-              </motion.div>
+              </div>
 
               <h1 className="text-4xl font-bold text-slate-800 mb-2">已全部通关！</h1>
               <p className="text-xl text-slate-500 mb-2">太棒了！你是拼图大师！</p>
@@ -487,7 +485,7 @@ const PuzzleExpress = () => {
                 返回训练中心
               </button>
             </div>
-          </motion.div>
+          </div>
         )}
       </AnimatePresence>
     </MobileShell>
