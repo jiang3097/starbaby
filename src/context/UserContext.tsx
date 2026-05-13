@@ -266,7 +266,7 @@ export const UserProvider = ({ children }: UserProviderProps) => {
       const today = new Date().toISOString().split('T')[0];
       return {
         ...prev,
-        fullness: Math.min(100, prev.fullness + 20),
+        fullness: Math.min(100, prev.fullness + 4),
         fullnessUsedToday: prev.fullnessUsedToday + 1,
         fullnessDate: today,
         foods: prev.foods - 1, // 使用后减一个
@@ -283,7 +283,7 @@ export const UserProvider = ({ children }: UserProviderProps) => {
       const today = new Date().toISOString().split('T')[0];
       return {
         ...prev,
-        mood: Math.min(100, prev.mood + 20),
+        mood: Math.min(100, prev.mood + 4),
         moodUsedToday: prev.moodUsedToday + 1,
         moodDate: today,
         toys: prev.toys - 1, // 使用后减一个
