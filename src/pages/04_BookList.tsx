@@ -108,10 +108,6 @@ const BookList = () => {
             <div className="flex items-center gap-2">
               <span className="text-2xl">📚</span>
               <h1 className="text-2xl font-bold text-slate-800">绘本闯关</h1>
-              <div className="ml-auto flex items-center gap-1 bg-amber-100 px-3 py-1 rounded-full">
-                <span className="text-lg">⭐</span>
-                <span className="text-amber-700 font-bold">{totalStars}</span>
-              </div>
             </div>
             <p className="text-sm text-amber-600 font-medium">一起来读有趣的故事吧~</p>
           </div>
