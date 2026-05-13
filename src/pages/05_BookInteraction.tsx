@@ -791,13 +791,19 @@ const BookInteraction = () => {
               )}
             </motion.div>
             
-            <motion.div
-              animate={{ scale: [1, 1.2, 1] }}
-              transition={{ duration: 0.5 }}
-              className="text-5xl mb-4"
-            >
-              ⭐ x {earnedStars}
-            </motion.div>
+            {isCorrect && (
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+                className="mb-4"
+              >
+                <div className="bg-gradient-to-r from-amber-300 to-orange-400 text-white px-8 py-3 rounded-full shadow-lg flex items-center gap-3">
+                  <span className="text-3xl">星星</span>
+                  <span className="text-3xl font-bold">⭐×{earnedStars}</span>
+                </div>
+              </motion.div>
+            )}
             
             <h2 className="text-3xl font-bold mb-2 text-amber-600">
               {isCorrect ? "恭喜你答对了！" : "就快要答对了哦！"}
@@ -864,9 +870,9 @@ const BookInteraction = () => {
             <h1 className="text-4xl font-bold text-slate-800 mb-2">非常棒！</h1>
             <p className="text-lg text-slate-500 mb-4">{bookData.successText}</p>
             <p className="text-sm text-amber-500 mb-2">本次得分：{earnedStars}/{bookData.stories.length}</p>
-            <p className="text-2xl text-amber-500 font-bold mb-12">
-              获得 {earnedStars} 颗星星 ⭐
-            </p>
+            <div className="bg-gradient-to-r from-amber-300 to-orange-400 text-white px-8 py-4 rounded-full shadow-lg mb-12">
+              <span className="text-2xl font-bold">获得 星星 ⭐×{earnedStars}</span>
+            </div>
 
             <div className="space-y-4 w-full max-w-sm">
               <Button
