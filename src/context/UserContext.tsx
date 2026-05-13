@@ -116,7 +116,7 @@ const loadProfile = (avatarId: number): UserProfile => {
       // 获取保存的日期
       const savedDate = parsed.lastLoginDate || '';
       
-      // 只有真正到了新的一天才重置每日计数
+      // 只有真正到了新的一天才重置每日计数和状态值
       const isNewDay = savedDate !== today;
       
       return {
@@ -126,13 +126,16 @@ const loadProfile = (avatarId: number): UserProfile => {
         lastLoginDate: today,
         // 只有新的一天才重置今日亲密度增加次数
         todayIntimacyAdded: isNewDay ? 0 : (parsed.todayIntimacyAdded ?? 0),
-        fullness: parsed.fullness ?? 60,
+        // 饱腹值每天重置为初始值
+        fullness: isNewDay ? 60 : (parsed.fullness ?? 60),
         // 只有新的一天才重置食物使用次数
         fullnessUsedToday: isNewDay ? 0 : (parsed.fullnessUsedToday ?? 0),
         fullnessDate: parsed.fullnessDate || today,
-        cleanliness: parsed.cleanliness ?? 60,
+        // 清洁值每天重置为初始值
+        cleanliness: isNewDay ? 60 : (parsed.cleanliness ?? 60),
         lastBathDate: parsed.lastBathDate || today,
-        mood: parsed.mood ?? 60,
+        // 心情值每天重置为初始值
+        mood: isNewDay ? 60 : (parsed.mood ?? 60),
         // 只有新的一天才重置玩具使用次数
         moodUsedToday: isNewDay ? 0 : (parsed.moodUsedToday ?? 0),
         moodDate: parsed.moodDate || today,
