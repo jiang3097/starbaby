@@ -293,10 +293,11 @@ const BookInteraction = () => {
     if (finalAnswer.trim()) {
       const answerLower = finalAnswer.toLowerCase();
       const correctLower = story.answer.toLowerCase();
-      const keywords = correctLower.split(/[,，、s]+/).filter(k => k.trim().length > 0);
-      const validKeywords = keywords.filter(k => k.trim().length >= 1);
-      const matchedCount = validKeywords.filter(k => answerLower.includes(k.trim())).length;
-      const correct = matchedCount >= Math.ceil(validKeywords.length * 0.6);
+      // 关键词用空格/逗号/顿号分割
+      const keywords = correctLower.split(/[,，、\s]+/).filter(k => k.trim().length > 0);
+      // 只要匹配到任意1个核心关键词就算对（更宽松的评判标准）
+      const matchedCount = keywords.filter(k => answerLower.includes(k.trim())).length;
+      const correct = matchedCount >= 1;
       
       setIsCorrect(correct);
       setShowResult(true);
