@@ -45,8 +45,11 @@ export interface UserProfile {
   fullnessUsedToday: number;
   fullnessDate: string;
   
+  
   // 清洁值
   cleanliness: number;
+  cleanUsedToday: number;
+  cleanlinessDate: string;
   lastBathDate: string;
   
   // 心情值
@@ -93,6 +96,8 @@ const createDefaultProfile = (avatarId: number): UserProfile => {
     fullnessUsedToday: 0,
     fullnessDate: today,
     cleanliness: 60,
+    cleanUsedToday: 0,
+    cleanlinessDate: today,
     lastBathDate: today,
     mood: 60,
     moodUsedToday: 0,
@@ -133,6 +138,8 @@ const loadProfile = (avatarId: number): UserProfile => {
         fullnessDate: parsed.fullnessDate || today,
         // 清洁值每天重置为初始值
         cleanliness: isNewDay ? 60 : (parsed.cleanliness ?? 60),
+        cleanUsedToday: isNewDay ? 0 : (parsed.cleanUsedToday ?? 0),
+        cleanlinessDate: parsed.cleanlinessDate || today,
         lastBathDate: parsed.lastBathDate || today,
         // 心情值每天重置为初始值
         mood: isNewDay ? 60 : (parsed.mood ?? 60),
@@ -258,6 +265,7 @@ export const UserProvider = ({ children }: UserProviderProps) => {
     });
   }, []);
   
+  
   // 使用食物
   const useFood = useCallback(() => {
     setProfile(prev => {
@@ -293,14 +301,22 @@ export const UserProvider = ({ children }: UserProviderProps) => {
   }, []);
   
   // 洗澡
+  // 洗澡
   const takeBath = useCallback(() => {
     const today = new Date().toISOString().split('T')[0];
+    if (profile.cleanUsedToday >= 3) {
+      alert('今日洗澡次数已用完');
+      return false;
+    }
     setProfile(prev => ({
       ...prev,
-      cleanliness: 100,
+      cleanliness: Math.min(100, prev.cleanliness + 4),
       lastBathDate: today,
+      cleanUsedToday: prev.cleanUsedToday + 1,
+      cleanlinessDate: today,
     }));
-  }, []);
+    return true;
+  }, [profile.cleanUsedToday]);
   
   // 添加玩具
   const addToy = useCallback(() => {
