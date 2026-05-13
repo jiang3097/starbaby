@@ -89,12 +89,23 @@ function AppProvider({ children }: { children: React.ReactNode }) {
   const [showTimeLimitModal, setShowTimeLimitModal] = useState(false);
   const [trainingStartTime, setTrainingStartTime] = useState<number | null>(null);
 
-  // 定时检查是否达到时间限制
+  // 定时增加训练时长和检查时间限制
   useEffect(() => {
-    if (!timeLimit.enabled || timeLimitReached) return;
+    if (!trainingStartTime || timeLimitReached) return;
 
     const interval = setInterval(() => {
-      if (trainingStartTime) {
+      const today = new Date().toISOString().split('T')[0];
+      setDailyStats(prev => {
+        // 只有同一天才累加
+        if (prev.date !== today) return prev;
+        return {
+          ...prev,
+          trainingMinutes: prev.trainingMinutes + 1,
+        };
+      });
+
+      // 检查时间限制
+      if (timeLimit.enabled) {
         const elapsed = Math.floor((Date.now() - trainingStartTime) / 60000);
         const limitMinutes = timeLimit.customMinutes ?? timeLimit.minutes;
         if (elapsed >= limitMinutes) {
@@ -102,10 +113,10 @@ function AppProvider({ children }: { children: React.ReactNode }) {
           setShowTimeLimitModal(true);
         }
       }
-    }, 60000); // 每分钟检查一次
+    }, 60000); // 每分钟增加1
 
     return () => clearInterval(interval);
-  }, [timeLimit, timeLimitReached, trainingStartTime]);
+  }, [trainingStartTime, timeLimit, timeLimitReached]);
 
   const resetTimeLimit = useCallback(() => {
     setTimeLimitReached(false);
