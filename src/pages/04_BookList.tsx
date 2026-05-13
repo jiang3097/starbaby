@@ -50,13 +50,13 @@ const BookList = () => {
       id: 2,
       title: '日常沟通',
       desc: '学会表达你的基本需求',
-      // 需要情绪表达全部通关才能解锁
-      status: emotionStars >= 3 ? 'active' : 'locked',
+      // 已解锁
+      status: 'active',
       stars: dailyStarsCalc,
       color: 'bg-emerald-50',
       borderColor: 'border-emerald-100',
       iconColor: 'text-emerald-500',
-      gradient: emotionStars >= 3 ? 'from-emerald-200 to-teal-200' : 'from-slate-200 to-gray-200',
+      gradient: 'from-emerald-200 to-teal-200',
       image: 'https://modao.cc/agent-py/media/generated_images/2026-05-02/aa7156b859894d3c90a8d6ef1a1ffd12.jpg#desc=Morning%20routine%2C%20breakfast%20table%2C%20kids%2C%20friendly%20style',
       totalLevels: 3
     },
