@@ -305,24 +305,19 @@ const BookInteraction = () => {
       incrementExpression('book');
       
       if (correct) {
-        const isFirstTime = checkAndMarkPassed(story.id);
-        
-        if (isFirstTime) {
-          incrementBookCompleted();
-          setEarnedStars(prev => prev + 1);
-          updateProfile({ stars: profile.stars + 1 });
-          incrementGamePass();
-          try { speakText("太棒了！回答正确！获得一颗星星！"); } catch {}
-        } else {
-          try { speakText("太棒了！回答正确！"); } catch {}
-        }
+        // 每次答对都给星星（不检查是否首次通过）
+        incrementBookCompleted();
+        setEarnedStars(prev => prev + 1);
+        updateProfile({ stars: profile.stars + 1 });
+        incrementGamePass();
+        try { speakText("太棒了！回答正确！获得一颗星星！"); } catch {}
       } else {
         try { speakText("就快要答对了哦，正确答案是：" + story.displayAnswer || story.answer); } catch {}
       }
     } else {
       alert('请先对着麦克风说话');
     }
-  }, [userAnswer, story, checkAndMarkPassed, incrementExpression, incrementBookCompleted, profile.stars, setEarnedStars, updateProfile, incrementGamePass]);
+  }, [userAnswer, story, incrementExpression, incrementBookCompleted, profile.stars, setEarnedStars, updateProfile, incrementGamePass]);
 
   // 下一题
   const nextStory = () => {
