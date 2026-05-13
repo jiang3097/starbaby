@@ -6,31 +6,17 @@ import MobileShell from '../components/MobileShell';
 import { Card } from '../components/ui/card';
 import { cn } from '../lib/utils';
 import { useApp } from '../context/AppContext';
+import { useUser } from '../context/UserContext';
 
 const BookList = () => {
   const navigate = useNavigate();
   const { dailyStats } = useApp();
+  const { profile } = useUser();
   const [isAIChatOpen, setIsAIChatOpen] = useState(false);
   const [selectedBook, setSelectedBook] = useState<string>('');
 
-  // 从 localStorage 读取已通过的关卡
-  const getPassedLevels = (bookId: number): number[] => {
-    const storageKey = `star_baby_passed_levels_${bookId}`;
-    const stored = localStorage.getItem(storageKey);
-    return stored ? JSON.parse(stored) : [];
-  };
-
-  // 计算已通关的关卡数量（每道题算一关，首次通过才计数）
-  const passedLevels1 = getPassedLevels(1);
-  const passedLevels2 = getPassedLevels(2);
-  const passedLevels3 = getPassedLevels(3);
-  
-  const booksCompleted = passedLevels1.length + passedLevels2.length + passedLevels3.length;
-
-  // 星星计算：从 localStorage 读取已通过关卡数
-  const emotionStars = passedLevels1.length; // 情绪识别已通过关卡数
-  const dailyStarsCalc = passedLevels2.length; // 日常沟通已通过关卡数
-  const helpStarsCalc = passedLevels3.length; // 求助场景已通过关卡数
+  // 使用 profile.stars 作为星星总数
+  const totalStars = profile.stars || 0;
 
   const books = [
     {
@@ -38,7 +24,7 @@ const BookList = () => {
       title: '情绪表达',
       desc: '认识开心、难过和生气',
       status: 'active', // 始终可访问
-      stars: emotionStars,
+      stars: totalStars,
       color: 'bg-rose-50',
       borderColor: 'border-rose-100',
       iconColor: 'text-rose-500',
@@ -52,7 +38,7 @@ const BookList = () => {
       desc: '学会表达你的基本需求',
       // 已解锁
       status: 'active',
-      stars: dailyStarsCalc,
+      stars: totalStars,
       color: 'bg-emerald-50',
       borderColor: 'border-emerald-100',
       iconColor: 'text-emerald-500',
@@ -66,7 +52,7 @@ const BookList = () => {
       desc: '遇到困难时如何开口',
       // 始终保持锁定
       status: 'locked',
-      stars: helpStarsCalc,
+      stars: totalStars,
       color: 'bg-slate-50',
       borderColor: 'border-slate-100',
       iconColor: 'text-slate-400',
@@ -122,6 +108,10 @@ const BookList = () => {
             <div className="flex items-center gap-2">
               <span className="text-2xl">📚</span>
               <h1 className="text-2xl font-bold text-slate-800">绘本闯关</h1>
+              <div className="ml-auto flex items-center gap-1 bg-amber-100 px-3 py-1 rounded-full">
+                <span className="text-lg">⭐</span>
+                <span className="text-amber-700 font-bold">{totalStars}</span>
+              </div>
             </div>
             <p className="text-sm text-amber-600 font-medium">一起来读有趣的故事吧~</p>
           </div>
