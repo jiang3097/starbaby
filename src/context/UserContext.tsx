@@ -198,6 +198,11 @@ export const UserProvider = ({ children }: UserProviderProps) => {
   // 加载当前头像的数据
   const [profile, setProfile] = useState<UserProfile>(() => loadProfile(currentAvatarId));
   
+  // 当 profile 变化时自动保存到 localStorage
+  useEffect(() => {
+    saveProfile(profile);
+  }, [profile]);
+  
   // 获取当前头像信息
   const avatar = STAR_AVATARS.find(a => a.id === profile.avatarId) || STAR_AVATARS[0];
   
