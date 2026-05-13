@@ -75,12 +75,12 @@ export const useSpeech = () => {
     
     recognitionRef.current = recognition;
     
-    // 设置识别参数
-    recognition.continuous = false;
+    // 设置识别参数 - 持续识别直到手动停止
+    recognition.continuous = true;
     recognition.interimResults = true;
     recognition.lang = 'zh-CN';
     
-    // 录音超时 - 8秒
+    // 录音超时 - 60秒（给用户充足时间）
     timeoutRef.current = window.setTimeout(() => {
       console.log('[Speech] 录音超时，停止');
       if (recognitionRef.current) {
@@ -90,7 +90,7 @@ export const useSpeech = () => {
           // 忽略
         }
       }
-    }, 8000);
+    }, 60000);
     
     // 开始事件
     recognition.onstart = () => {
@@ -98,25 +98,26 @@ export const useSpeech = () => {
       setIsListening(true);
     };
     
-    // 结果事件 - 只处理最终结果
+    // 用于累积识别结果的 ref
+    let transcriptRef = { current: '' };
+    
+    // 结果事件 - 处理持续识别，累积所有结果
     recognition.onresult = (event: any) => {
       const results = event.results;
-      const lastResult = results[results.length - 1];
       
-      if (lastResult.isFinal) {
-        const text = lastResult[0].transcript.trim();
-        console.log('[Speech] 最终结果:', text);
-        
-        if (text) {
-          // 清理并返回结果
-          cleanup();
-          setIsListening(false);
-          onResult(text);
+      // 累积所有最终结果
+      let accumulated = '';
+      for (let i = 0; i < results.length; i++) {
+        const result = results[i];
+        if (result.isFinal) {
+          accumulated += (accumulated ? ' ' : '') + result[0].transcript.trim();
         }
-      } else {
-        // 临时结果 - 只记录日志，不处理
-        const interimText = lastResult[0].transcript;
-        console.log('[Speech] 临时结果:', interimText);
+      }
+      
+      if (accumulated) {
+        transcriptRef.current = accumulated;
+        console.log('[Speech] 累积结果:', accumulated);
+        onResult(accumulated);
       }
     };
     

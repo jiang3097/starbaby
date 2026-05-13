@@ -276,9 +276,8 @@ const BookInteraction = () => {
     setUserAnswer('');
     speech.startListening((text: string) => {
       console.log('[Book] Recognition result:', text);
+      // 持续更新识别结果，不自动提交
       setUserAnswer(text);
-      // 识别完成后自动提交
-      stopCurrentListening(text);
     }, (error: string) => {
       console.error('[Book] 语音识别错误:', error);
       setIsListening(false);
@@ -286,56 +285,44 @@ const BookInteraction = () => {
   }, [story]);
 
   // 停止录音并提交答案
-  const stopCurrentListening = useCallback((recognizedText?: string) => {
+  const stopAndSubmit = useCallback(() => {
     speech.stopListening();
     setIsListening(false);
+    const finalAnswer = userAnswer;
     
-    // 如果有识别的文本，优先使用
-    const finalAnswer = recognizedText || userAnswer;
-    setUserAnswer(finalAnswer);
-    
-    // 如果有回答，进行判断
     if (finalAnswer.trim()) {
       const answerLower = finalAnswer.toLowerCase();
       const correctLower = story.answer.toLowerCase();
-      // 用空格/逗号/顿号分割关键词
-      const keywords = correctLower.split(/[,，、\s]+/).filter(k => k.trim().length > 0);
+      const keywords = correctLower.split(/[,，、s]+/).filter(k => k.trim().length > 0);
       const validKeywords = keywords.filter(k => k.trim().length >= 1);
       const matchedCount = validKeywords.filter(k => answerLower.includes(k.trim())).length;
-      // 匹配60%的关键词即可（适合儿童）
       const correct = matchedCount >= Math.ceil(validKeywords.length * 0.6);
       
       setIsCorrect(correct);
       setShowResult(true);
       setPhase('feedback');
-      
-      // 统计：增加主动表达次数
       incrementExpression('book');
       
       if (correct) {
-        // 检查是否首次通过此关卡
         const isFirstTime = checkAndMarkPassed(story.id);
         
         if (isFirstTime) {
-          // 首次通过：增加绘本完成数和星星
           incrementBookCompleted();
-          console.log('首次通过！增加星星');
           setEarnedStars(prev => prev + 1);
-          updateProfile({ stars: profile.stars + 1 }); // 保存星星到存储
-          incrementGamePass(); // 实时更新通关次数
+          updateProfile({ stars: profile.stars + 1 });
+          incrementGamePass();
           try { speakText("太棒了！回答正确！获得一颗星星！"); } catch {}
         } else {
-          // 重复通过：不累加
-          console.log('重复通过此关卡，不累加星星');
           try { speakText("太棒了！回答正确！"); } catch {}
         }
       } else {
-        console.log('答错了，正确答案是:', story.displayAnswer || story.answer);
-        try { speakText(`就快要答对了哦，正确答案是：${story.displayAnswer || story.answer}`); } catch {}
+        try { speakText("就快要答对了哦，正确答案是：" + story.displayAnswer || story.answer); } catch {}
       }
+    } else {
+      alert('请先对着麦克风说话');
     }
-  }, [userAnswer, story, incrementExpression, incrementBookCompleted, checkAndMarkPassed]);
-  
+  }, [userAnswer, story, checkAndMarkPassed, incrementExpression, incrementBookCompleted, profile.stars, setEarnedStars, updateProfile, incrementGamePass]);
+
   // 下一题
   const nextStory = () => {
     if (currentStory < bookData.stories.length - 1) {
@@ -735,18 +722,19 @@ const BookInteraction = () => {
               <motion.div
                 animate={{ scale: isListening ? [1, 1.02, 1] : 1 }}
                 className={cn(
-                  "w-32 h-32 rounded-full flex flex-col items-center justify-center shadow-xl transition-all",
+                  "w-32 h-32 rounded-full flex flex-col items-center justify-center shadow-xl transition-all cursor-pointer",
                   isListening 
                     ? "bg-gradient-to-br from-rose-400 to-pink-500" 
                     : "bg-gradient-to-br from-slate-100 to-slate-200"
                 )}
+                onClick={() => !isListening && startAnswering()}
               >
                 <span className="text-5xl mb-2">{isListening ? '🎤' : '🎙️'}</span>
                 <p className={cn(
                   "text-sm font-bold",
                   isListening ? "text-white" : "text-slate-400"
                 )}>
-                  {isListening ? '正在听...' : '已停止'}
+                  {isListening ? '正在听...' : '点击开始'}
                 </p>
               </motion.div>
 
@@ -757,27 +745,24 @@ const BookInteraction = () => {
                   "text-base font-medium",
                   userAnswer ? "text-slate-700" : "text-slate-400 italic"
                 )}>
-                  {userAnswer || '点击麦克风开始说话~'}
+                  {userAnswer || '等待说话...'}
                 </p>
               </div>
 
-              {/* 控制按钮 */}
-              <div className="flex gap-4 w-full max-w-sm">
-                <Button
-                  onClick={() => stopCurrentListening()}
-                  variant="secondary"
-                  className="flex-1 h-14 bg-slate-100 text-slate-600 font-bold rounded-full border-none"
-                >
-                  说完啦
-                </Button>
-                <Button
-                  onClick={startAnswering}
-                  className="flex-1 h-14 bg-gradient-to-r from-rose-400 to-pink-500 text-white font-bold rounded-full border-none"
-                >
-                  <Mic size={20} className="mr-1" />
-                  {userAnswer ? '再说一遍' : '开始录音'}
-                </Button>
-              </div>
+              {/* 说完了按钮 */}
+              <Button
+                onClick={stopAndSubmit}
+                disabled={!isListening}
+                className={cn(
+                  "h-14 px-12 font-bold rounded-full border-none",
+                  isListening 
+                    ? "bg-gradient-to-r from-rose-400 to-pink-500 text-white"
+                    : "bg-slate-200 text-slate-400"
+                )}
+              >
+                <Check size={20} className="mr-1" />
+                说完了
+              </Button>
             </div>
           </motion.div>
         )}
