@@ -73,7 +73,19 @@ function AppProvider({ children }: { children: React.ReactNode }) {
     }
     return { ...defaultDailyStats, date: today };
   });
-  const [weeklyStats, setWeeklyStats] = useState<WeeklyStats>({});
+  
+  // 从 localStorage 读取周数据，初始化时加载历史数据
+  const [weeklyStats, setWeeklyStats] = useState<WeeklyStats>(() => {
+    const saved = localStorage.getItem(WEEKLY_STORAGE_KEY);
+    if (saved) {
+      try {
+        return JSON.parse(saved) as WeeklyStats;
+      } catch {
+        return {};
+      }
+    }
+    return {};
+  });
   const [timeLimit, setTimeLimitState] = useState<TimeLimit>(() => {
     const saved = localStorage.getItem(LIMIT_STORAGE_KEY);
     if (saved) {
@@ -185,23 +197,25 @@ function AppProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem(DAILY_STORAGE_KEY, JSON.stringify(dailyStats));
   }, [dailyStats]);
 
-  // 更新周数据
+  // 更新周数据 - 保留历史数据，只更新今天
   useEffect(() => {
-    const weekData = getWeekDates();
-    const week: WeeklyStats = {};
-    weekData.forEach((date: string) => {
-      if (date === dailyStats.date) {
-        week[date] = {
-          trainingMinutes: dailyStats.trainingMinutes,
-          expressionCount: dailyStats.expressionCount,
-          gamePassCount: dailyStats.gamePassCount,
-        };
-      } else {
-        week[date] = { trainingMinutes: 0, expressionCount: 0, gamePassCount: 0 };
-      }
+    const today = dailyStats.date;
+    // 保留历史数据，更新今天的数据
+    setWeeklyStats(prev => {
+      const updated = { ...prev };
+      updated[today] = {
+        trainingMinutes: dailyStats.trainingMinutes,
+        expressionCount: dailyStats.expressionCount,
+        gamePassCount: dailyStats.gamePassCount,
+      };
+      return updated;
     });
-    setWeeklyStats(week);
   }, [dailyStats]);
+
+  // 保存周数据到 localStorage
+  useEffect(() => {
+    localStorage.setItem(WEEKLY_STORAGE_KEY, JSON.stringify(weeklyStats));
+  }, [weeklyStats]);
 
   return (
     <AppContext.Provider value={{
