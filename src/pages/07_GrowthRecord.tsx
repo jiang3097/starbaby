@@ -108,16 +108,13 @@ const GrowthRecord = () => {
     tipTimerRef.current = setTimeout(() => setShowTip(false), 2500);
   };
 
-  // 防抖更新显示数据 - 与每日数据同步
+  // 实时更新显示数据
   useEffect(() => {
-    const timeout = setTimeout(() => {
-      setDisplayStats({
-        trainingMinutes: dailyStats.trainingMinutes,
-        expressionCount: dailyStats.expressionCount,
-        gamePassCount: dailyStats.gamePassCount,
-      });
-    }, 300);
-    return () => clearTimeout(timeout);
+    setDisplayStats({
+      trainingMinutes: dailyStats.trainingMinutes,
+      expressionCount: dailyStats.expressionCount,
+      gamePassCount: dailyStats.gamePassCount,
+    });
   }, [dailyStats]);
 
   // 预加载语音
