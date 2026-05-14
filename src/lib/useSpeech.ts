@@ -1,207 +1,177 @@
-import { useState, useCallback, useRef, useEffect } from 'react';
-import axios from 'axios';
-
-// 百度语音配置
-const BAIDU_APP_ID = '7746751';
-const BAIDU_API_KEY = 'lxcTuf5SRwkOFnff4cKqsPgM';
-const BAIDU_SECRET_KEY = 'R3IZvo7BkyK0dVRzsgm81DFHnBznF3NW';
+import { useState, useCallback, useRef } from 'react';
 
 // 移除 emoji，只保留文字
 export const removeEmoji = (text: string): string => {
   return text.replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F900}-\u{1F9FF}\u{1FA00}-\u{1FA6F}\u{1FA70}-\u{1FAFF}]/gu, '');
 };
 
-// 检查 TTS 是否可用
+// 检查浏览器是否支持 TTS
 export const isTTSAvailable = () => {
   return typeof window !== 'undefined' && 'speechSynthesis' in window;
 };
 
-// 百度语音始终支持
-export const isSpeechRecognitionSupported = () => true;
+// 检查浏览器是否支持语音识别
+export const isSpeechRecognitionSupported = () => {
+  return typeof window !== 'undefined' && ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window);
+};
+
 export const isSpeechSupport = isSpeechRecognitionSupported;
 
-// 获取百度 access_token
-let tokenCache: { token: string; expireTime: number } | null = null;
+// TTS 朗读函数
+export const speakText = (text: string, voice?: string): Promise<void> => {
+  return new Promise((resolve, reject) => {
+    if (typeof window === 'undefined' || !window.speechSynthesis) {
+      resolve();
+      return;
+    }
 
-const getBaiduToken = async (): Promise<string> => {
-  if (tokenCache && Date.now() < tokenCache.expireTime) {
-    return tokenCache.token;
-  }
-  
-  const tokenUrl = `https://aip.baidubce.com/oauth/2.0/token?grant_type=client_credentials&client_id=${BAIDU_API_KEY}&client_secret=${BAIDU_SECRET_KEY}`;
-  
-  try {
-    const response = await axios.post(tokenUrl);
-    const { access_token, expires_in } = response.data;
-    
-    tokenCache = {
-      token: access_token,
-      expireTime: Date.now() + (expires_in - 300) * 1000
+    // 移除 emoji
+    const cleanText = removeEmoji(text);
+
+    const utterance = new SpeechSynthesisUtterance(cleanText);
+    utterance.lang = 'zh-CN';
+    utterance.rate = 0.9;
+    utterance.pitch = 1;
+
+    // 选择中文语音
+    const voices = window.speechSynthesis.getVoices();
+    const zhVoice = voices.find(v => v.lang.includes('zh'));
+    if (zhVoice) {
+      utterance.voice = zhVoice;
+    }
+
+    utterance.onend = () => {
+      resolve();
     };
-    
-    return access_token;
-  } catch (error) {
-    console.error('[BaiduASR] 获取token失败:', error);
-    throw new Error('获取语音识别授权失败');
+
+    utterance.onerror = () => {
+      resolve();
+    };
+
+    window.speechSynthesis.speak(utterance);
+  });
+};
+
+// 停止朗读
+export const stopSpeak = (): void => {
+  if (typeof window !== 'undefined' && window.speechSynthesis) {
+    window.speechSynthesis.cancel();
   }
 };
 
 export const useSpeech = () => {
   const [isListening, setIsListening] = useState(false);
-  const [isSupported] = useState(true);
-  const chunksRef = useRef<Blob[]>([]);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const streamRef = useRef<MediaStream | null>(null);
-  const callbacksRef = useRef<{ onResult?: (text: string) => void; onFinal?: (text: string) => void; onError?: (error: string) => void }>({});
+  const [isSupported] = useState(isSpeechRecognitionSupported());
+  const recognitionRef = useRef<any>(null);
+  const interimTextRef = useRef<string>('');
 
+  // 清理函数
   const cleanup = useCallback(() => {
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach(track => track.stop());
-      streamRef.current = null;
-    }
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+    if (recognitionRef.current) {
       try {
-        mediaRecorderRef.current.stop();
+        recognitionRef.current.abort();
       } catch (e) {}
-      mediaRecorderRef.current = null;
+      recognitionRef.current = null;
     }
-    chunksRef.current = [];
+    interimTextRef.current = '';
     setIsListening(false);
   }, []);
 
+  // 停止录音
   const stopListening = useCallback(() => {
-    console.log('[BaiduASR] 停止录音');
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
-      mediaRecorderRef.current.stop();
+    console.log('[Speech] 停止录音');
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.stop();
+      } catch (e) {}
     }
   }, []);
 
+  // 开始录音
   const startListening = useCallback((
     onResult: (text: string) => void,
     onError?: (error: string) => void,
     onFinal?: (text: string) => void
   ) => {
-    console.log('[BaiduASR] 开始录音');
-    
-    callbacksRef.current = { onResult, onError, onFinal };
-    chunksRef.current = [];
-    
+    console.log('[Speech] 开始录音');
     cleanup();
-    
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      console.error('[BaiduASR] 浏览器不支持录音');
-      onError?.('浏览器不支持录音');
+
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+
+    if (!SpeechRecognition) {
+      console.error('[Speech] 浏览器不支持语音识别');
+      onError?.('浏览器不支持语音识别');
       return;
     }
-    
-    navigator.mediaDevices.getUserMedia({ audio: true })
-      .then((stream) => {
-        streamRef.current = stream;
-        
-        const mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm;codecs=opus' });
-        mediaRecorderRef.current = mediaRecorder;
-        
-        mediaRecorder.ondataavailable = (event) => {
-          if (event.data && event.data.size > 0) {
-            chunksRef.current.push(event.data);
-          }
-        };
-        
-        mediaRecorder.onstop = async () => {
-          console.log('[BaiduASR] 开始识别...');
-          const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
-          
-          try {
-            const token = await getBaiduToken();
-            
-            // 转换为 base64
-            const reader = new FileReader();
-            reader.readAsDataURL(blob);
-            reader.onloadend = async () => {
-              const base64 = (reader.result as string).split(',')[1];
-              
-              try {
-                // 调用百度短语音识别 API
-                const response = await axios.post(
-                  `https://vop.baidu.com/server_api?dev_pid=15372&token=${token}`,
-                  {
-                    format: 'wav',
-                    rate: 16000,
-                    dev_pid: 15372,
-                    spenc: 'wav',
-                    channel: 1,
-                    cuuid: 'starbaby',
-                    len: blob.size,
-                    speech: base64
-                  },
-                  {
-                    headers: {
-                      'Content-Type': 'application/json',
-                    },
-                    params: {
-                      dev_pid: 15372,
-                      token: token
-                    }
-                  }
-                );
-                
-                console.log('[BaiduASR] 识别结果:', response.data);
-                
-                if (response.data.err_no === 0 && response.data.result) {
-                  const text = response.data.result[0];
-                  console.log('[BaiduASR] 识别文字:', text);
-                  onResult?.(text);
-                  onFinal?.(text);
-                } else {
-                  console.error('[BaiduASR] 识别失败:', response.data.err_msg);
-                  onError?.(response.data.err_msg || '识别失败');
-                }
-              } catch (apiError) {
-                console.error('[BaiduASR] API调用失败:', apiError);
-                onError?.('识别服务调用失败');
-              }
-            };
-          } catch (tokenError) {
-            console.error('[BaiduASR] 获取token失败:', tokenError);
-            onError?.('获取授权失败');
-          }
-        };
-        
-        mediaRecorder.onerror = (error) => {
-          console.error('[BaiduASR] 录音错误:', error);
-          onError?.('录音出错');
-          cleanup();
-        };
-        
-        // 开始录音
-        mediaRecorder.start();
-        setIsListening(true);
-        console.log('[BaiduASR] 录音中...');
-        
-        // 30秒超时自动停止
-        setTimeout(() => {
-          if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
-            console.log('[BaiduASR] 录音超时');
-            mediaRecorderRef.current.stop();
-          }
-        }, 30000);
-        
-      })
-      .catch((err) => {
-        console.error('[BaiduASR] 麦克风权限获取失败:', err);
-        if (err.name === 'NotAllowedError') {
-          onError?.('请允许使用麦克风');
-        } else {
-          onError?.('麦克风不可用');
-        }
-      });
-      
-  }, [cleanup]);
 
-  useEffect(() => {
-    return () => {
+    const recognition = new SpeechRecognition();
+    recognitionRef.current = recognition;
+    interimTextRef.current = '';
+
+    // 配置
+    recognition.continuous = false;
+    recognition.interimResults = true;
+    recognition.lang = 'zh-CN';
+    recognition.maxAlternatives = 1;
+
+    // 实时返回识别结果
+    recognition.onresult = (event: any) => {
+      let finalText = '';
+      let interimText = '';
+
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const transcript = event.results[i][0].transcript;
+        if (event.results[i].isFinal) {
+          finalText += transcript;
+        } else {
+          interimText += transcript;
+        }
+      }
+
+      // 显示临时结果
+      if (interimText) {
+        console.log('[Speech] 临时结果:', interimText);
+        interimTextRef.current = interimText;
+        onResult?.(interimText);
+      }
+
+      // 最终结果
+      if (finalText) {
+        console.log('[Speech] 最终结果:', finalText);
+        onFinal?.(finalText);
+      }
+    };
+
+    recognition.onerror = (event: any) => {
+      console.error('[Speech] 识别错误:', event.error);
+      if (event.error === 'no-speech') {
+        onError?.('没有检测到声音，请再说一次');
+      } else if (event.error === 'not-allowed') {
+        onError?.('请允许使用麦克风');
+      } else {
+        onError?.('语音识别出错');
+      }
       cleanup();
     };
+
+    recognition.onend = () => {
+      console.log('[Speech] 识别结束');
+      setIsListening(false);
+    };
+
+    recognition.onstart = () => {
+      console.log('[Speech] 开始识别');
+      setIsListening(true);
+    };
+
+    // 开始识别
+    try {
+      recognition.start();
+    } catch (err) {
+      console.error('[Speech] 启动失败:', err);
+      onError?.('启动语音识别失败');
+      cleanup();
+    }
   }, [cleanup]);
 
   return {
@@ -209,50 +179,6 @@ export const useSpeech = () => {
     isSupported,
     startListening,
     stopListening,
-    isTTSAvailable: isTTSAvailable()
+    cleanup,
   };
-};
-
-// TTS 朗读功能
-export const speakText = (text: string, onEnd?: () => void): Promise<void> => {
-  return new Promise((resolve, reject) => {
-    if (!isTTSAvailable()) {
-      console.warn('[TTS] 浏览器不支持语音合成');
-      resolve();
-      return;
-    }
-    
-    const cleanText = removeEmoji(text);
-    window.speechSynthesis.cancel();
-    
-    const utterance = new SpeechSynthesisUtterance(cleanText);
-    utterance.lang = 'zh-CN';
-    utterance.rate = 1.0;
-    utterance.pitch = 1.0;
-    
-    const voices = window.speechSynthesis.getVoices();
-    const chineseVoice = voices.find(v => v.lang.includes('zh') && v.localService);
-    if (chineseVoice) {
-      utterance.voice = chineseVoice;
-    }
-    
-    utterance.onend = () => {
-      console.log('[TTS] 朗读完成');
-      onEnd?.();
-      resolve();
-    };
-    
-    utterance.onerror = (e) => {
-      console.error('[TTS] 朗读出错:', e.error);
-      onEnd?.();
-      resolve(); // 即使出错也resolve，避免阻塞
-    };
-    
-    console.log('[TTS] 开始朗读:', cleanText);
-    window.speechSynthesis.speak(utterance);
-  });
-};
-
-export const stopSpeak = () => {
-  window.speechSynthesis.cancel();
 };
