@@ -75,49 +75,52 @@ export const useSpeech = () => {
     
     recognitionRef.current = recognition;
     
-    // 设置识别参数 - 持续识别，直到用户手动停止
+    // 设置识别参数
     recognition.continuous = true;
     recognition.interimResults = true;
     recognition.lang = 'zh-CN';
     
-    // 录音超时 - 30秒（给用户充足时间）
+    // 录音超时 - 30秒
     timeoutRef.current = window.setTimeout(() => {
-      console.log('[Speech] 录音超时，停止');
+      console.log('[Speech] 录音超时');
       if (recognitionRef.current) {
         try {
           recognitionRef.current.stop();
-        } catch (e) {
-          // 忽略
-        }
+        } catch (e) {}
       }
     }, 30000);
     
     // 开始事件
     recognition.onstart = () => {
-      console.log('[Speech] ===== 开始识别 =====');
-      console.log('[Speech] continuous:', recognition.continuous);
-      console.log('[Speech] interimResults:', recognition.interimResults);
-      console.log('[Speech] lang:', recognition.lang);
+      console.log('[Speech] 开始识别');
       setIsListening(true);
     };
     
-    // 结果事件 - 持续识别，不断更新结果
+    // 结果事件
     recognition.onresult = (event: any) => {
       const results = event.results;
-      // 获取所有结果的文本
-      let fullText = '';
-      for (let i = 0; i < results.length; i++) {
-        fullText += (fullText ? ' ' : '') + results[i][0].transcript;
+      const lastResult = results[results.length - 1];
+      
+      // 临时结果
+      const interimText = lastResult[0].transcript;
+      if (interimText) {
+        console.log('[Speech] 临时结果:', interimText);
+        onResult(interimText);
       }
-      console.log('[Speech] 识别结果:', fullText);
-      if (fullText.trim()) {
-        onResult(fullText.trim());
+      
+      // 最终结果
+      if (lastResult.isFinal) {
+        const text = lastResult[0].transcript.trim();
+        console.log('[Speech] 最终结果:', text);
+        if (text) {
+          onResult(text);
+        }
       }
     };
     
     // 结束事件
     recognition.onend = () => {
-      console.log('[Speech] ===== 识别结束 =====');
+      console.log('[Speech] 识别结束');
       cleanup();
       setIsListening(false);
     };
@@ -125,30 +128,9 @@ export const useSpeech = () => {
     // 错误事件
     recognition.onerror = (event: any) => {
       console.error('[Speech] 识别错误:', event.error);
-      console.error('[Speech] 错误详情:', event.message);
-      console.log('[Speech] 是否支持语音识别:', isSupported);
-      console.log('[Speech] 当前语言:', recognition.lang);
-      
       cleanup();
       setIsListening(false);
-      
-      // 根据不同错误类型给出提示
-      if (event.error === 'no-speech') {
-        console.log('[Speech] 没有检测到语音');
-        onError?.('没有检测到语音，请对着麦克风说话');
-      } else if (event.error === 'not-allowed') {
-        console.log('[Speech] 麦克风权限被拒绝');
-        onError?.('请允许使用麦克风权限');
-      } else if (event.error === 'network') {
-        console.log('[Speech] 网络错误');
-        onError?.('网络错误，请检查网络连接');
-      } else if (event.error === 'aborted') {
-        console.log('[Speech] 识别被中断');
-        // aborted 不提示用户，只是正常停止
-      } else {
-        console.log('[Speech] 其他错误:', event.error);
-        onError?.('语音识别出错，请重试');
-      }
+      onError?.('语音识别出错');
     };
     
     // 开始识别
