@@ -1,10 +1,11 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, Volume2, Send, Square } from 'lucide-react';
+import { ChevronLeft, Mic, Volume2, Send, Square, Keyboard } from 'lucide-react';
 import MobileShell from '../components/MobileShell';
 import { cn } from '../lib/utils';
-import { speakText, stopSpeak, isTTSAvailable } from '../lib/useSpeech';
+import { speakText, stopSpeak, isTTSAvailable, isSpeechRecognitionSupported } from '../lib/useSpeech';
+import { useSpeech } from '../lib/useSpeech';
 import { useUser } from '../context/UserContext';
 import { useApp } from '../context/AppContext';
 import { getAIReply } from '../lib/cozeChat';
@@ -19,17 +20,22 @@ const AIChat = () => {
   const navigate = useNavigate();
   const { profile, avatar, incrementIntimacy } = useUser();
   const { startTraining, incrementExpression, incrementChatMessage } = useApp();
+  const speech = useSpeech();
   const [messages, setMessages] = useState<Message[]>([
     { id: 1, type: 'bot', text: `你好呀！我是${profile.name}！今天心情怎么样？` },
   ]);
+  const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isAIThinking, setIsAIThinking] = useState(false);
   const [showIntimacyTip, setShowIntimacyTip] = useState(false);
-  const [textInput, setTextInput] = useState('');
   const [currentIntimacy, setCurrentIntimacy] = useState(profile.intimacy);
-  const messageIdCounter = useRef(Date.now());
-  const prevIntimacyRef = useRef(profile.intimacy);
+  const [tempTranscript, setTempTranscript] = useState('');
+  const [micError, setMicError] = useState('');
+  const [textInput, setTextInput] = useState('');
   const hasStartedTraining = useRef(false);
+  const prevIntimacyRef = useRef(profile.intimacy);
+  const messageIdCounter = useRef(Date.now());
+  const isRecognitionSupported = typeof window !== 'undefined' && ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window);
   
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -43,6 +49,7 @@ const AIChat = () => {
     prevIntimacyRef.current = profile.intimacy;
   }, [profile.intimacy]);
 
+
   // 进入页面时开始训练计时（只执行一次）
   useEffect(() => {
     let mounted = true;
@@ -53,7 +60,7 @@ const AIChat = () => {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, []); // 空依赖，确保只执行一次
 
   // 滚动到底部
   useEffect(() => {
@@ -211,6 +218,43 @@ const AIChat = () => {
   };
 
   // 点击麦克风开始说话
+  const handleMicClick = async () => {
+    if (isListening) {
+      // 停止录音
+      speech.stopListening();
+      setIsListening(false);
+    } else {
+      // 开始录音
+      setIsListening(true);
+      setTempTranscript('');
+
+      try {
+        speech.startListening(
+          (text: string) => {
+            // 临时结果显示
+            setTempTranscript(text);
+          },
+          (error: string) => {
+            console.error('[AIChat] 语音识别错误:', error);
+            setIsListening(false);
+            setMicError('语音识别出错');
+            setTimeout(() => setMicError(''), 3000);
+          },
+          (text: string) => {
+            // 最终结果才发送
+            setIsListening(false);
+            handleSend(text);
+          }
+        );
+      } catch (error) {
+        console.error('[AIChat] 启动语音识别失败:', error);
+        setIsListening(false);
+        setMicError('启动失败');
+        setTimeout(() => setMicError(''), 3000);
+      }
+    }
+  };
+
   // 朗读按钮
   const handleReadAloud = (text: string) => {
     setIsSpeaking(true);
@@ -280,9 +324,9 @@ const AIChat = () => {
           </motion.div>
           <span className={cn(
             "text-xs font-bold mt-1 px-3 py-0.5 rounded-full",
-            isSpeaking ? 'bg-amber-100 text-amber-600' : 'bg-sky-100 text-sky-500'
+            isSpeaking ? 'bg-amber-100 text-amber-600' : isListening ? 'bg-rose-100 text-rose-500' : 'bg-sky-100 text-sky-500'
           )}>
-          {isSpeaking ? '正在朗读' : profile.name}
+          {isSpeaking ? '正在朗读' : isListening ? '正在听...' : profile.name}
           </span>
         </div>
       </div>
@@ -453,13 +497,32 @@ const AIChat = () => {
 
         {/* 微信风格输入框 */}
         <div className="w-full flex items-center gap-2 px-1">
-          {/* 表情按钮 */}
-          <button
-            disabled
-            className="w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0 bg-amber-100 opacity-50"
-          >
-            <span className="text-2xl">😊</span>
-          </button>
+          {/* 麦克风按钮 */}
+          {isRecognitionSupported ? (
+            <button
+              onMouseDown={handleMicClick}
+              onTouchStart={handleMicClick}
+              disabled={isAIThinking}
+              className={`w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0 ${
+                isListening 
+                  ? 'bg-gradient-to-br from-rose-400 to-pink-500' 
+                  : 'bg-amber-100'
+              } ${isAIThinking ? 'opacity-50' : ''} transition-all active:scale-95`}
+            >
+              {isListening ? (
+                <span className="text-white text-lg">⏹</span>
+              ) : (
+                <span className="text-2xl">🎤</span>
+              )}
+            </button>
+          ) : (
+            <button
+              disabled
+              className="w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0 bg-gray-100 opacity-50"
+            >
+              <span className="text-2xl opacity-50">🎤</span>
+            </button>
+          )}
 
           {/* 文字输入框 */}
           <input
@@ -481,11 +544,54 @@ const AIChat = () => {
           </button>
         </div>
         
-        {/* 提示文字 */}
-        <p className="text-center text-amber-600 text-sm font-medium">
-          使用手机键盘自带语音输入与星小宝聊天吧~
-        </p>
+        {/* 麦克风错误提示 */}
+        {micError && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            className="mt-2 px-4 py-2 bg-red-100 text-red-600 rounded-xl text-sm text-center max-w-[250px]"
+          >
+            {micError}
+          </motion.div>
+        )}
       </div>
+
+      {/* Listening indicator */}
+      <AnimatePresence>
+        {isListening && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 10 }}
+            className="flex items-center justify-center gap-3 py-2"
+          >
+            <div className="flex gap-1 items-end">
+              {[1, 2, 3, 4].map(i => (
+                <motion.div
+                  key={i}
+                  animate={{ height: [12, 28, 12], scaleY: [0.5, 1, 0.5] }}
+                  transition={{ 
+                    repeat: Infinity, 
+                    duration: 0.5, 
+                    delay: i * 0.1 
+                  }}
+                  className="w-2 bg-gradient-to-t from-rose-400 to-pink-400 rounded-full"
+                />
+              ))}
+            </div>
+            <span className="text-base text-rose-500 font-bold">在听你说哦~</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* 提示文字 */}
+      <p className="text-center text-amber-600 text-sm font-medium">
+        {isRecognitionSupported 
+          ? (isListening ? '请说话哦~' : '说话后再次点击麦克风即可发送')
+          : '输入文字与星小宝聊天吧~'
+        }
+      </p>
     </MobileShell>
   );
 };

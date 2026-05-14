@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, Volume2, Keyboard, Check, ArrowRight, Trophy, RefreshCw, Sparkles, Star, Home, Square } from 'lucide-react';
+import { ChevronLeft, Volume2, Mic, Check, ArrowRight, Trophy, RefreshCw, Sparkles, Star, Home, Square } from 'lucide-react';
 import MobileShell from '../components/MobileShell';
 import { Button } from '../components/ui/button';
 import { cn } from '../lib/utils';
 import { speakText, stopSpeak, removeEmoji } from '../lib/useSpeech';
+import { useSpeech } from '../lib/useSpeech';
 
 import { useUser } from '../context/UserContext';
 import { useApp } from '../context/AppContext';
@@ -144,6 +145,7 @@ const BookInteraction = () => {
   const { bookId } = useParams<{ bookId: string }>();
   const navigate = useNavigate();
   const { profile, avatar, addFood, updateProfile } = useUser();
+  const speech = useSpeech();
   const { startTraining, incrementExpression, incrementBookCompleted, incrementGamePass, dailyStats } = useApp();
   const hasStartedTraining = useRef(false);
   const hasGivenStarRef = useRef<Set<number>>(new Set()); // 防止重复奖励
@@ -151,6 +153,7 @@ const BookInteraction = () => {
   const [currentStory, setCurrentStory] = useState(0);
   const [phase, setPhase] = useState<GamePhase>('intro');
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isListening, setIsListening] = useState(false);
   const [userAnswer, setUserAnswer] = useState('');
   const [isCorrect, setIsCorrect] = useState(false);
   const [showResult, setShowResult] = useState(false);
@@ -236,10 +239,12 @@ const BookInteraction = () => {
   const resetState = useCallback(() => {
     setPhase('intro');
     setIsPlaying(false);
+    setIsListening(false);
     setUserAnswer('');
     setIsCorrect(false);
     setShowResult(false);
     setEarnedStars(0); // 重置星星
+    speech.stopListening();
   }, []);
 
   // 开始阅读
@@ -262,11 +267,28 @@ const BookInteraction = () => {
   const startAnswering = useCallback(() => {
     console.log('[Book] startAnswering called');
     setPhase('answering');
+    setIsListening(true);
     setUserAnswer('');
+    speech.startListening(
+      (text: string) => {
+        console.log('[Book] 临时结果:', text);
+        setUserAnswer(text);
+      },
+      (error: string) => {
+        console.error('[Book] 语音识别错误:', error);
+        setIsListening(false);
+      },
+      (text: string) => {
+        console.log('[Book] 最终结果:', text);
+        setUserAnswer(text);
+      }
+    );
   }, [story]);
 
-  // 提交答案（使用输入框输入）
+  // 停止录音并提交答案
   const stopAndSubmit = useCallback(() => {
+    speech.stopListening();
+    setIsListening(false);
     const finalAnswer = userAnswer;
     
     if (finalAnswer.trim()) {
@@ -289,9 +311,12 @@ const BookInteraction = () => {
         setEarnedStars(prev => prev + 1);
         updateProfile({ stars: profile.stars + 1 });
         incrementGamePass();
+        try { speakText("太棒了！回答正确！获得一颗星星！"); } catch {}
+      } else {
+        try { speakText("就快要答对了哦，正确答案是：" + story.displayAnswer || story.answer); } catch {}
       }
     } else {
-      alert('请输入答案');
+      alert('请先对着麦克风说话');
     }
   }, [userAnswer, story, incrementExpression, incrementBookCompleted, profile.stars, setEarnedStars, updateProfile, incrementGamePass]);
 
@@ -604,7 +629,7 @@ const BookInteraction = () => {
                   }}
                   className="w-full h-14 bg-gradient-to-r from-rose-400 to-pink-500 text-white font-bold text-lg rounded-full shadow-lg border-none"
                 >
-                  <ArrowRight size={22} className="mr-2" />
+                  <Mic size={22} className="mr-2" />
                   开始答题
                 </Button>
               </div>
@@ -662,7 +687,8 @@ const BookInteraction = () => {
                 onClick={startAnswering}
                 className="h-16 px-12 rounded-full bg-gradient-to-r from-rose-400 to-pink-500 text-white font-bold text-xl shadow-xl border-none"
               >
-                点击开始回答
+                <Mic size={24} className="mr-2" />
+                点击回答问题
               </Button>
             </div>
           </motion.div>
@@ -689,15 +715,35 @@ const BookInteraction = () => {
                 <p className="text-base text-slate-600">{story.question}</p>
               </div>
 
-              {/* 回答输入框 */}
+              {/* 录音状态 */}
+              <motion.div
+                animate={{ scale: isListening ? [1, 1.02, 1] : 1 }}
+                className={cn(
+                  "w-32 h-32 rounded-full flex flex-col items-center justify-center shadow-xl transition-all cursor-pointer",
+                  isListening 
+                    ? "bg-gradient-to-br from-rose-400 to-pink-500" 
+                    : "bg-gradient-to-br from-slate-100 to-slate-200"
+                )}
+                onClick={() => !isListening && startAnswering()}
+              >
+                <span className="text-5xl mb-2">{isListening ? '🎤' : '🎙️'}</span>
+                <p className={cn(
+                  "text-sm font-bold",
+                  isListening ? "text-white" : "text-slate-400"
+                )}>
+                  {isListening ? '正在听...' : '点击开始'}
+                </p>
+              </motion.div>
+
+              {/* 用户回答 */}
               <div className="bg-white rounded-2xl p-4 shadow-md border-2 border-rose-100 max-w-sm w-full">
-                <textarea
-                  value={userAnswer}
-                  onChange={(e) => setUserAnswer(e.target.value)}
-                  placeholder="用手机键盘输入答案哦~"
-                  className="w-full h-24 p-2 text-base border border-slate-200 rounded-lg resize-none focus:outline-none focus:border-rose-300"
-                />
-                <p className="text-xs text-slate-400 mt-1">提示：使用手机键盘输入答案</p>
+                <p className="text-xs text-slate-400 mb-1">你说的：</p>
+                <p className={cn(
+                  "text-base font-medium",
+                  userAnswer ? "text-slate-700" : "text-slate-400 italic"
+                )}>
+                  {userAnswer || '等待说话...'}
+                </p>
               </div>
 
               {/* 说完了按钮 */}
