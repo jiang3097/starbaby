@@ -80,8 +80,8 @@ export const useSpeech = () => {
     
     recognitionRef.current = recognition;
     
-    // 设置识别参数
-    recognition.continuous = true;
+    // 设置识别参数 - 改为单次模式避免结果累积
+    recognition.continuous = false;
     recognition.interimResults = true;
     recognition.lang = 'zh-CN';
     

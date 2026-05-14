@@ -34,6 +34,7 @@ const AIChat = () => {
   const [textInput, setTextInput] = useState('');
   const hasStartedTraining = useRef(false);
   const prevIntimacyRef = useRef(profile.intimacy);
+  const messageIdCounter = useRef(Date.now());
   const isRecognitionSupported = typeof window !== 'undefined' && ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window);
   
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -168,8 +169,8 @@ const AIChat = () => {
     // 清理emoji用于处理
     const cleanText = text.toString().replace(/[\u{1F300}-\u{1F9FF}]/gu, '').trim();
     
-    // 添加用户消息
-    const userMsg: Message = { id: Date.now(), type: 'user', text: cleanText };
+    // 添加用户消息 - 使用计数器确保唯一 id
+    const userMsg: Message = { id: messageIdCounter.current++, type: 'user', text: cleanText };
     setMessages(prev => [...prev, userMsg]);
 
     // 统计：增加主动表达次数和聊天消息数
@@ -191,7 +192,7 @@ const AIChat = () => {
       const reply = await fetchAIReply(cleanText, history);
       
       const botMsg: Message = { 
-        id: Date.now() + 1, 
+        id: messageIdCounter.current++, 
         type: 'bot', 
         text: reply,
       };
