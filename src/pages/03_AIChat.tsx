@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, Mic, Volume2, Send, Square, Keyboard } from 'lucide-react';
 import MobileShell from '../components/MobileShell';
 import { cn } from '../lib/utils';
-import { speakText, stopSpeaking, isTTSAvailable, isSpeechRecognitionSupported } from '../lib/useSpeech';
+import { speakText, stopSpeak, isTTSAvailable, isSpeechRecognitionSupported } from '../lib/useSpeech';
 import { useSpeech } from '../lib/useSpeech';
 import { useUser } from '../context/UserContext';
 import { useApp } from '../context/AppContext';
@@ -402,7 +402,7 @@ const AIChat = () => {
                   <button
                     onClick={() => {
                       if (isSpeaking) {
-                        stopSpeaking();
+                        stopSpeak();
                         setIsSpeaking(false);
                       } else {
                         handleReadAloud(msg.text);

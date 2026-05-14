@@ -5,7 +5,7 @@ import { ChevronLeft, Volume2, Mic, Check, ArrowRight, Trophy, RefreshCw, Sparkl
 import MobileShell from '../components/MobileShell';
 import { Button } from '../components/ui/button';
 import { cn } from '../lib/utils';
-import { speakText, stopSpeaking, removeEmoji } from '../lib/useSpeech';
+import { speakText, stopSpeak, removeEmoji } from '../lib/useSpeech';
 import { useSpeech } from '../lib/useSpeech';
 
 import { useUser } from '../context/UserContext';
@@ -596,7 +596,7 @@ const BookInteraction = () => {
                 <button
                   onClick={() => {
                     if (isPlaying) {
-                      stopSpeaking();
+                      stopSpeak();
                     } else {
                       speakText(removeEmoji(story.text));
                     }
