@@ -748,10 +748,10 @@ const BookInteraction = () => {
               {/* 说完了按钮 */}
               <Button
                 onClick={stopAndSubmit}
-                disabled={!isListening}
+                disabled={!userAnswer}
                 className={cn(
                   "h-14 px-12 font-bold rounded-full border-none",
-                  isListening 
+                  userAnswer 
                     ? "bg-gradient-to-r from-rose-400 to-pink-500 text-white"
                     : "bg-slate-200 text-slate-400"
                 )}
