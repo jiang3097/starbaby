@@ -2,6 +2,11 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 
 const SPEECH_KEY = 'star_baby_speech_enabled';
 
+// 移除 emoji，只保留文字
+export const removeEmoji = (text: string): string => {
+  return text.replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F900}-\u{1F9FF}\u{1FA00}-\u{1FA6F}\u{1FA70}-\u{1FAFF}]/gu, '');
+};
+
 // 检查浏览器是否支持语音识别
 export const isSpeechRecognitionSupported = () => {
   return typeof window !== 'undefined' && 
@@ -168,10 +173,13 @@ export const speakText = (text: string, voiceRate: number = 0.9): Promise<void> 
     
     console.log('[TTS] 开始朗读:', text);
     
+    // 移除 emoji，只朗读文字
+    const cleanText = removeEmoji(text);
+    
     // 取消之前的朗读
     window.speechSynthesis.cancel();
     
-    const utterance = new SpeechSynthesisUtterance(text);
+    const utterance = new SpeechSynthesisUtterance(cleanText);
     utterance.lang = 'zh-CN';
     utterance.rate = voiceRate;
     utterance.volume = 1;
