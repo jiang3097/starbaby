@@ -36,6 +36,7 @@ export const speakText = (text: string): Promise<void> => {
     }
     
     if (typeof window === 'undefined' || !window.speechSynthesis) {
+      console.log('[TTS] 不支持语音合成');
       resolve();
       return;
     }
@@ -45,17 +46,29 @@ export const speakText = (text: string): Promise<void> => {
     utterance.rate = 1;
     utterance.pitch = 1;
     
+    // 尝试选择中文语音
+    const voices = window.speechSynthesis.getVoices();
+    const chineseVoice = voices.find(v => v.lang.includes('zh') || v.lang.includes('CN'));
+    if (chineseVoice) {
+      utterance.voice = chineseVoice;
+    } else if (voices.length > 0) {
+      utterance.voice = voices[0];
+    }
+    
     currentUtterance = utterance;
     
+    utterance.onstart = () => console.log('[TTS] 开始朗读:', text.substring(0, 20));
     utterance.onend = () => {
       isSpeaking = false;
       currentUtterance = null;
+      console.log('[TTS] 朗读完成');
       resolve();
     };
     
-    utterance.onerror = () => {
+    utterance.onerror = (e) => {
       isSpeaking = false;
       currentUtterance = null;
+      console.log('[TTS] 朗读出错:', e.error);
       resolve();
     };
     
