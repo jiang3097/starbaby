@@ -1,87 +1,133 @@
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef } from 'react';
+import { TextToSpeech } from '@capacitor-community/text-to-speech';
 
 // 移除 emoji，只保留文字
 export const removeEmoji = (text: string): string => {
   return text.replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F900}-\u{1F9FF}\u{1FA00}-\u{1FA6F}\u{1FA70}-\u{1FAFF}]/gu, '');
 };
 
-// TTS 状态
-let isSpeaking = false;
-let currentUtterance: SpeechSynthesisUtterance | null = null;
-
-// 原生 TTS 朗读
-export const speakText = (text: string): Promise<void> => {
-  return new Promise((resolve) => {
-    try {
-      const cleanText = removeEmoji(text);
-      
-      // 停止之前的朗读
-      if (window.speechSynthesis) {
-        window.speechSynthesis.cancel();
-      }
-      
-      if (!('speechSynthesis' in window)) {
-        console.log('[TTS] 不支持语音合成');
-        resolve();
-        return;
-      }
-      
-      const synth = window.speechSynthesis;
-      const utterance = new SpeechSynthesisUtterance(cleanText);
-      utterance.lang = 'zh-CN';
-      utterance.rate = 1.0;
-      utterance.pitch = 1.1;
-      
-      // 尝试找中文语音
-      const voices = synth.getVoices();
-      const zhVoice = voices.find(v => v.lang.includes('zh'));
-      if (zhVoice) {
-        utterance.voice = zhVoice;
-      }
-      
-      utterance.onstart = () => {
-        console.log('[TTS] 开始朗读:', cleanText);
-        isSpeaking = true;
-      };
-      
-      utterance.onend = () => {
-        console.log('[TTS] 朗读完成');
-        isSpeaking = false;
-        currentUtterance = null;
-        resolve();
-      };
-      
-      utterance.onerror = () => {
-        console.log('[TTS] 朗读出错');
-        isSpeaking = false;
-        currentUtterance = null;
-        resolve();
-      };
-      
-      currentUtterance = utterance;
-      synth.speak(utterance);
-    } catch (e) {
-      console.error('[TTS] 异常:', e);
-      resolve();
-    }
-  });
+// 检查 Capacitor 是否可用
+const isCapacitorAvailable = (): boolean => {
+  return typeof window !== 'undefined' && (window as any).Capacitor !== undefined;
 };
 
-// 停止朗读
-export const stopSpeak = (): void => {
+// Capacitor TTS 朗读
+const speakWithCapacitor = async (text: string): Promise<void> => {
   try {
-    if (window.speechSynthesis) {
-      window.speechSynthesis.cancel();
-    }
-    isSpeaking = false;
-    currentUtterance = null;
+    await TextToSpeech.speak({
+      text,
+      lang: 'zh-CN',
+      rate: 0.9,
+      pitch: 1.0,
+      volume: 1.0,
+    });
   } catch (e) {
-    console.error('[TTS] 停止失败:', e);
+    console.warn('[TTS] Capacitor TTS 失败:', e);
+    throw e;
   }
 };
 
-export const isTTSAvailable = () => 'speechSynthesis' in window;
-export const isSpeechRecognitionSupported = () => false;
+// 停止 Capacitor TTS
+const stopCapacitorTTS = async (): Promise<void> => {
+  try {
+    await TextToSpeech.stop();
+  } catch (e) {
+    console.warn('[TTS] 停止 Capacitor TTS 失败:', e);
+  }
+};
+
+// 检查浏览器原生 TTS 是否可用
+const isNativeTTSAvailable = (): boolean => {
+  return typeof window !== 'undefined' && 'speechSynthesis' in window;
+};
+
+// 浏览器原生 TTS 朗读
+const speakWithNativeTTS = (text: string): Promise<void> => {
+  return new Promise((resolve, reject) => {
+    const synth = window.speechSynthesis;
+    if (!synth) {
+      reject(new Error('浏览器不支持语音合成'));
+      return;
+    }
+
+    // 停止之前的朗读
+    synth.cancel();
+
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'zh-CN';
+    utterance.rate = 1.0;
+    utterance.pitch = 1.1;
+
+    utterance.onend = () => {
+      console.log('[TTS] 原生 TTS 朗读完成');
+      resolve();
+    };
+
+    utterance.onerror = (e) => {
+      console.error('[TTS] 原生 TTS 出错:', e);
+      reject(new Error('朗读出错'));
+    };
+
+    synth.speak(utterance);
+  });
+};
+
+// 主 TTS 朗读函数：优先使用 Capacitor TTS，回退到原生 TTS
+export const speakText = async (text: string): Promise<void> => {
+  const cleanText = removeEmoji(text).trim();
+  
+  if (!cleanText) {
+    console.log('[TTS] 文本为空');
+    return;
+  }
+
+  console.log('[TTS] 开始朗读:', cleanText);
+
+  // 优先使用 Capacitor TTS
+  if (isCapacitorAvailable()) {
+    try {
+      await speakWithCapacitor(cleanText);
+      console.log('[TTS] 使用 Capacitor TTS 成功');
+      return;
+    } catch (e) {
+      console.warn('[TTS] Capacitor TTS 失败，尝试原生 TTS');
+    }
+  }
+
+  // 回退到浏览器原生 TTS
+  if (isNativeTTSAvailable()) {
+    try {
+      await speakWithNativeTTS(cleanText);
+      console.log('[TTS] 使用原生 TTS 成功');
+      return;
+    } catch (e) {
+      console.error('[TTS] 原生 TTS 也失败了');
+    }
+  }
+
+  console.error('[TTS] 朗读不可用');
+};
+
+// 停止朗读
+export const stopSpeak = async (): Promise<void> => {
+  console.log('[TTS] 停止朗读');
+  
+  // 优先停止 Capacitor TTS
+  if (isCapacitorAvailable()) {
+    await stopCapacitorTTS();
+  }
+
+  // 同时停止原生 TTS
+  if (isNativeTTSAvailable()) {
+    window.speechSynthesis.cancel();
+  }
+};
+
+export const isTTSAvailable = (): boolean => {
+  return isCapacitorAvailable() || isNativeTTSAvailable();
+};
+
+export const isSpeechRecognitionSupported = (): boolean => false;
 
 export const useSpeech = () => {
   const [isListening, setIsListening] = useState(false);
@@ -98,7 +144,7 @@ export const useSpeech = () => {
     onResult: (text: string) => void,
     onError?: (error: string) => void
   ) => {
-    onError?.('语音识别已禁用，请使用键盘输入');
+    onError?.('语音识别已禁用，请使用手机键盘输入');
   }, []);
 
   return {
