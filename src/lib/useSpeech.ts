@@ -1,6 +1,5 @@
-// 语音朗读模块 - 保留朗读功能
-let currentUtterance: SpeechSynthesisUtterance | null = null;
-let isSpeaking = false;
+// 语音朗读模块 - 使用 Capacitor TTS 插件
+import { TextToSpeech } from '@capacitor-community/text-to-speech';
 
 // 移除 emoji 的辅助函数
 export function removeEmoji(text: string): string {
@@ -8,86 +7,39 @@ export function removeEmoji(text: string): string {
 }
 
 // 检查 TTS 是否可用
-export const isTTSAvailable = (): boolean => {
-  return typeof window !== 'undefined' && !!window.speechSynthesis;
-};
-
-// 检查语音识别是否可用
-export const isSpeechRecognitionSupported = (): boolean => {
-  return typeof window !== 'undefined' && 
-    !!(window.SpeechRecognition || (window as any).webkitSpeechRecognition);
+export const isTTSAvailable = async (): Promise<boolean> => {
+  return true; // 假设 TTS 可用
 };
 
 // 停止朗读
-export const stopSpeak = (): void => {
-  if (typeof window !== 'undefined' && window.speechSynthesis) {
-    window.speechSynthesis.cancel();
-    isSpeaking = false;
-    currentUtterance = null;
+export const stopSpeak = async (): Promise<void> => {
+  try {
+    await TextToSpeech.stop();
+  } catch (e) {
+    console.error('[TTS] 停止失败:', e);
   }
 };
 
 // 朗读文本
-export const speakText = (text: string): Promise<void> => {
-  return new Promise((resolve) => {
+export const speakText = async (text: string): Promise<void> => {
+  try {
     // 先停止之前的朗读
-    if (typeof window !== 'undefined') {
-      window.speechSynthesis.cancel();
-    }
+    await stopSpeak();
     
-    if (typeof window === 'undefined' || !window.speechSynthesis) {
-      console.log('[TTS] 不支持语音合成');
-      resolve();
-      return;
-    }
-
-    const utterance = new SpeechSynthesisUtterance(removeEmoji(text));
-    utterance.lang = 'zh-CN';
-    utterance.rate = 1;
-    utterance.pitch = 1;
+    const cleanText = removeEmoji(text);
+    if (!cleanText) return;
     
-    // 尝试选择中文语音
-    const voices = window.speechSynthesis.getVoices();
-    const chineseVoice = voices.find(v => v.lang.includes('zh') || v.lang.includes('CN'));
-    if (chineseVoice) {
-      utterance.voice = chineseVoice;
-    } else if (voices.length > 0) {
-      utterance.voice = voices[0];
-    }
+    console.log('[TTS] 开始朗读:', cleanText);
     
-    currentUtterance = utterance;
+    await TextToSpeech.speak({
+      text: cleanText,
+      lang: 'zh-CN',
+      rate: 0.9,
+      pitch: 1.0,
+    });
     
-    utterance.onstart = () => console.log('[TTS] 开始朗读:', text.substring(0, 20));
-    utterance.onend = () => {
-      isSpeaking = false;
-      currentUtterance = null;
-      console.log('[TTS] 朗读完成');
-      resolve();
-    };
-    
-    utterance.onerror = (e) => {
-      isSpeaking = false;
-      currentUtterance = null;
-      console.log('[TTS] 朗读出错:', e.error);
-      resolve();
-    };
-    
-    isSpeaking = true;
-    window.speechSynthesis.speak(utterance);
-  });
+    console.log('[TTS] 朗读完成');
+  } catch (e) {
+    console.error('[TTS] 朗读失败:', e);
+  }
 };
-// 检查是否正在朗读
-export const isSpeakingNow = (): boolean => isSpeaking;
-
-// 创建语音 hook（空实现，保留接口）
-export const useSpeech = () => ({
-  isListening: false,
-  isSpeaking: false,
-  transcript: '',
-  interimTranscript: '',
-  startListening: () => {},
-  stopListening: () => {},
-  speakText,
-  stopSpeak,
-  isSpeakingNow,
-});

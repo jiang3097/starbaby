@@ -1,11 +1,10 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { speakText, stopSpeak } from '../lib/useSpeech';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, Mic, Volume2, Send, Square, Keyboard } from 'lucide-react';
 import MobileShell from '../components/MobileShell';
 import { cn } from '../lib/utils';
-import { speakText, stopSpeak, isTTSAvailable, isSpeechRecognitionSupported } from '../lib/useSpeech';
-import { useSpeech } from '../lib/useSpeech';
 import { useUser } from '../context/UserContext';
 import { useApp } from '../context/AppContext';
 import { getAIReply } from '../lib/cozeChat';
@@ -20,7 +19,6 @@ const AIChat = () => {
   const navigate = useNavigate();
   const { profile, avatar, incrementIntimacy } = useUser();
   const { startTraining, incrementExpression, incrementChatMessage } = useApp();
-  const speech = useSpeech();
   const [messages, setMessages] = useState<Message[]>([
     { id: 1, type: 'bot', text: `你好呀！我是${profile.name}！今天心情怎么样？` },
   ]);
