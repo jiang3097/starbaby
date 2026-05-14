@@ -229,16 +229,23 @@ const AIChat = () => {
       setTempTranscript('');
 
       try {
-        speech.startListening((text: string) => {
-          setTempTranscript(text);
-          setIsListening(false);
-          handleSend(text);
-        }, (error: string) => {
-          console.error('[AIChat] 语音识别错误:', error);
-          setIsListening(false);
-          setMicError('语音识别出错');
-          setTimeout(() => setMicError(''), 3000);
-        });
+        speech.startListening(
+          (text: string) => {
+            // 临时结果显示
+            setTempTranscript(text);
+          },
+          (error: string) => {
+            console.error('[AIChat] 语音识别错误:', error);
+            setIsListening(false);
+            setMicError('语音识别出错');
+            setTimeout(() => setMicError(''), 3000);
+          },
+          (text: string) => {
+            // 最终结果才发送
+            setIsListening(false);
+            handleSend(text);
+          }
+        );
       } catch (error) {
         console.error('[AIChat] 启动语音识别失败:', error);
         setIsListening(false);

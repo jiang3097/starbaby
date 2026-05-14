@@ -23,7 +23,8 @@ export const useSpeech = () => {
   const [isSupported] = useState(isSpeechRecognitionSupported());
   const recognitionRef = useRef<any>(null);
   const timeoutRef = useRef<number | null>(null);
-  const callbacksRef = useRef<{ onResult?: (text: string) => void; onError?: (error: string) => void }>({});
+  const callbacksRef = useRef<{ onResult?: (text: string) => void; onFinal?: (text: string) => void; onError?: (error: string) => void }>({});
+  const finalTranscriptRef = useRef('');
 
   // 清理函数
   const cleanup = useCallback(() => {
@@ -58,10 +59,14 @@ export const useSpeech = () => {
   }, []);
 
   // 开始录音
-  const startListening = useCallback((onResult: (text: string) => void, onError?: (error: string) => void) => {
+  const startListening = useCallback((
+    onResult: (text: string) => void,
+    onError?: (error: string) => void,
+    onFinal?: (text: string) => void
+  ) => {
     console.log('[Speech] 开始录音');
     
-    callbacksRef.current = { onResult, onError };
+    callbacksRef.current = { onResult, onError, onFinal };
     
     // 先停止之前的
     cleanup();
@@ -102,16 +107,27 @@ export const useSpeech = () => {
       const lastResult = results[results.length - 1];
       const transcript = lastResult[0].transcript;
       
+      // 实时显示临时结果
       if (transcript) {
-        console.log('[Speech] 识别结果:', transcript);
         callbacksRef.current.onResult?.(transcript);
+      }
+      
+      // 如果是最终结果，保存下来
+      if (lastResult.isFinal) {
+        finalTranscriptRef.current = transcript;
       }
     };
     
-    // 结束
+    // 结束 - 只有最终结果才算完成
     recognition.onend = () => {
       console.log('[Speech] 识别结束');
       setIsListening(false);
+      // 只输出最终结果
+      if (finalTranscriptRef.current?.trim()) {
+        console.log('[Speech] 最终结果:', finalTranscriptRef.current);
+        callbacksRef.current.onFinal?.(finalTranscriptRef.current);
+      }
+      finalTranscriptRef.current = '';
     };
     
     // 错误

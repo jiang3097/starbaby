@@ -269,14 +269,20 @@ const BookInteraction = () => {
     setPhase('answering');
     setIsListening(true);
     setUserAnswer('');
-    speech.startListening((text: string) => {
-      console.log('[Book] Recognition result:', text);
-      // 持续更新识别结果，不自动提交
-      setUserAnswer(text);
-    }, (error: string) => {
-      console.error('[Book] 语音识别错误:', error);
-      setIsListening(false);
-    });
+    speech.startListening(
+      (text: string) => {
+        console.log('[Book] 临时结果:', text);
+        setUserAnswer(text);
+      },
+      (error: string) => {
+        console.error('[Book] 语音识别错误:', error);
+        setIsListening(false);
+      },
+      (text: string) => {
+        console.log('[Book] 最终结果:', text);
+        setUserAnswer(text);
+      }
+    );
   }, [story]);
 
   // 停止录音并提交答案
