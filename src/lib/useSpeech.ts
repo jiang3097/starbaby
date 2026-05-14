@@ -1,7 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 
-const SPEECH_KEY = 'star_baby_speech_enabled';
-
 // 移除 emoji，只保留文字
 export const removeEmoji = (text: string): string => {
   return text.replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F900}-\u{1F9FF}\u{1FA00}-\u{1FA6F}\u{1FA70}-\u{1FAFF}]/gu, '');
@@ -13,18 +11,11 @@ export const isSpeechRecognitionSupported = () => {
     ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window);
 };
 
-// 导出别名
 export const isSpeechSupport = isSpeechRecognitionSupported;
 
-// 创建浏览器语音识别实例
-const createSpeechRecognition = () => {
-  if ('SpeechRecognition' in window) {
-    return new (window as any).SpeechRecognition();
-  }
-  if ('webkitSpeechRecognition' in window) {
-    return new (window as any).webkitSpeechRecognition();
-  }
-  return null;
+// 检查 TTS 是否可用
+export const isTTSAvailable = () => {
+  return typeof window !== 'undefined' && 'speechSynthesis' in window;
 };
 
 export const useSpeech = () => {
@@ -32,113 +23,106 @@ export const useSpeech = () => {
   const [isSupported] = useState(isSpeechRecognitionSupported());
   const recognitionRef = useRef<any>(null);
   const timeoutRef = useRef<number | null>(null);
+  const callbacksRef = useRef<{ onResult?: (text: string) => void; onError?: (error: string) => void }>({});
 
   // 清理函数
   const cleanup = useCallback(() => {
-    if (recognitionRef.current) {
-      try {
-        recognitionRef.current.abort();
-      } catch (e) {
-        // 忽略
-      }
-      recognitionRef.current = null;
-    }
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
       timeoutRef.current = null;
+    }
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.onstart = null;
+        recognitionRef.current.onresult = null;
+        recognitionRef.current.onend = null;
+        recognitionRef.current.onerror = null;
+        recognitionRef.current.abort();
+      } catch (e) {}
+      recognitionRef.current = null;
     }
   }, []);
 
   // 停止录音
   const stopListening = useCallback(() => {
     console.log('[Speech] 停止录音');
-    cleanup();
-    setIsListening(false);
-  }, [cleanup]);
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.stop();
+      } catch (e) {}
+    }
+  }, []);
 
   // 开始录音
   const startListening = useCallback((onResult: (text: string) => void, onError?: (error: string) => void) => {
     console.log('[Speech] 开始录音');
     
-    // 先清理之前的实例
+    callbacksRef.current = { onResult, onError };
+    
+    // 先停止之前的
     cleanup();
     
-    // 检查支持
     if (!isSupported) {
       console.error('[Speech] 浏览器不支持语音识别');
       onError?.('浏览器不支持语音识别');
       return;
     }
     
-    // 创建新的识别实例
-    const recognition = createSpeechRecognition();
-    if (!recognition) {
-      console.error('[Speech] 创建识别器失败');
-      onError?.('创建识别器失败');
-      return;
-    }
-    
+    // 创建识别器
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    const recognition = new SpeechRecognition();
     recognitionRef.current = recognition;
     
-    // 设置识别参数 - 改为单次模式避免结果累积
+    // 配置
     recognition.continuous = false;
     recognition.interimResults = true;
     recognition.lang = 'zh-CN';
     
-    // 录音超时 - 30秒
-    timeoutRef.current = window.setTimeout(() => {
-      console.log('[Speech] 录音超时');
-      if (recognitionRef.current) {
-        try {
-          recognitionRef.current.stop();
-        } catch (e) {}
-      }
-    }, 30000);
-    
-    // 开始事件
+    // 开始识别
     recognition.onstart = () => {
       console.log('[Speech] 开始识别');
       setIsListening(true);
+      
+      // 30秒超时
+      timeoutRef.current = window.setTimeout(() => {
+        console.log('[Speech] 录音超时');
+        if (recognitionRef.current) {
+          try { recognitionRef.current.stop(); } catch (e) {}
+        }
+      }, 30000);
     };
     
-    // 结果事件
+    // 结果
     recognition.onresult = (event: any) => {
       const results = event.results;
       const lastResult = results[results.length - 1];
+      const transcript = lastResult[0].transcript;
       
-      // 临时结果
-      const interimText = lastResult[0].transcript;
-      if (interimText) {
-        console.log('[Speech] 临时结果:', interimText);
-        onResult(interimText);
-      }
-      
-      // 最终结果
-      if (lastResult.isFinal) {
-        const text = lastResult[0].transcript.trim();
-        console.log('[Speech] 最终结果:', text);
-        if (text) {
-          onResult(text);
-        }
+      if (transcript) {
+        console.log('[Speech] 识别结果:', transcript);
+        callbacksRef.current.onResult?.(transcript);
       }
     };
     
-    // 结束事件
+    // 结束
     recognition.onend = () => {
       console.log('[Speech] 识别结束');
-      cleanup();
       setIsListening(false);
     };
     
-    // 错误事件
+    // 错误
     recognition.onerror = (event: any) => {
       console.error('[Speech] 识别错误:', event.error);
       cleanup();
       setIsListening(false);
-      onError?.('语音识别出错');
+      callbacksRef.current.onError?.('语音识别出错');
     };
     
-    // 开始识别
+    // 启动
     try {
       recognition.start();
     } catch (e) {
@@ -163,7 +147,7 @@ export const useSpeech = () => {
   };
 };
 
-// 语音合成朗读 - 返回 Promise
+// 语音合成朗读
 export const speakText = (text: string, voiceRate: number = 0.9): Promise<void> => {
   return new Promise((resolve, reject) => {
     if (!text) {
@@ -172,11 +156,7 @@ export const speakText = (text: string, voiceRate: number = 0.9): Promise<void> 
     }
     
     console.log('[TTS] 开始朗读:', text);
-    
-    // 移除 emoji，只朗读文字
     const cleanText = removeEmoji(text);
-    
-    // 取消之前的朗读
     window.speechSynthesis.cancel();
     
     const utterance = new SpeechSynthesisUtterance(cleanText);
@@ -184,11 +164,9 @@ export const speakText = (text: string, voiceRate: number = 0.9): Promise<void> 
     utterance.rate = voiceRate;
     utterance.volume = 1;
     
-    // 选择中文语音
     const voices = window.speechSynthesis.getVoices();
     const zhVoice = voices.find(v => v.lang.includes('zh') && v.lang.includes('CN')) ||
-                    voices.find(v => v.lang.includes('zh')) ||
-                    voices[0];
+                    voices.find(v => v.lang.includes('zh')) || voices[0];
     if (zhVoice) {
       utterance.voice = zhVoice;
     }
@@ -198,9 +176,9 @@ export const speakText = (text: string, voiceRate: number = 0.9): Promise<void> 
       resolve();
     };
     
-    utterance.onerror = (e) => {
+    utterance.onerror = (e: any) => {
       console.error('[TTS ERROR] 朗读出错:', e.error);
-      reject(e);
+      resolve();
     };
     
     window.speechSynthesis.speak(utterance);
@@ -211,11 +189,3 @@ export const speakText = (text: string, voiceRate: number = 0.9): Promise<void> 
 export const stopSpeaking = () => {
   window.speechSynthesis.cancel();
 };
-
-// 检查是否正在朗读
-export const isSpeaking = () => {
-  return window.speechSynthesis.speaking;
-};
-
-// 导出别名供其他组件使用
-export const isTTSAvailable = isSpeaking;
