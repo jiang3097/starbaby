@@ -5,7 +5,7 @@ const config: CapacitorConfig = {
   appName: '星小宝',
   webDir: 'dist',
   server: {
-    androidScheme: 'https',
+    androidScheme: 'http',
   },
   android: {
     allowMixedContent: true,
