@@ -94,7 +94,10 @@ export const useSpeech = () => {
     
     // 开始事件
     recognition.onstart = () => {
-      console.log('[Speech] 开始识别');
+      console.log('[Speech] ===== 开始识别 =====');
+      console.log('[Speech] continuous:', recognition.continuous);
+      console.log('[Speech] interimResults:', recognition.interimResults);
+      console.log('[Speech] lang:', recognition.lang);
       setIsListening(true);
     };
     
@@ -114,25 +117,37 @@ export const useSpeech = () => {
     
     // 结束事件
     recognition.onend = () => {
-      console.log('[Speech] 识别结束');
+      console.log('[Speech] ===== 识别结束 =====');
       cleanup();
       setIsListening(false);
     };
     
     // 错误事件
     recognition.onerror = (event: any) => {
-      console.error('[Speech] 识别错误:', event.error, event.message);
+      console.error('[Speech] 识别错误:', event.error);
+      console.error('[Speech] 错误详情:', event.message);
+      console.log('[Speech] 是否支持语音识别:', isSupported);
+      console.log('[Speech] 当前语言:', recognition.lang);
       
       cleanup();
       setIsListening(false);
       
-      // 如果没有有效结果，通知错误
-      if (event.error === 'no-speech' || event.error === 'aborted' || event.error === 'network') {
-        onError?.('未识别到语音，请再说一遍');
+      // 根据不同错误类型给出提示
+      if (event.error === 'no-speech') {
+        console.log('[Speech] 没有检测到语音');
+        onError?.('没有检测到语音，请对着麦克风说话');
       } else if (event.error === 'not-allowed') {
-        onError?.('请允许使用麦克风');
+        console.log('[Speech] 麦克风权限被拒绝');
+        onError?.('请允许使用麦克风权限');
+      } else if (event.error === 'network') {
+        console.log('[Speech] 网络错误');
+        onError?.('网络错误，请检查网络连接');
+      } else if (event.error === 'aborted') {
+        console.log('[Speech] 识别被中断');
+        // aborted 不提示用户，只是正常停止
       } else {
-        onError?.('语音识别出错');
+        console.log('[Speech] 其他错误:', event.error);
+        onError?.('语音识别出错，请重试');
       }
     };
     
