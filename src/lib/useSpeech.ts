@@ -75,12 +75,12 @@ export const useSpeech = () => {
     
     recognitionRef.current = recognition;
     
-    // 设置识别参数 - 单次识别模式，识别一段话后自动停止
-    recognition.continuous = false;
+    // 设置识别参数 - 持续识别，直到用户手动停止
+    recognition.continuous = true;
     recognition.interimResults = true;
     recognition.lang = 'zh-CN';
     
-    // 录音超时 - 15秒（给用户充足时间说完一段话）
+    // 录音超时 - 30秒（给用户充足时间）
     timeoutRef.current = window.setTimeout(() => {
       console.log('[Speech] 录音超时，停止');
       if (recognitionRef.current) {
@@ -90,7 +90,7 @@ export const useSpeech = () => {
           // 忽略
         }
       }
-    }, 15000);
+    }, 30000);
     
     // 开始事件
     recognition.onstart = () => {
@@ -98,23 +98,17 @@ export const useSpeech = () => {
       setIsListening(true);
     };
     
-    // 结果事件 - 处理单次识别
+    // 结果事件 - 持续识别，不断更新结果
     recognition.onresult = (event: any) => {
       const results = event.results;
-      
-      // 获取最新结果
-      const lastResult = results[results.length - 1];
-      if (lastResult.isFinal) {
-        const text = lastResult[0].transcript.trim();
-        console.log('[Speech] 识别结果:', text);
-        if (text) {
-          onResult(text);
-        }
-      } else {
-        // 临时结果也实时返回
-        const interimText = lastResult[0].transcript;
-        console.log('[Speech] 临时结果:', interimText);
-        onResult(interimText);
+      // 获取所有结果的文本
+      let fullText = '';
+      for (let i = 0; i < results.length; i++) {
+        fullText += (fullText ? ' ' : '') + results[i][0].transcript;
+      }
+      console.log('[Speech] 识别结果:', fullText);
+      if (fullText.trim()) {
+        onResult(fullText.trim());
       }
     };
     
