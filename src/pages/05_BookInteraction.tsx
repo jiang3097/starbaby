@@ -6,7 +6,6 @@ import MobileShell from '../components/MobileShell';
 import { Button } from '../components/ui/button';
 import { cn } from '../lib/utils';
 import { speakText, stopSpeak, removeEmoji } from '../lib/useSpeech';
-import { useSpeech } from '../lib/useSpeech';
 
 import { useUser } from '../context/UserContext';
 import { useApp } from '../context/AppContext';
@@ -145,7 +144,6 @@ const BookInteraction = () => {
   const { bookId } = useParams<{ bookId: string }>();
   const navigate = useNavigate();
   const { profile, avatar, addFood, updateProfile } = useUser();
-  const speech = useSpeech();
   const { startTraining, incrementExpression, incrementBookCompleted, incrementGamePass, dailyStats } = useApp();
   const hasStartedTraining = useRef(false);
   const hasGivenStarRef = useRef<Set<number>>(new Set()); // 防止重复奖励
@@ -244,7 +242,7 @@ const BookInteraction = () => {
     setIsCorrect(false);
     setShowResult(false);
     setEarnedStars(0); // 重置星星
-    speech.stopListening();
+    // 语音已停止
   }, []);
 
   // 开始阅读
@@ -267,27 +265,12 @@ const BookInteraction = () => {
   const startAnswering = useCallback(() => {
     console.log('[Book] startAnswering called');
     setPhase('answering');
-    setIsListening(true);
     setUserAnswer('');
-    speech.startListening(
-      (text: string) => {
-        console.log('[Book] 临时结果:', text);
-        setUserAnswer(text);
-      },
-      (error: string) => {
-        console.error('[Book] 语音识别错误:', error);
-        setIsListening(false);
-      },
-      (text: string) => {
-        console.log('[Book] 最终结果:', text);
-        setUserAnswer(text);
-      }
-    );
-  }, [story]);
+  }, []);
 
   // 停止录音并提交答案
   const stopAndSubmit = useCallback(() => {
-    speech.stopListening();
+    // 语音已停止
     setIsListening(false);
     const finalAnswer = userAnswer;
     
