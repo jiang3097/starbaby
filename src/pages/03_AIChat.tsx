@@ -196,7 +196,9 @@ const AIChat = () => {
       setIsAIThinking(false);
 
       // AI 自动朗读回复
-      speakText(reply);
+      speakText(reply, {
+        onEnd: () => setIsSpeaking(false),
+      });
     } catch (error) {
       console.error('AI 回复失败:', error);
       setIsAIThinking(false);
@@ -220,7 +222,9 @@ const AIChat = () => {
     } else {
       // 开始朗读
       setIsSpeaking(true);
-      speakText(text);
+      speakText(text, {
+        onEnd: () => setIsSpeaking(false),
+      });
     }
   };
 
