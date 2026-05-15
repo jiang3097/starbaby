@@ -356,47 +356,55 @@ const AIChat = () => {
               {/* Bot message controls */}
               {msg.type === 'bot' && (
                 <div className="mt-3 flex items-center gap-2">
+                  {/* 朗读/继续按钮 */}
                   <button
                     onClick={() => {
-                      if (isSpeaking) {
-                        stopSpeak();
-                        setIsSpeaking(false);
-                      } else {
-                        handleReadAloud(msg.text);
-                      }
+                      handleReadAloud(msg.text);
                     }}
                     className={cn(
                       "flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full transition-all shadow-sm",
                       isSpeaking 
-                        ? "bg-rose-100 text-rose-500" 
+                        ? "bg-sky-100 text-sky-500" 
                         : "bg-sky-50 text-sky-500 hover:bg-sky-100"
                     )}
                   >
-                    {isSpeaking ? (
-                      <>
-                        <Pause size={14} />
-                        <span>暂停</span>
-                      </>
-                    ) : (
-                      <>
-                        <Volume2 size={14} />
-                        <span>朗读</span>
-                      </>
+                    <Volume2 size={14} />
+                    <span>朗读</span>
+                  </button>
+                  {/* 暂停按钮 */}
+                  <button
+                    onClick={() => {
+                      pauseSpeak();
+                      setIsSpeaking(false);
+                    }}
+                    className={cn(
+                      "flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full transition-all shadow-sm",
+                      isSpeaking 
+                        ? "bg-amber-100 text-amber-500 hover:bg-amber-200" 
+                        : "bg-slate-100 text-slate-400 cursor-not-allowed"
                     )}
+                    disabled={!isSpeaking}
+                  >
+                    <Pause size={14} />
+                    <span>暂停</span>
                   </button>
                   {/* 停止按钮 */}
-                  {isSpeaking && (
-                    <button
-                      onClick={() => {
-                        stopSpeak();
-                        setIsSpeaking(false);
-                      }}
-                      className="flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-slate-100 text-slate-400 hover:bg-slate-200 transition-all shadow-sm"
-                    >
-                      <Square size={12} />
-                      <span>停止</span>
-                    </button>
-                  )}
+                  <button
+                    onClick={() => {
+                      stopSpeak();
+                      setIsSpeaking(false);
+                    }}
+                    className={cn(
+                      "flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full transition-all shadow-sm",
+                      isSpeaking 
+                        ? "bg-rose-100 text-rose-500 hover:bg-rose-200" 
+                        : "bg-slate-100 text-slate-400 cursor-not-allowed"
+                    )}
+                    disabled={!isSpeaking}
+                  >
+                    <Square size={14} />
+                    <span>停止</span>
+                  </button>
                 </div>
               )}
             </div>
