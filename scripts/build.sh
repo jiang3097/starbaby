@@ -12,4 +12,4 @@ echo "Installing dependencies..."
 pnpm install --prefer-frozen-lockfile --prefer-offline
 
 echo "Building frontend with Vite..."
-pnpm vite build
+pnpm build
