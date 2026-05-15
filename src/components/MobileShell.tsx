@@ -1,4 +1,6 @@
 import React from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { ChevronLeft, Home } from 'lucide-react';
 import { cn } from '../lib/utils';
 
 interface MobileShellProps {
@@ -8,6 +10,12 @@ interface MobileShellProps {
 }
 
 const MobileShell: React.FC<MobileShellProps> = ({ children, className, showNav = false }) => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  
+  // 是否显示返回主页按钮（除了主页本身）
+  const showBackHome = location.pathname !== '/home';
+  
   return (
     <div className="flex items-center justify-center min-h-screen bg-slate-100 p-4 font-sans selection:bg-sky-100">
       <div className={cn(
@@ -28,6 +36,16 @@ const MobileShell: React.FC<MobileShellProps> = ({ children, className, showNav 
             </div>
           </div>
         </div>
+
+        {/* 返回主页按钮 - 始终显示在左上角 */}
+        {showBackHome && (
+          <button
+            onClick={() => navigate('/home')}
+            className="absolute left-3 top-12 z-50 w-10 h-10 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-md hover:bg-white transition-colors"
+          >
+            <Home size={20} className="text-slate-500" />
+          </button>
+        )}
 
         {/* Content */}
         <div className={cn("flex-1 overflow-y-auto mt-10 scrollbar-hide", showNav ? "mb-20" : "")}>

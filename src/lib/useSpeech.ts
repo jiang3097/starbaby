@@ -12,6 +12,7 @@ const isCapacitor = Capacitor.isNativePlatform();
 
 // 浏览器原生 TTS
 let browserUtterance: SpeechSynthesisUtterance | null = null;
+let isBrowserSpeaking = false;
 
 export const stopSpeak = async (): Promise<void> => {
   try {
@@ -23,9 +24,58 @@ export const stopSpeak = async (): Promise<void> => {
         window.speechSynthesis.cancel();
       }
     }
+    isBrowserSpeaking = false;
   } catch (e) {
     console.error('[TTS] 停止失败:', e);
   }
+};
+
+// 暂停朗读
+export const pauseSpeak = async (): Promise<void> => {
+  try {
+    if (isCapacitor) {
+      // Capacitor TTS 不支持暂停，使用停止代替
+      await TextToSpeech.stop();
+    } else {
+      // 浏览器环境
+      if (typeof window !== 'undefined' && window.speechSynthesis) {
+        window.speechSynthesis.pause();
+        isBrowserSpeaking = false;
+      }
+    }
+    console.log('[TTS] 已暂停');
+  } catch (e) {
+    console.error('[TTS] 暂停失败:', e);
+  }
+};
+
+// 继续朗读
+export const resumeSpeak = async (): Promise<void> => {
+  try {
+    if (!isCapacitor) {
+      // 浏览器环境
+      if (typeof window !== 'undefined' && window.speechSynthesis) {
+        window.speechSynthesis.resume();
+        isBrowserSpeaking = true;
+      }
+    }
+    console.log('[TTS] 继续朗读');
+  } catch (e) {
+    console.error('[TTS] 继续失败:', e);
+  }
+};
+
+// 是否正在朗读
+export const isSpeaking = (): boolean => {
+  if (isCapacitor) {
+    // 原生环境无法直接获取状态，假设正在播放
+    return isBrowserSpeaking;
+  } else {
+    if (typeof window !== 'undefined' && window.speechSynthesis) {
+      return window.speechSynthesis.speaking;
+    }
+  }
+  return false;
 };
 
 export const speakText = async (text: string): Promise<void> => {
@@ -62,10 +112,20 @@ export const speakText = async (text: string): Promise<void> => {
           utterance.voice = chineseVoice;
         }
         
+        utterance.onend = () => {
+          isBrowserSpeaking = false;
+          console.log('[TTS] 浏览器朗读完成');
+        };
+        
+        utterance.onerror = () => {
+          isBrowserSpeaking = false;
+          console.log('[TTS] 浏览器朗读出错');
+        };
+        
         browserUtterance = utterance;
+        isBrowserSpeaking = true;
         
         window.speechSynthesis.speak(utterance);
-        console.log('[TTS] 浏览器朗读完成');
       } else {
         console.warn('[TTS] 浏览器不支持语音合成');
       }

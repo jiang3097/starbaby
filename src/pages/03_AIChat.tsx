@@ -1,8 +1,8 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { speakText, stopSpeak } from '../lib/useSpeech';
+import { speakText, stopSpeak, pauseSpeak, isSpeaking as checkIsSpeaking } from '../lib/useSpeech';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, Mic, Volume2, Send, Square, Keyboard } from 'lucide-react';
+import { ChevronLeft, Mic, Volume2, Send, Square, Keyboard, Pause, Play } from 'lucide-react';
 import MobileShell from '../components/MobileShell';
 import { cn } from '../lib/utils';
 import { useUser } from '../context/UserContext';
@@ -214,10 +214,17 @@ const AIChat = () => {
 
   // 朗读按钮
   const handleReadAloud = (text: string) => {
-    setIsSpeaking(true);
-    speakText(text)
-      .then(() => setIsSpeaking(false))
-      .catch(() => setIsSpeaking(false));
+    if (isSpeaking) {
+      // 正在朗读，点击暂停
+      pauseSpeak();
+      setIsSpeaking(false);
+    } else {
+      // 开始朗读
+      setIsSpeaking(true);
+      speakText(text)
+        .then(() => setIsSpeaking(false))
+        .catch(() => setIsSpeaking(false));
+    }
   };
 
   return (
@@ -374,8 +381,8 @@ const AIChat = () => {
                   >
                     {isSpeaking ? (
                       <>
-                        <Square size={14} />
-                        <span>停止</span>
+                        <Pause size={14} />
+                        <span>暂停</span>
                       </>
                     ) : (
                       <>
@@ -384,6 +391,19 @@ const AIChat = () => {
                       </>
                     )}
                   </button>
+                  {/* 停止按钮 */}
+                  {isSpeaking && (
+                    <button
+                      onClick={() => {
+                        stopSpeak();
+                        setIsSpeaking(false);
+                      }}
+                      className="flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-slate-100 text-slate-400 hover:bg-slate-200 transition-all shadow-sm"
+                    >
+                      <Square size={12} />
+                      <span>停止</span>
+                    </button>
+                  )}
                 </div>
               )}
             </div>
