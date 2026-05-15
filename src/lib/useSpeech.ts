@@ -3,8 +3,6 @@
 // 状态
 let isSpeaking = false;
 let isPaused = false;
-let currentText = '';
-let currentIndex = 0;
 let utteranceRef: SpeechSynthesisUtterance | null = null;
 
 // 移除 emoji
@@ -19,7 +17,6 @@ export const stopSpeak = (): void => {
   }
   isSpeaking = false;
   isPaused = false;
-  currentIndex = 0;
   utteranceRef = null;
 };
 
@@ -51,13 +48,41 @@ export const checkPaused = (): boolean => {
   return isPaused;
 };
 
-// 朗读文本
+// 朗读选项
 export interface SpeakOptions {
   onStart?: () => void;
   onEnd?: () => void;
   onError?: (error: string) => void;
 }
 
+// 获取可用语音
+const getVoice = (): SpeechSynthesisVoice | null => {
+  const synth = window.speechSynthesis;
+  if (!synth) return null;
+  
+  // 尝试获取语音（部分浏览器需要等待 voiceschanged）
+  let voices = synth.getVoices();
+  
+  // 如果没有语音，尝试从事件中获取
+  if (voices.length === 0) {
+    return null;
+  }
+  
+  // 优先选中文语音
+  const zhVoice = voices.find(v => 
+    v.lang.includes('zh') && (v.lang.includes('CN') || v.lang.includes('TW'))
+  );
+  if (zhVoice) return zhVoice;
+  
+  // 其次选任何中文
+  const anyZhVoice = voices.find(v => v.lang.includes('zh'));
+  if (anyZhVoice) return anyZhVoice;
+  
+  // 返回第一个
+  return voices[0];
+};
+
+// 朗读文本
 export const speakText = (text: string, options?: SpeakOptions): void => {
   const cleanText = removeEmoji(text);
   
@@ -68,27 +93,33 @@ export const speakText = (text: string, options?: SpeakOptions): void => {
   
   if (!window.speechSynthesis) {
     console.log('[TTS] 浏览器不支持语音');
+    options?.onError?.('浏览器不支持语音');
     return;
   }
   
-  currentText = cleanText;
-  currentIndex = 0;
-  
+  const synth = window.speechSynthesis;
   const utterance = new SpeechSynthesisUtterance(cleanText);
   utterance.lang = 'zh-CN';
-  utterance.rate = 0.9;
+  utterance.rate = 1.0;
   utterance.pitch = 1.0;
+  utterance.volume = 1.0;
   
-  // 等待语音列表加载
-  const voices = window.speechSynthesis.getVoices();
-  if (voices.length > 0) {
-    // 优先选中文语音
-    const zhVoice = voices.find(v => 
-      v.lang.includes('zh') || v.lang.includes('CN')
-    );
-    if (zhVoice) {
-      utterance.voice = zhVoice;
-    }
+  // 尝试获取语音
+  const voice = getVoice();
+  if (voice) {
+    utterance.voice = voice;
+    console.log('[TTS] 使用语音:', voice.name);
+  } else {
+    // 语音列表还没加载，监听事件
+    const onVoicesChanged = () => {
+      const v = getVoice();
+      if (v) {
+        utterance.voice = v;
+        console.log('[TTS] 延迟获取语音:', v.name);
+      }
+      synth.removeEventListener('voiceschanged', onVoicesChanged);
+    };
+    synth.addEventListener('voiceschanged', onVoicesChanged);
   }
   
   utterance.onstart = () => {
@@ -101,7 +132,6 @@ export const speakText = (text: string, options?: SpeakOptions): void => {
   utterance.onend = () => {
     isSpeaking = false;
     isPaused = false;
-    currentIndex = 0;
     console.log('[TTS] 朗读完成');
     options?.onEnd?.();
   };
@@ -110,19 +140,33 @@ export const speakText = (text: string, options?: SpeakOptions): void => {
     isSpeaking = false;
     isPaused = false;
     console.log('[TTS] 朗读错误:', e.error);
+    options?.onError?.(e.error);
   };
   
   utteranceRef = utterance;
-  window.speechSynthesis.speak(utterance);
+  
+  // 确保在用户交互后调用
+  // 部分浏览器需要延迟一点
+  setTimeout(() => {
+    synth.speak(utterance);
+    console.log('[TTS] 已提交朗读请求');
+  }, 50);
 };
 
 // 预加载语音
 if (typeof window !== 'undefined' && window.speechSynthesis) {
-  window.speechSynthesis.onvoiceschanged = () => {
-    const voices = window.speechSynthesis!.getVoices();
+  const synth = window.speechSynthesis;
+  
+  // 立即获取一次
+  synth.getVoices();
+  
+  // 监听语音加载
+  synth.onvoiceschanged = () => {
+    const voices = synth.getVoices();
     const zhVoices = voices.filter(v => v.lang.includes('zh'));
     console.log('[TTS] 已加载语音', voices.length, '个，中文', zhVoices.length, '个');
+    if (zhVoices.length > 0) {
+      console.log('[TTS] 中文语音:', zhVoices.map(v => v.name).join(', '));
+    }
   };
-  // 立即获取一次
-  window.speechSynthesis.getVoices();
 }
