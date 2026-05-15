@@ -52,7 +52,13 @@ export const checkPaused = (): boolean => {
 };
 
 // 朗读文本
-export const speakText = (text: string): void => {
+export interface SpeakOptions {
+  onStart?: () => void;
+  onEnd?: () => void;
+  onError?: (error: string) => void;
+}
+
+export const speakText = (text: string, options?: SpeakOptions): void => {
   const cleanText = removeEmoji(text);
   
   if (!cleanText) return;
@@ -89,6 +95,7 @@ export const speakText = (text: string): void => {
     isSpeaking = true;
     isPaused = false;
     console.log('[TTS] 开始朗读');
+    options?.onStart?.();
   };
   
   utterance.onend = () => {
@@ -96,8 +103,9 @@ export const speakText = (text: string): void => {
     isPaused = false;
     currentIndex = 0;
     console.log('[TTS] 朗读完成');
+    options?.onEnd?.();
   };
-  
+
   utterance.onerror = (e) => {
     isSpeaking = false;
     isPaused = false;
