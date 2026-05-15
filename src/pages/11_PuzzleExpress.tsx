@@ -275,10 +275,7 @@ const PuzzleExpress = () => {
         {/* ========== 开始界面 ========== */}
         {!gameStarted && (
           <motion.div key="start" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="h-full flex flex-col relative">
-            <div className="px-6 pt-4 flex items-center justify-between">
-              <button onClick={() => navigate('/training')} className="w-12 h-12 bg-white rounded-full flex items-center justify-center text-slate-400 shadow-sm">
-                <ChevronLeft size={28} />
-              </button>
+            <div className="px-6 pt-4 flex items-center justify-end">
               <span className="text-sm font-bold text-orange-600">拼图表达</span>
               <div className="w-12" />
             </div>
@@ -318,10 +315,7 @@ const PuzzleExpress = () => {
         {/* ========== 游戏界面 ========== */}
         {gameStarted && !showSuccess && (
           <motion.div key="game" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="h-full flex flex-col">
-            <div className="px-6 pt-4 flex items-center justify-between">
-              <button onClick={() => setGameStarted(false)} className="w-12 h-12 bg-white rounded-full flex items-center justify-center text-slate-400 shadow-sm">
-                <ChevronLeft size={28} />
-              </button>
+            <div className="px-6 pt-4 flex items-center justify-end">
               <div className="flex flex-col items-center">
                 <span className="text-sm font-bold text-orange-600">拼图表达</span>
                 <span className="text-xs text-slate-400">第 {PUZZLE_IMAGES.findIndex(img => img.id === currentImage.id) + 1}/4 关 · {difficulty}块</span>
@@ -452,10 +446,7 @@ const PuzzleExpress = () => {
         {allCompleted && (
           <div className="h-full flex flex-col relative">
             {/* 返回按钮 */}
-            <div className="px-6 pt-4 flex items-center justify-between">
-              <button onClick={() => navigate('/training')} className="w-12 h-12 bg-white rounded-full flex items-center justify-center text-slate-400 shadow-sm">
-                <ChevronLeft size={28} />
-              </button>
+            <div className="px-6 pt-4 flex items-center justify-end">
               <span className="text-sm font-bold text-orange-600">拼图表达</span>
               <div className="w-12" />
             </div>

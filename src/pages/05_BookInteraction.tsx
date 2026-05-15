@@ -360,17 +360,7 @@ const BookInteraction = () => {
             exit={{ opacity: 0 }}
             className="h-full flex flex-col relative"
           >
-            <div className="px-6 pt-4 flex items-center justify-between relative z-10">
-              <button
-                onClick={handleBack}
-                className="w-12 h-12 bg-white rounded-full flex items-center justify-center text-slate-400 shadow-lg"
-              >
-                <ChevronLeft size={28} />
-              </button>
-              
-              {/* 占位，保持布局 */}
-              <div className="w-12" />
-              
+            <div className="px-6 pt-4 flex items-center justify-end relative z-10">
               <div className={cn(
                 "px-4 py-1.5 rounded-full text-sm font-bold bg-gradient-to-r",
                 bookData.gradient,

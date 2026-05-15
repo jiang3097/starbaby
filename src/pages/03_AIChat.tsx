@@ -262,14 +262,7 @@ const AIChat = () => {
 
       {/* Header */}
       <div className="px-6 pt-4 flex items-center justify-center sticky top-0 bg-gradient-to-b from-amber-50/90 to-transparent z-10 pb-2">
-        {/* 返回按钮 */}
-        <button
-          onClick={() => navigate('/home')}
-          className="absolute left-4 top-4 w-10 h-10 rounded-full bg-white/80 backdrop-blur-sm shadow-md flex items-center justify-center hover:bg-white transition-colors"
-        >
-          <ChevronLeft className="w-6 h-6 text-gray-600" />
-        </button>
-        
+
         {/* 形象展示 */}
         <div className="flex flex-col items-center">
           <motion.div

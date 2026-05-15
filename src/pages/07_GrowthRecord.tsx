@@ -283,12 +283,6 @@ const GrowthRecord = () => {
       <div className="px-4 py-6">
         {/* Header */}
         <div className="flex items-center gap-4 mb-6">
-          <button 
-            onClick={() => navigate('/home')}
-            className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-lg text-slate-600"
-          >
-            <ChevronLeft size={28} />
-          </button>
           <div className="flex-1">
             <div className="flex items-center gap-2">
               <span className="text-2xl">⭐</span>

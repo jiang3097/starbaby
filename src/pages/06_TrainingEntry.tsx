@@ -76,12 +76,6 @@ const TrainingEntry = () => {
       <div className="px-6 py-6 relative">
         {/* Header */}
         <div className="flex items-center gap-4 mb-8">
-          <button 
-            onClick={() => navigate('/home')}
-            className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-md text-slate-400"
-          >
-            <ChevronLeft size={28} />
-          </button>
           <div className="flex-1">
             <h1 className="text-2xl font-bold text-slate-800">趣味训练</h1>
             <p className="text-sm text-emerald-600 font-medium">提升认知与表达能力</p>

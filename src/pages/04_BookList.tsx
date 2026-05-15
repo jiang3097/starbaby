@@ -98,12 +98,6 @@ const BookList = () => {
       <div className="px-6 py-6 relative">
         {/* Header */}
         <div className="flex items-center gap-4 mb-6">
-          <button 
-            onClick={() => navigate('/home')}
-            className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-lg text-amber-500 hover:bg-amber-50 transition-colors"
-          >
-            <ChevronLeft size={28} />
-          </button>
           <div className="flex-1">
             <div className="flex items-center gap-2">
               <span className="text-2xl">📚</span>

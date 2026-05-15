@@ -315,13 +315,7 @@ const InstructionFind = () => {
             className="h-full flex flex-col"
           >
             {/* Header */}
-            <div className="px-6 pt-4 flex items-center justify-between pb-4">
-              <button
-                onClick={() => navigate('/training')}
-                className="w-12 h-12 bg-white rounded-full flex items-center justify-center text-slate-400 shadow-sm"
-              >
-                <ChevronLeft size={28} />
-              </button>
+            <div className="px-6 pt-4 flex items-center justify-end pb-4">
               <div className="flex flex-col items-center">
                 <span className="text-sm font-bold text-teal-600">指令寻物</span>
                 <div className="flex items-center gap-2 mt-1">

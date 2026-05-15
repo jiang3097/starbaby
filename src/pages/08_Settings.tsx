@@ -456,12 +456,6 @@ const Settings = () => {
         <>
           <div className="px-6 py-6">
             <div className="flex items-center gap-4 mb-6">
-              <button 
-                onClick={() => setParentView('settings')}
-                className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-lg text-slate-600"
-              >
-                <ChevronLeft size={28} />
-              </button>
               <div className="flex-1">
                 <div className="flex items-center gap-2">
                   <span className="text-2xl">⏰</span>
@@ -595,12 +589,6 @@ const Settings = () => {
         <>
           <div className="px-4 py-6">
             <div className="flex items-center gap-4 mb-4">
-              <button 
-                onClick={() => setParentView('settings')}
-                className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-lg text-slate-600"
-              >
-                <ChevronLeft size={28} />
-              </button>
               <div className="flex-1">
                 <div className="flex items-center gap-2">
                   <span className="text-2xl">ℹ️</span>
@@ -727,19 +715,6 @@ const Settings = () => {
         <>
           <div className="px-4 py-6">
             <div className="flex items-center gap-4 mb-6">
-              <button 
-                onClick={() => {
-                  setParentView('timeLimit');
-                  setPinStep('current');
-                  setCurrentPin('');
-                  setNewPin('');
-                  setConfirmPin('');
-                  setPinError(false);
-                }}
-                className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-lg text-slate-600"
-              >
-                <ChevronLeft size={28} />
-              </button>
               <div className="flex-1">
                 <div className="flex items-center gap-2">
                   <span className="text-2xl">🔐</span>

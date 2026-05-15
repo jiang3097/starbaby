@@ -318,13 +318,7 @@ const EmotionGuess = () => {
             className="h-full flex flex-col relative"
           >
             {/* Header */}
-            <div className="px-4 pt-3 pb-3 flex items-center justify-between">
-              <button
-                onClick={() => navigate('/training')}
-                className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-slate-400 shadow-sm"
-              >
-                <ChevronLeft size={24} />
-              </button>
+            <div className="px-4 pt-3 pb-3 flex items-center justify-end">
               <div className="flex flex-col items-center">
                 <span className="text-sm font-bold text-purple-600">表情猜猜看</span>
                 <div className="flex items-center gap-2 mt-1">
