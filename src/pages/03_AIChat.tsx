@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { speakText, stopSpeak, pauseSpeak, isSpeaking as checkIsSpeaking } from '../lib/useSpeech';
+import { speakText, stopSpeak, pauseSpeak, checkSpeaking } from '../lib/useSpeech';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, Mic, Volume2, Send, Square, Keyboard, Pause, Play } from 'lucide-react';
@@ -196,7 +196,7 @@ const AIChat = () => {
       setIsAIThinking(false);
 
       // AI 自动朗读回复
-      speakText(reply).catch(() => {});
+      speakText(reply);
     } catch (error) {
       console.error('AI 回复失败:', error);
       setIsAIThinking(false);
@@ -221,9 +221,9 @@ const AIChat = () => {
     } else {
       // 开始朗读
       setIsSpeaking(true);
-      speakText(text)
-        .then(() => setIsSpeaking(false))
-        .catch(() => setIsSpeaking(false));
+      speakText(text);
+      // 朗读完成后自动设置状态
+      setTimeout(() => setIsSpeaking(false), 100);
     }
   };
 
