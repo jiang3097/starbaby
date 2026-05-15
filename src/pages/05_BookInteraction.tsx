@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, Volume2, Mic, Check, ArrowRight, Trophy, RefreshCw, Sparkles, Star, Home, Square } from 'lucide-react';
+import { ChevronLeft, Volume2, Check, ArrowRight, Trophy, RefreshCw, Sparkles, Star, Home, Square } from 'lucide-react';
 import MobileShell from '../components/MobileShell';
 import { Button } from '../components/ui/button';
 import { cn } from '../lib/utils';
@@ -151,7 +151,6 @@ const BookInteraction = () => {
   const [currentStory, setCurrentStory] = useState(0);
   const [phase, setPhase] = useState<GamePhase>('intro');
   const [isPlaying, setIsPlaying] = useState(false);
-  const [isListening, setIsListening] = useState(false);
   const [userAnswer, setUserAnswer] = useState('');
   const [isCorrect, setIsCorrect] = useState(false);
   const [showResult, setShowResult] = useState(false);
@@ -237,12 +236,10 @@ const BookInteraction = () => {
   const resetState = useCallback(() => {
     setPhase('intro');
     setIsPlaying(false);
-    setIsListening(false);
     setUserAnswer('');
     setIsCorrect(false);
     setShowResult(false);
     setEarnedStars(0); // 重置星星
-    // 语音已停止
   }, []);
 
   // 开始阅读
@@ -268,10 +265,8 @@ const BookInteraction = () => {
     setUserAnswer('');
   }, []);
 
-  // 停止录音并提交答案
+  // 提交答案
   const stopAndSubmit = useCallback(() => {
-    // 语音已停止
-    setIsListening(false);
     const finalAnswer = userAnswer;
     
     if (finalAnswer.trim()) {
@@ -298,8 +293,6 @@ const BookInteraction = () => {
       } else {
         try { speakText("就快要答对了哦，正确答案是：" + story.displayAnswer || story.answer); } catch {}
       }
-    } else {
-      alert('请先对着麦克风说话');
     }
   }, [userAnswer, story, incrementExpression, incrementBookCompleted, profile.stars, setEarnedStars, updateProfile, incrementGamePass]);
 
@@ -612,7 +605,6 @@ const BookInteraction = () => {
                   }}
                   className="w-full h-14 bg-gradient-to-r from-rose-400 to-pink-500 text-white font-bold text-lg rounded-full shadow-lg border-none"
                 >
-                  <Mic size={22} className="mr-2" />
                   开始答题
                 </Button>
               </div>
@@ -670,7 +662,6 @@ const BookInteraction = () => {
                 onClick={startAnswering}
                 className="h-16 px-12 rounded-full bg-gradient-to-r from-rose-400 to-pink-500 text-white font-bold text-xl shadow-xl border-none"
               >
-                <Mic size={24} className="mr-2" />
                 点击回答问题
               </Button>
             </div>
@@ -698,50 +689,32 @@ const BookInteraction = () => {
                 <p className="text-base text-slate-600">{story.question}</p>
               </div>
 
-              {/* 录音状态 */}
-              <motion.div
-                animate={{ scale: isListening ? [1, 1.02, 1] : 1 }}
-                className={cn(
-                  "w-32 h-32 rounded-full flex flex-col items-center justify-center shadow-xl transition-all cursor-pointer",
-                  isListening 
-                    ? "bg-gradient-to-br from-rose-400 to-pink-500" 
-                    : "bg-gradient-to-br from-slate-100 to-slate-200"
-                )}
-                onClick={() => !isListening && startAnswering()}
-              >
-                <span className="text-5xl mb-2">{isListening ? '🎤' : '🎙️'}</span>
-                <p className={cn(
-                  "text-sm font-bold",
-                  isListening ? "text-white" : "text-slate-400"
-                )}>
-                  {isListening ? '正在听...' : '点击开始'}
-                </p>
-              </motion.div>
-
-              {/* 用户回答 */}
+              {/* 文本输入框 */}
               <div className="bg-white rounded-2xl p-4 shadow-md border-2 border-rose-100 max-w-sm w-full">
-                <p className="text-xs text-slate-400 mb-1">你说的：</p>
-                <p className={cn(
-                  "text-base font-medium",
-                  userAnswer ? "text-slate-700" : "text-slate-400 italic"
-                )}>
-                  {userAnswer || '等待说话...'}
-                </p>
+                <p className="text-xs text-slate-400 mb-2">请用手机键盘语音输入你的回答：</p>
+                <input
+                  type="text"
+                  value={userAnswer}
+                  onChange={(e) => setUserAnswer(e.target.value)}
+                  placeholder="点击这里输入..."
+                  className="w-full text-base text-slate-700 placeholder-slate-300 outline-none border-none bg-transparent"
+                  autoFocus
+                />
               </div>
 
-              {/* 说完了按钮 */}
+              {/* 提交答案按钮 */}
               <Button
                 onClick={stopAndSubmit}
-                disabled={!userAnswer}
+                disabled={!userAnswer.trim()}
                 className={cn(
                   "h-14 px-12 font-bold rounded-full border-none",
-                  userAnswer 
+                  userAnswer.trim()
                     ? "bg-gradient-to-r from-rose-400 to-pink-500 text-white"
                     : "bg-slate-200 text-slate-400"
                 )}
               >
                 <Check size={20} className="mr-1" />
-                说完了
+                提交答案
               </Button>
             </div>
           </motion.div>
