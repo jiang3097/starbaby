@@ -1,7 +1,7 @@
 // 语音朗读模块 - 完整版
 // 支持 Capacitor 原生 TTS 和浏览器 SpeechSynthesis
 
-import { TextToSpeech, TTSEventType } from '@capacitor-community/text-to-speech';
+import { TextToSpeech } from '@capacitor-community/text-to-speech';
 
 // 状态
 let browserSpeaking = false;
@@ -67,7 +67,7 @@ export const resumeSpeak = async (): Promise<void> => {
 // 是否正在朗读
 export const isSpeaking = (): boolean => {
   if (isCapacitor()) {
-    return false; // Capacitor 模式下不追踪
+    return false;
   }
   if (window.speechSynthesis) {
     return window.speechSynthesis.speaking || browserSpeaking;
@@ -86,8 +86,6 @@ const speakWithCapacitor = async (text: string): Promise<void> => {
       rate: 1.0,
       pitch: 1.0,
       volume: 1.0,
-    }, {
-      category: 'playback',
     });
     
     console.log('[TTS] 原生朗读完成');
@@ -192,7 +190,6 @@ export const speakText = async (text: string): Promise<void> => {
     await speakWithBrowser(cleanText);
   } catch (e: any) {
     console.error('[TTS] 朗读失败:', e?.message);
-    // 静默失败，不显示 alert 打扰用户
   }
 };
 
