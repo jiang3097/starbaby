@@ -8,7 +8,12 @@ export function removeEmoji(text: string): string {
 }
 
 // 判断是否在 Capacitor 原生环境
-const isCapacitor = Capacitor.isNativePlatform();
+let isCapacitor = false;
+try {
+  isCapacitor = Capacitor.isNativePlatform();
+} catch {
+  isCapacitor = false;
+}
 
 // 浏览器原生 TTS
 let browserUtterance: SpeechSynthesisUtterance | null = null;
@@ -19,7 +24,6 @@ export const stopSpeak = async (): Promise<void> => {
     if (isCapacitor) {
       await TextToSpeech.stop();
     } else {
-      // 浏览器环境
       if (typeof window !== 'undefined' && window.speechSynthesis) {
         window.speechSynthesis.cancel();
       }
@@ -34,10 +38,8 @@ export const stopSpeak = async (): Promise<void> => {
 export const pauseSpeak = async (): Promise<void> => {
   try {
     if (isCapacitor) {
-      // Capacitor TTS 不支持暂停，使用停止代替
       await TextToSpeech.stop();
     } else {
-      // 浏览器环境
       if (typeof window !== 'undefined' && window.speechSynthesis) {
         window.speechSynthesis.pause();
         isBrowserSpeaking = false;
@@ -53,7 +55,6 @@ export const pauseSpeak = async (): Promise<void> => {
 export const resumeSpeak = async (): Promise<void> => {
   try {
     if (!isCapacitor) {
-      // 浏览器环境
       if (typeof window !== 'undefined' && window.speechSynthesis) {
         window.speechSynthesis.resume();
         isBrowserSpeaking = true;
@@ -68,7 +69,6 @@ export const resumeSpeak = async (): Promise<void> => {
 // 是否正在朗读
 export const isSpeaking = (): boolean => {
   if (isCapacitor) {
-    // 原生环境无法直接获取状态，假设正在播放
     return isBrowserSpeaking;
   } else {
     if (typeof window !== 'undefined' && window.speechSynthesis) {
@@ -78,15 +78,34 @@ export const isSpeaking = (): boolean => {
   return false;
 };
 
+// 获取中文语音
+function getChineseVoice(): SpeechSynthesisVoice | null {
+  if (typeof window === 'undefined' || !window.speechSynthesis) return null;
+  
+  // 确保语音列表已加载
+  const voices = window.speechSynthesis.getVoices();
+  if (voices.length === 0) {
+    // 语音未加载，等待一下再试
+    return null;
+  }
+  
+  // 优先选择中文语音
+  return voices.find(v => 
+    v.lang.includes('zh') || 
+    v.lang.includes('CN') || 
+    v.lang.includes('HK') ||
+    v.name.includes('Chinese')
+  ) || null;
+}
+
 export const speakText = async (text: string): Promise<void> => {
   try {
-    // 先停止之前的朗读
     await stopSpeak();
     
     const cleanText = removeEmoji(text);
     if (!cleanText) return;
     
-    console.log('[TTS] 开始朗读:', cleanText);
+    console.log('[TTS] 开始朗读:', cleanText, 'isCapacitor:', isCapacitor);
     
     if (isCapacitor) {
       // Capacitor 原生环境
@@ -105,11 +124,14 @@ export const speakText = async (text: string): Promise<void> => {
         utterance.rate = 0.9;
         utterance.pitch = 1.0;
         
-        // 尝试选择中文语音
-        const voices = window.speechSynthesis.getVoices();
-        const chineseVoice = voices.find(v => v.lang.includes('zh') || v.lang.includes('CN'));
+        // 尝试获取中文语音
+        const chineseVoice = getChineseVoice();
         if (chineseVoice) {
           utterance.voice = chineseVoice;
+          console.log('[TTS] 使用语音:', chineseVoice.name);
+        } else {
+          // 如果没有中文语音，使用默认语音
+          console.log('[TTS] 未找到中文语音，使用默认');
         }
         
         utterance.onend = () => {
@@ -117,9 +139,9 @@ export const speakText = async (text: string): Promise<void> => {
           console.log('[TTS] 浏览器朗读完成');
         };
         
-        utterance.onerror = () => {
+        utterance.onerror = (e) => {
           isBrowserSpeaking = false;
-          console.log('[TTS] 浏览器朗读出错');
+          console.log('[TTS] 浏览器朗读出错:', e.error);
         };
         
         browserUtterance = utterance;
@@ -127,21 +149,11 @@ export const speakText = async (text: string): Promise<void> => {
         
         window.speechSynthesis.speak(utterance);
       } else {
-        console.warn('[TTS] 浏览器不支持语音合成');
+        console.log('[TTS] 浏览器不支持语音合成');
       }
     }
   } catch (e) {
     console.error('[TTS] 朗读失败:', e);
-  }
-};
-
-// 浏览器语音列表加载（需要在页面加载时调用）
-export const loadBrowserVoices = (): void => {
-  if (typeof window !== 'undefined' && window.speechSynthesis) {
-    // 语音列表可能异步加载
-    window.speechSynthesis.getVoices();
-    window.speechSynthesis.onvoiceschanged = () => {
-      window.speechSynthesis.getVoices();
-    };
+    isBrowserSpeaking = false;
   }
 };
