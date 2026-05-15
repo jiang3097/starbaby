@@ -217,13 +217,10 @@ const AIChat = () => {
     if (isSpeaking) {
       // 正在朗读，点击暂停
       pauseSpeak();
-      setIsSpeaking(false);
     } else {
       // 开始朗读
       setIsSpeaking(true);
       speakText(text);
-      // 朗读完成后自动设置状态
-      setTimeout(() => setIsSpeaking(false), 100);
     }
   };
 
