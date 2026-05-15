@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { speakText, stopSpeak, pauseSpeak, checkSpeaking } from '../lib/useSpeech';
+import { speakText, stopSpeak, pauseSpeak, resumeSpeak, checkSpeaking, checkPaused } from '../lib/useSpeech';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, Mic, Volume2, Send, Square, Keyboard, Pause, Play } from 'lucide-react';
@@ -371,11 +371,14 @@ const AIChat = () => {
                     <Volume2 size={14} />
                     <span>朗读</span>
                   </button>
-                  {/* 暂停按钮 */}
+                  {/* 暂停/继续按钮 */}
                   <button
                     onClick={() => {
-                      pauseSpeak();
-                      setIsSpeaking(false);
+                      if (checkPaused()) {
+                        resumeSpeak();
+                      } else {
+                        pauseSpeak();
+                      }
                     }}
                     className={cn(
                       "flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full transition-all shadow-sm",
@@ -385,8 +388,8 @@ const AIChat = () => {
                     )}
                     disabled={!isSpeaking}
                   >
-                    <Pause size={14} />
-                    <span>暂停</span>
+                    {checkPaused() ? <Play size={14} /> : <Pause size={14} />}
+                    <span>{checkPaused() ? '继续' : '暂停'}</span>
                   </button>
                   {/* 停止按钮 */}
                   <button

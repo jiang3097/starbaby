@@ -2,7 +2,10 @@
 
 // 状态
 let isSpeaking = false;
+let isPaused = false;
 let currentText = '';
+let currentIndex = 0;
+let utteranceRef: SpeechSynthesisUtterance | null = null;
 
 // 移除 emoji
 export function removeEmoji(text: string): string {
@@ -15,25 +18,37 @@ export const stopSpeak = (): void => {
     window.speechSynthesis.cancel();
   }
   isSpeaking = false;
+  isPaused = false;
+  currentIndex = 0;
+  utteranceRef = null;
 };
 
 // 暂停朗读
 export const pauseSpeak = (): void => {
-  if (window.speechSynthesis && isSpeaking) {
+  if (window.speechSynthesis && isSpeaking && !isPaused) {
     window.speechSynthesis.pause();
+    isPaused = true;
+    console.log('[TTS] 已暂停');
   }
 };
 
 // 继续朗读
 export const resumeSpeak = (): void => {
-  if (window.speechSynthesis) {
+  if (window.speechSynthesis && isPaused) {
     window.speechSynthesis.resume();
+    isPaused = false;
+    console.log('[TTS] 继续朗读');
   }
 };
 
 // 检查是否正在朗读
 export const checkSpeaking = (): boolean => {
   return isSpeaking;
+};
+
+// 检查是否暂停
+export const checkPaused = (): boolean => {
+  return isPaused;
 };
 
 // 朗读文本
@@ -51,6 +66,7 @@ export const speakText = (text: string): void => {
   }
   
   currentText = cleanText;
+  currentIndex = 0;
   
   const utterance = new SpeechSynthesisUtterance(cleanText);
   utterance.lang = 'zh-CN';
@@ -71,19 +87,24 @@ export const speakText = (text: string): void => {
   
   utterance.onstart = () => {
     isSpeaking = true;
+    isPaused = false;
     console.log('[TTS] 开始朗读');
   };
   
   utterance.onend = () => {
     isSpeaking = false;
+    isPaused = false;
+    currentIndex = 0;
     console.log('[TTS] 朗读完成');
   };
   
   utterance.onerror = (e) => {
     isSpeaking = false;
+    isPaused = false;
     console.log('[TTS] 朗读错误:', e.error);
   };
   
+  utteranceRef = utterance;
   window.speechSynthesis.speak(utterance);
 };
 
